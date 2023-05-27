@@ -1,5 +1,7 @@
 import random
 import time
+from datetime import datetime, timedelta
+import numpy as np
 
 def init_model(data, sample_time, glucose_model, pathology,
                      exercise, seed, environment):
@@ -56,8 +58,7 @@ def init_model(data, sample_time, glucose_model, pathology,
     #Time constants within the simulation
     model['TS'] = 1 #integration time
     model['YTS'] = sample_time #sample time
-    #model.T = minutes(data.Time(end)-data.Time(1))+sample_time #simulation timespan [min] #TODO: compute the number of total minutes given the data
-    model['T'] = 10
+    model['T'] = int( (np.array(data.t)[-1].astype(datetime)-np.array(data.t)[0].astype(datetime))/(60*1000000000) + sample_time) #simulation timespan [min]
     model['TSTEPS'] = int(model['T']/model['TS']) #total simulation length [integration steps]
     model['TYSTEPS'] = int(model['T']/model['YTS']) #total simulation length [sample steps]
     
