@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from replay_bg import replay_bg
+from replay_bg import ReplayBG
 from datetime import datetime, timedelta
 
 # Set fake data
@@ -25,4 +25,6 @@ BW = 100
 scenario = 'single-meal'
 save_name = 'test'
         
-replay_bg(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name)
+rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name)
+
+print(rbg)
