@@ -12,20 +12,7 @@ import matplotlib.pyplot as plt
 import zeus
 #from identification.identifier import Identifier
 
-### EXPERIMENTING ###
-#import arviz as az
-#import matplotlib.pyplot as plt
-#import numpy as np
-#import pandas as pd
-#import pymc as pm
-#import pytensor
-#import pytensor.tensor as pt
-#from pymc.ode import DifferentialEquation
-#from pytensor.compile.ops import as_op
-#from scipy.integrate import odeint
-#from scipy.optimize import least_squares
-#from numba import njit
-#####################
+
 
 class ReplayBG:
     """
@@ -337,7 +324,7 @@ class ReplayBG:
         if scenario == 'single-meal':
             if pathology == 't1d':
                 if ~exercise:
-                    model = SingleMealT1DModel(data = data, BW = BW, environment = environment, ts = 1, yts = yts, glucose_model = glucose_model)
+                    model = SingleMealT1DModel(data = data, BW = BW, ts = 1, yts = yts, glucose_model = glucose_model)
 
         #Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)

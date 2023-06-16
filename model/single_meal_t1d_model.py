@@ -65,6 +65,8 @@ class SingleMealT1DModel:
         #Model parameters
         self.model_parameters = self.__get_default_model_parameters(data, BW)
 
+        self.unknown_parameters = np.array(['SI','SG','Gb','p2','kempt','kabs','ka2','kd'])
+
     def __get_default_model_parameters(self, data, BW):
         """
         Function that returns the default parameters values of the model.
@@ -109,7 +111,6 @@ class SingleMealT1DModel:
         model_parameters['SI'] = 10.35e-4 / model_parameters['VG'] #mL/(uU*min)
         model_parameters['p2'] = 0.012 #1/min 
         model_parameters['u2ss'] = np.mean(data.basal) * 1000 / BW #mU/(kg*min)
-        model_parameters['Ipb'] = (model_parameters['ka1'] / model_parameters['ke']) * model_parameters['u2ss'] / (model_parameters['ka1'] + model_parameters['kd']) + (model_parameters['ka2'] / model_parameters['ke']) * (model_parameters['kd'] / model_parameters['ka2']) * model_parameters['u2ss'] / (model_parameters['ka1']+ model_parameters['kd']) #from eq. 5 steady-state 
 
         #Subcutaneous insulin absorption submodel parameters
         model_parameters['VI'] = 0.126 #L/kg
@@ -119,6 +120,7 @@ class SingleMealT1DModel:
         model_parameters['ka1'] = 0
         model_parameters['ka2'] = 0.014 #1/min
         model_parameters['tau'] = 8 #min
+        model_parameters['Ipb'] = (model_parameters['ka1'] / model_parameters['ke']) * model_parameters['u2ss'] / (model_parameters['ka1'] + model_parameters['kd']) + (model_parameters['ka2'] / model_parameters['ke']) * (model_parameters['kd'] / model_parameters['ka2']) * model_parameters['u2ss'] / (model_parameters['ka1']+ model_parameters['kd']) #from eq. 5 steady-state 
 
         #Oral glucose absorption submodel parameters
         model_parameters['kabs'] = 0.012; #1/min
@@ -222,8 +224,16 @@ class SingleMealT1DModel:
         #Simulate the physiological model
         for k in np.arange(1, self.tsteps):
             
+            #Set the input delays
+            bolus_delay = int(np.floor(mp['tau'] / self.ts))
+            if k - 1 - bolus_delay > 0:
+                b = rbg_data.bolus[k - 1 - bolus_delay]
+            else:
+                b = 0
+            #TODO: delay the main meal (HOW TO? probably need an utility vector with flags)
+
             #Simulate a step
-            x[:,k] = self.__model_step_equations(rbg_data.bolus[k-1] + rbg_data.basal[k-1], rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
+            x[:,k] = self.__model_step_equations(b + rbg_data.basal[k-1], rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
 
             #Get teh glucose measurement
             if self.glucose_model == 'IG': 
@@ -236,7 +246,7 @@ class SingleMealT1DModel:
                 if rbg.sensors.cgm.model == 'IG': 
                     CGM[int(k / rbg.sensors.cgm.ts)] = x[self.nx, k] #y(k) = IG(k)
                 if rbg.sensors.cgm.model == 'CGM': 
-                    CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx, k], k / (24 * 60))
+                    CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx - 1, k], k / (24 * 60))
             
         return G, CGM, x
 
