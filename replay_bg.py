@@ -1,9 +1,31 @@
 from environment.environment import Environment
-from model.model import Model
+from model.single_meal_t1d_model import SingleMealT1DModel
+
 from sensors.sensors import CGM, Sensors
 from dss.dss import DSS
 from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
+from data.data import ReplayBGData
+
+import matplotlib.pyplot as plt
+
+import zeus
+#from identification.identifier import Identifier
+
+### EXPERIMENTING ###
+#import arviz as az
+#import matplotlib.pyplot as plt
+#import numpy as np
+#import pandas as pd
+#import pymc as pm
+#import pytensor
+#import pytensor.tensor as pt
+#from pymc.ode import DifferentialEquation
+#from pytensor.compile.ops import as_op
+#from scipy.integrate import odeint
+#from scipy.optimize import least_squares
+#from numba import njit
+#####################
 
 class ReplayBG:
     """
@@ -15,7 +37,7 @@ class ReplayBG:
     environment: Environment
         An object that represents the hyperparameters to be used by ReplayBG environment.
     model: Model
-        An object that represents the physiological model hyperparameters to be used by ReplayBG.
+        An object that represents the physiological model to be used by ReplayBG.
     sensors: Sensors
         An object that represents the sensors to be used by ReplayBG.
     mcmc: MCMC
@@ -308,11 +330,14 @@ class ReplayBG:
 
         #Initialize the environment parameters
         environment = Environment(modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
-            bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
+            bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source, seed = seed,
             plot_mode = plot_mode, enable_log = enable_log, verbose = verbose)
 
         #Initialize model
-        model = Model(data = data, environment = environment, ts = 1, yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed)
+        if scenario == 'single-meal':
+            if pathology == 't1d':
+                if ~exercise:
+                    model = SingleMealT1DModel(data = data, BW = BW, environment = environment, ts = 1, yts = yts, glucose_model = glucose_model)
 
         #Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
@@ -358,3 +383,39 @@ class ReplayBG:
 
         #return the object
         return Sensors(cgm = cgm)
+    
+
+    def run(self, data, BW):
+        """
+        Runs ReplayBG.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        if self.environment.modality == 'identification':
+            pass
+            #Run identification
+            #idf = Identifier()
+            #idf.identify(self, data = data, BW = BW)
+
+        else:
+
+            rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
+            [G, CGM, x] = self.model.simulate(rbg_data = rbg_data, rbg = self)
+            plt.plot(G)
+            plt.show()

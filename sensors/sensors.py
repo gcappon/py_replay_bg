@@ -173,8 +173,9 @@ class CGM:
         #Generate noise
         z = np.random.normal(0,1)
         u = self.cgm_error_parameters[6]*z
-        e, _ = signal.lfilter(1, np.array([1, -self.cgm_error_parameters[4], -self.cgm_error_parameters[5]]), u)
+        #e, _ = signal.lfilter(np.array([1]), np.array([1, -self.cgm_error_parameters[4], -self.cgm_error_parameters[5]]), np.array([u]))
         #e = filter(1,[1, -sensors.cgm.errorParameters(5), -sensors.cgm.errorParameters(6)],u);
+        e = u
 
         #Get final CGM
         return IGs + e
