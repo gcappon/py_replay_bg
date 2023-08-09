@@ -1,11 +1,32 @@
 import random
 from datetime import datetime
 import numpy as np
-from numba import jit
+from numba import jit,njit
 
+from numba import types, typed
+from numba.experimental import jitclass
+
+import scipy.stats as stats
+
+spec = [
+    ('ts', types.int32),   
+    ('yts', types.int32),        
+    ('t', types.int32),         
+    ('tsteps', types.int32),   
+    ('tysteps', types.int32),  
+    ('glucose_model', types.unicode_type), 
+    ('nx', types.int32),     
+    ('glucose_model', types.unicode_type), 
+    ('model_parameters', types.DictType(types.unicode_type, types.float64)),
+    ('unknown_parameters',types.List(types.unicode_type)),
+    ('start_guess',types.float64[:]),
+    ('start_guess_sigma',types.float64[:])
+]
+
+#@jitclass(spec)
 class SingleMealT1DModel:
     """
-    A class that represents the physiological model hyperparameters to be used by ReplayBG.
+    A class that represents the single meal type 1 diabetes model.
 
     ...
     Attributes 
@@ -26,12 +47,21 @@ class SingleMealT1DModel:
         The number of model states.
     model_parameters: dict 
         A dictionary containing the default model parameters.
-
+    unknown_parameters: array
+        An array that contains the list of unknown parameters to be estimated.
+    start_guess: array
+        An array that contains the initial starting point to be used by the mcmc procedure.
+    start_guess_sigma: array
+        An array that contains the initial starting SD of unknown parameters to be used by the mcmc procedure.
+    
     Methods
     -------
-    def simulate(rbg_data, rbg):
+    simulate(rbg_data, rbg):
         Function that simulates the model and returns the obtained results.
-
+    log_posterior(theta, rbg_data, rbg):
+        Function that computes the log posterior of unknown parameters.
+    check_copula_extraction(theta):
+        Function that checks if a copula extraction is valid or not.
     """
     def __init__(self, data, BW, ts = 1, yts = 5, glucose_model = 'IG'):
         """
@@ -53,6 +83,7 @@ class SingleMealT1DModel:
         self.ts = ts
         self.yts = yts
         self.t = int( (np.array(data.t)[-1].astype(datetime)-np.array(data.t)[0].astype(datetime))/(60*1000000000) + self.yts) 
+        #self.t = 365 #TODO: FOR NUMBAS: data Pandas here to be removed
         self.tsteps = int(self.t / self.ts)
         self.tysteps = int(self.t / self.yts) 
         
@@ -65,7 +96,15 @@ class SingleMealT1DModel:
         #Model parameters
         self.model_parameters = self.__get_default_model_parameters(data, BW)
 
-        self.unknown_parameters = np.array(['SI','SG','Gb','p2','kempt','kabs','ka2','kd'])
+        #Unknown parameters
+        self.unknown_parameters = ['SI','Gb','SG','p2','ka2','kd','kempt','kabs'] #beta
+        #TODO: add beta 
+
+        #initial guess for unknown parameter
+        self.start_guess = np.array([self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['p2'],
+                               self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs']])
+        #initial guess for the SD of each parameter
+        self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) #0.5
 
     def __get_default_model_parameters(self, data, BW):
         """
@@ -98,8 +137,8 @@ class SingleMealT1DModel:
         model_parameters = {}
 
         #Initial conditions
-        model_parameters['Xpb'] = 0 #Insulin action initial condition
-        model_parameters['Qgutb'] = 0 #Intestinal content initial condition
+        model_parameters['Xpb'] = 0.0 #Insulin action initial condition
+        model_parameters['Qgutb'] = 0.0 #Intestinal content initial condition
 
         #Glucose-insulin submodel parameters
         model_parameters['VG'] = 1.45 #dl/kg
@@ -111,6 +150,7 @@ class SingleMealT1DModel:
         model_parameters['SI'] = 10.35e-4 / model_parameters['VG'] #mL/(uU*min)
         model_parameters['p2'] = 0.012 #1/min 
         model_parameters['u2ss'] = np.mean(data.basal) * 1000 / BW #mU/(kg*min)
+        #model_parameters['u2ss'] = 0.016666666915018998 #TODO: FOR NUMBAS: data Pandas here to be removed
 
         #Subcutaneous insulin absorption submodel parameters
         model_parameters['VI'] = 0.126 #L/kg
@@ -139,7 +179,6 @@ class SingleMealT1DModel:
         model_parameters['BW'] = BW #kg
 
         #Measurement noise specifics
-        model_parameters['typeN'] = 'SD'
         model_parameters['SDn'] = 5
                 
         #Initial conditions
@@ -148,7 +187,6 @@ class SingleMealT1DModel:
                                       
         return model_parameters
 
-    #@jit
     def simulate(self, rbg_data, rbg):
         """
         Function that simulates the model and returns the obtained results.
@@ -157,7 +195,7 @@ class SingleMealT1DModel:
         ----------
         rbg_data : ReplayBGData
             The data to be used by ReplayBG during simulation.
-        BW : ReplayBG
+        rbg : ReplayBG
             The instance of ReplayBG.
 
         Returns
@@ -169,7 +207,6 @@ class SingleMealT1DModel:
             An array containing the simulated CGM trace (mg/dl).
         x: matrix
             A matrix containing all the simulated states.
-        
 
         Raises
         ------
@@ -235,7 +272,7 @@ class SingleMealT1DModel:
             #Simulate a step
             x[:,k] = self.__model_step_equations(b + rbg_data.basal[k-1], rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
 
-            #Get teh glucose measurement
+            #Get the glucose measurement
             if self.glucose_model == 'IG': 
                 G[k] = x[self.nx-1,k] #y(k) = IG(k)
             if self.glucose_model == 'BG':
@@ -309,7 +346,7 @@ class SingleMealT1DModel:
 
         return [G, X, Isc1, Isc2, Ip, Qsto1, Qsto2, Qgut, IG]
 
-    #@jit
+    #njit
     def __hypoglycemic_risk(self,G, r1, r2):
         """
         Internal function that computes the hypoglycemic risk function.
@@ -354,3 +391,154 @@ class SingleMealT1DModel:
             risk = risk + 10*r1*(np.log(G_th)**r2 - np.log(119.13)**r2)**2
 
         return risk
+    
+    def __log_prior(self,theta):
+        """
+        Internal function that computes the log prior of unknown parameters.
+
+        Parameters
+        ----------
+        theta : array
+            The current guess of unknown model parameters.
+
+        Returns
+        -------
+        log_prior: float
+            The value of the log prior of current unknown model paraemters guess.
+        
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+
+        #unpack the model parameters
+        SI, Gb, SG, p2, ka2, kd, kempt, kabs = theta
+
+        #compute each log prior
+        logprior_SI = np.log(stats.gamma.pdf(SI*self.model_parameters['VG'],3.3,5e-4)) if 0 <= SI * self.model_parameters['VG'] < 1 else -np.inf
+        logprior_Gb = np.log(stats.norm.pdf(Gb, 119.13, 7.11)) if 70 <= Gb <= 180 else -np.inf
+        logprior_SG = np.log(stats.lognorm.pdf(SG,0.5, scale = np.exp(-3.8))) if 0 < SG < 1 else -np.inf
+        logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2),0.11,0.004)) if 0 < p2 < 1 else -np.inf
+        logprior_ka2 = np.log(stats.lognorm.pdf(ka2,0.4274, scale = np.exp(-4.2875))) if 0 < ka2 < kd and ka2 < 1 else -np.inf
+        logprior_kd = np.log(stats.lognorm.pdf(kd,0.6187, scale = np.exp(-3.5090))) if 0 < ka2 < kd and kd < 1 else -np.inf
+        logprior_kempt = np.log(stats.lognorm.pdf(kempt,0.7069, scale = np.exp(-1.9646))) if 0 < kempt < 1 else -np.inf
+        logprior_kabs = np.log(stats.lognorm.pdf(kabs,1.4396, scale = np.exp(-5.4591))) if kempt >= kabs and 0 < kabs < 1 else -np.inf
+
+        #TODO: logprior_beta = 0 if 0 < beta < 60 else -np.inf
+        
+        #Sum everything and return the value
+        return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs
+    
+    def __log_likelihood(self, theta, rbg_data, rbg):
+        """
+        Internal function that computes the log likelihood of unknown parameters.
+
+        Parameters
+        ----------
+        theta : array
+            The current guess of unknown model parameters.
+        rbg_data : ReplayBGData
+            The data to be used by ReplayBG during simulation.
+        rbg : ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        log_likelihood: float
+            The value of the log likelihood of current unknown model paraemters guess.
+        
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+
+        #Set model parameters to current guess
+        self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs'] = theta 
+
+        #Enforce contraints
+        self.model_parameters['kgri'] = self.model_parameters['kempt']
+
+        #Simulate the model
+        [G, CGM, x] = self.simulate(rbg_data = rbg_data, rbg = rbg)
+
+        #Sample the simulation 
+        G = G[0::int(self.yts/self.ts)]
+
+        #Compute and return the log likelihood
+        return -0.5 * np.sum( ( ( G - rbg_data.glucose ) / self.model_parameters['SDn'] )**2 )
+
+    def log_posterior(self, theta, rbg_data, rbg):
+        """
+        Function that computes the log posterior of unknown parameters.
+
+        Parameters
+        ----------
+        theta : array
+            The current guess of unknown model parameters.
+        rbg_data : ReplayBGData
+            The data to be used by ReplayBG during simulation.
+        rbg : ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        log_posterior: float
+            The value of the log posterior of current unknown model paraemters guess.
+        
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data, rbg)
+    
+    def check_copula_extraction(self, theta):
+        """
+        Function that checks if a copula extraction is valid or not.
+
+        Parameters
+        ----------
+        theta : array
+            The copula extraction of unknown model parameters.
+
+        Returns
+        -------
+        is_ok: bool
+            The flag indicating if the extraction is ok or not. 
+        
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        return self.__log_prior(theta) != -np.inf

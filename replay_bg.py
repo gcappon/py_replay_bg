@@ -10,7 +10,7 @@ from data.data import ReplayBGData
 import matplotlib.pyplot as plt
 
 import zeus
-#from identification.identifier import Identifier
+from identification.mcmc import MCMC
 
 
 
@@ -41,6 +41,7 @@ class ReplayBG:
               yts = 5, glucose_model = 'IG', pathology = 't1d', exercise = False, seed = 1,
               bolus_source = 'data', basal_source = 'data', cho_source = 'data', 
               cgm_model = 'IG',
+              n_burn_in = 1000, n_steps = 100000, to_sample = 1000,
               CR = 10, CF = 40, GT = 120,
               meal_generator_handler = default_meal_generator_handler, meal_generator_handler_params = {},
               bolus_calculator_handler = standard_bolus_calculator_handler, bolus_calculator_handler_params = {},
@@ -93,6 +94,13 @@ class ReplayBG:
             A string that specify the cgm model selection.
             If IG is selected, CGM measure will be the noise-free IG state at the current time.
 
+        n_burn_in: int, optional, default : 1000
+            Number of steps to use for the burn_in session. This is ignored if modality is 'replay'.
+        n_steps: int, optional, default : 100000
+            Number of steps to use for the main chain. This is ignored if modality is 'replay'.
+        to_sample: int, optional, default : 1000
+            Number of samples to generate via the copula. This is ignored if modality is 'replay'.
+
         CR: double, optional, default : 10
             The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
         CF: double, optional, default : 40
@@ -132,8 +140,6 @@ class ReplayBG:
 
         plot_mode : boolean, optional, default : True
             A boolean that specifies whether to show the plot of the results or not.
-        enable_log : boolean, optional, default : True
-            A boolean that specifies whether to log the output of ReplayBG not.
         verbose : boolean, optional, default : True
             A boolean that specifies the verbosity of ReplayBG.
 
@@ -166,13 +172,14 @@ class ReplayBG:
                                                                 yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
                                                                 bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
                                                                 cgm_model = 'CGM',
+                                                                n_burn_in = n_burn_in, n_steps = n_steps, to_sample = to_sample,
                                                                 CR = CR, CF = CF, GT = GT, 
                                                                 meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
                                                                 bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,
                                                                 basal_handler = basal_handler, basal_handler_params = basal_handler_params,
                                                                 enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
                                                                 enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
-                                                                plot_mode = plot_mode, enable_log = enable_log, verbose = verbose)
+                                                                plot_mode = plot_mode, verbose = verbose)
 
         # ====================================================================
 
@@ -184,13 +191,14 @@ class ReplayBG:
                             yts, glucose_model, pathology, exercise, seed,
                             bolus_source, basal_source, cho_source, 
                             cgm_model,
+                            n_burn_in, n_steps, to_sample,
                             CR, CF, GT, 
                             meal_generator_handler, meal_generator_handler_params,
                             bolus_calculator_handler, bolus_calculator_handler_params,
                             basal_handler, basal_handler_params,
                             enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
                             enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
-                            plot_mode, enable_log, verbose):
+                            plot_mode, verbose):
         """
         Initializes the core variables (i.e., environment, model, sensors, mcmc, and dss) of ReplayBG.
 
@@ -233,6 +241,13 @@ class ReplayBG:
             A string that specify the cgm model selection.
             If IG is selected, CGM measure will be the noise-free IG state at the current time.
 
+        n_burn_in: int
+            Number of steps to use for the burn_in session. This is ignored if modality is 'replay'.
+        n_steps: int
+            Number of steps to use for the main chain. This is ignored if modality is 'replay'.
+        to_sample: int
+            Number of samples to generate via the copula. This is ignored if modality is 'replay'.
+            
         bolus_source : string, {'data', or 'dss'}
             A string defining whether to use, during replay, the insulin bolus data contained in the 'data' timetable (if 'data'),
             or the boluses generated by the bolus calculator implemented via the provided 'bolusCalculatorHandler' function.
@@ -284,8 +299,6 @@ class ReplayBG:
 
         plot_mode : boolean
             A boolean that specifies whether to show the plot of the results or not.
-        enable_log : boolean
-            A boolean that specifies whether to log the output of ReplayBG not.
         verbose : boolean
             A boolean that specifies the verbosity of ReplayBG.
 
@@ -318,19 +331,25 @@ class ReplayBG:
         #Initialize the environment parameters
         environment = Environment(modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
             bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source, seed = seed,
-            plot_mode = plot_mode, enable_log = enable_log, verbose = verbose)
+            plot_mode = plot_mode, verbose = verbose)
 
         #Initialize model
         if scenario == 'single-meal':
             if pathology == 't1d':
                 if ~exercise:
                     model = SingleMealT1DModel(data = data, BW = BW, ts = 1, yts = yts, glucose_model = glucose_model)
+        #TODO: add multi-meal model 
 
         #Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
 
-        #TODO: set mcmc
-        mcmc = [] 
+        #Initialize
+        mcmc = MCMC(model, 
+                 n_burn_in = n_burn_in, 
+                 n_steps = n_steps, 
+                 thin_factor = 2, 
+                 to_sample = to_sample,
+                 callback_ncheck = 100)
 
         #Initialize DSS
         dss = DSS(BW = BW, CR = CR, CF = CF, GT = GT, 
@@ -349,9 +368,16 @@ class ReplayBG:
 
         Parameters
         ----------
+        cgm_model: string, {'CGM','IG'}
+            A string that specify the cgm model selection.
+            If IG is selected, CGM measure will be the noise-free IG state at the current time.
+        model: Model
+            An object that represents the physiological model hyperparameters to be used by ReplayBG.
 
         Returns
         -------
+        sensors: Sensors
+            An object that represents the sensors to be used by ReplayBG.
 
         Raises
         ------
@@ -395,10 +421,11 @@ class ReplayBG:
         None
         """
         if self.environment.modality == 'identification':
-            pass
+
+            rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
+            
             #Run identification
-            #idf = Identifier()
-            #idf.identify(self, data = data, BW = BW)
+            self.mcmc.identify(rbg_data = rbg_data, rbg = self)
 
         else:
 

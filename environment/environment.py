@@ -33,10 +33,6 @@ class Environment:
         An integer that specifies the random seed. For reproducibility.
     plot_mode : boolean
         A boolean that specifies whether to show the plot of the results or not.
-    enable_log : boolean
-        A boolean that specifies whether to log the output of ReplayBG not.
-    log_file : string
-        The absolute path of the file containing the log (if enable_log = True). If enable_log = False, this is empty.
     verbose : boolean
         A boolean that specifies the verbosity of ReplayBG.
 
@@ -46,7 +42,7 @@ class Environment:
     """
 
     def __init__(self, modality, save_name, save_suffix = '', scenario = 'single_meal', bolus_source = 'data', basal_source = 'data', cho_source = 'data', seed = 1,
-                 plot_mode = True, enable_log = True, verbose = True):
+                 plot_mode = True, verbose = True):
         """
         Constructs all the necessary attributes for the Environment object.
 
@@ -75,8 +71,6 @@ class Environment:
             An integer that specifies the random seed. For reproducibility.
         plot_mode : boolean, optional, default : True
             A boolean that specifies whether to show the plot of the results or not.
-        enable_log : boolean, optional, default : True
-            A boolean that specifies whether to log the output of ReplayBG not.
         verbose : boolean, optional, default : True
             A boolean that specifies the verbosity of ReplayBG.
         """
@@ -88,8 +82,8 @@ class Environment:
         #Create the results subfolders if they do not exist
         if not(os.path.exists(os.path.join(self.replay_bg_path, 'results'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'distributions'))):
-            os.mkdir(os.path.join(self.replay_bg_path, 'results', 'distributions'))
+        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'draws'))):
+            os.mkdir(os.path.join(self.replay_bg_path, 'results', 'draws'))
         if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'logs'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'logs'))
         if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'mcmc_chains'))):
@@ -104,16 +98,6 @@ class Environment:
             self.save_suffix = save_suffix
         else:
             self.save_suffix = '_' + save_suffix
-    
-        #Create the log file associated to the simulation.
-        self.enable_log = enable_log # if False do not log 
-        
-        if self.enable_log:
-            self.log_file = os.path.join(self.replay_bg_path,'results','logs',str(datetime.now()) + '_' + self.modality + '_' + self.save_name + self.save_suffix + '.txt')
-            if os.path.exists(self.log_file):
-                os.remove(self.log_file)
-        else:
-            self.log_file = ''
 
         #Single-meal or multi-meal scenario?
         self.scenario = scenario
