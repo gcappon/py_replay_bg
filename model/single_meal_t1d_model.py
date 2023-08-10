@@ -262,15 +262,18 @@ class SingleMealT1DModel:
         for k in np.arange(1, self.tsteps):
             
             #Set the input delays
-            bolus_delay = int(np.floor(mp['tau'] / self.ts))
-            if k - 1 - bolus_delay > 0:
-                b = rbg_data.bolus[k - 1 - bolus_delay]
+            insulin_delay = int(np.floor(mp['tau'] / self.ts))
+            if k - 1 - insulin_delay > 0:
+                bol = rbg_data.bolus[k - 1 - insulin_delay]
+                bas = rbg_data.basal[k - 1 - insulin_delay]
             else:
-                b = 0
+                bol = 0
+                bas = rbg_data.basal[0]
+                
             #TODO: delay the main meal (HOW TO? probably need an utility vector with flags)
 
             #Simulate a step
-            x[:,k] = self.__model_step_equations(b + rbg_data.basal[k-1], rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
+            x[:,k] = self.__model_step_equations(bol + bas, rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
 
             #Get the glucose measurement
             if self.glucose_model == 'IG': 

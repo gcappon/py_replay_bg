@@ -46,10 +46,10 @@ class MCMC:
     identify(rbg_data, rbg):
         Runs the identification procedure.
     """
-    
+
     def __init__(self, model, 
                  n_burn_in = 1000, 
-                 n_steps = 100000, 
+                 n_steps = 10000, 
                  thin_factor = 2, 
                  to_sample = 1000,
                  callback_ncheck = 100):
@@ -62,7 +62,7 @@ class MCMC:
             An object that represents the physiological model hyperparameters to be used by ReplayBG.
         n_burn_in: int, optional, default : 1000
             Number of steps to use for the burn_in session.
-        n_steps: int, optional, default : 100000
+        n_steps: int, optional, default : 10000
             Number of steps to use for the main chain.
         thin_factor: int, optional, default : 2
             Chain thin factor to use.

@@ -54,8 +54,6 @@ class ReplayBGData:
         bolus = dict(zip(keys, bolus))
         basal = dict(zip(keys, basal))
 
-        #TODO: manage delays
-
         return bolus, basal
     
     def __meal_setup(self, data, rbg):

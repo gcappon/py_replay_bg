@@ -41,7 +41,7 @@ class ReplayBG:
               yts = 5, glucose_model = 'IG', pathology = 't1d', exercise = False, seed = 1,
               bolus_source = 'data', basal_source = 'data', cho_source = 'data', 
               cgm_model = 'IG',
-              n_burn_in = 1000, n_steps = 100000, to_sample = 1000,
+              n_burn_in = 1000, n_steps = 10000, to_sample = 1000,
               CR = 10, CF = 40, GT = 120,
               meal_generator_handler = default_meal_generator_handler, meal_generator_handler_params = {},
               bolus_calculator_handler = standard_bolus_calculator_handler, bolus_calculator_handler_params = {},
@@ -96,7 +96,7 @@ class ReplayBG:
 
         n_burn_in: int, optional, default : 1000
             Number of steps to use for the burn_in session. This is ignored if modality is 'replay'.
-        n_steps: int, optional, default : 100000
+        n_steps: int, optional, default : 10000
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
         to_sample: int, optional, default : 1000
             Number of samples to generate via the copula. This is ignored if modality is 'replay'.
@@ -343,7 +343,7 @@ class ReplayBG:
         #Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
 
-        #Initialize
+        #Initialize MCMC
         mcmc = MCMC(model, 
                  n_burn_in = n_burn_in, 
                  n_steps = n_steps, 
