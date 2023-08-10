@@ -9,10 +9,9 @@ from data.data import ReplayBGData
 
 import matplotlib.pyplot as plt
 
-import zeus
 from identification.mcmc import MCMC
 
-
+from input_validation.input_validator import InputValidator
 
 class ReplayBG:
     """
@@ -162,10 +161,13 @@ class ReplayBG:
         References
         --------
         Cappon et al., "ReplayBG: a methodology to identify a personalized model from type 1 diabetes data and simulate glucose concentrations to
-        assess alternative therapies", IEEE TBME, 2022 (under revision).
+        assess alternative therapies", IEEE TBME, 2023.
         """
 
-        #TODO: add input validators
+        # ================ TODO: Input validation ============================ 
+        input_validator = InputValidator(modality=modality)
+        input_validator.validate()
+        # ====================================================================
 
         # ================ Initialize core variables =========================
         self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data = data, BW = BW, modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
