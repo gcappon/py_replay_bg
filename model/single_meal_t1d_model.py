@@ -97,14 +97,14 @@ class SingleMealT1DModel:
         self.model_parameters = self.__get_default_model_parameters(data, BW)
 
         #Unknown parameters
-        self.unknown_parameters = ['SI','Gb','SG','p2','ka2','kd','kempt','kabs'] #beta
-        #TODO: add beta 
+        self.unknown_parameters = ['SI','Gb','SG','p2','ka2','kd','kempt','kabs','beta'] #beta
 
         #initial guess for unknown parameter
         self.start_guess = np.array([self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['p2'],
-                               self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs']])
+                               self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs'],
+                               self.model_parameters['beta']])
         #initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]) #0.5
+        self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
 
     def __get_default_model_parameters(self, data, BW):
         """
@@ -261,7 +261,7 @@ class SingleMealT1DModel:
         #Simulate the physiological model
         for k in np.arange(1, self.tsteps):
             
-            #Set the input delays
+            #Set the insulin input delays
             insulin_delay = int(np.floor(mp['tau'] / self.ts))
             if k - 1 - insulin_delay > 0:
                 bol = rbg_data.bolus[k - 1 - insulin_delay]
@@ -269,11 +269,17 @@ class SingleMealT1DModel:
             else:
                 bol = 0
                 bas = rbg_data.basal[0]
-                
-            #TODO: delay the main meal (HOW TO? probably need an utility vector with flags)
+
+            #Set the meal input delay
+            if rbg_data.meal_type[k-1] == 'M':
+                meal_delay = int(np.floor(mp['beta'] / self.ts))
+                if k - 1 - meal_delay > 0:
+                    mea = rbg_data.meal[k - 1 - meal_delay]
+                else:
+                    mea = 0
 
             #Simulate a step
-            x[:,k] = self.__model_step_equations(bol + bas, rbg_data.meal[k-1], x[:,k-1]) #TODO: k or k-1?
+            x[:,k] = self.__model_step_equations(bol + bas, mea, x[:,k-1]) #TODO: k or k-1?
 
             #Get the glucose measurement
             if self.glucose_model == 'IG': 
@@ -423,10 +429,10 @@ class SingleMealT1DModel:
         """
 
         #unpack the model parameters
-        SI, Gb, SG, p2, ka2, kd, kempt, kabs = theta
+        SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
 
         #compute each log prior
-        logprior_SI = np.log(stats.gamma.pdf(SI*self.model_parameters['VG'],3.3,5e-4)) if 0 <= SI * self.model_parameters['VG'] < 1 else -np.inf
+        logprior_SI = np.log(stats.gamma.pdf(SI*self.model_parameters['VG'],3.3,5e-4)) if 0 < SI * self.model_parameters['VG'] < 1 else -np.inf
         logprior_Gb = np.log(stats.norm.pdf(Gb, 119.13, 7.11)) if 70 <= Gb <= 180 else -np.inf
         logprior_SG = np.log(stats.lognorm.pdf(SG,0.5, scale = np.exp(-3.8))) if 0 < SG < 1 else -np.inf
         logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2),0.11,0.004)) if 0 < p2 < 1 else -np.inf
@@ -434,11 +440,10 @@ class SingleMealT1DModel:
         logprior_kd = np.log(stats.lognorm.pdf(kd,0.6187, scale = np.exp(-3.5090))) if 0 < ka2 < kd and kd < 1 else -np.inf
         logprior_kempt = np.log(stats.lognorm.pdf(kempt,0.7069, scale = np.exp(-1.9646))) if 0 < kempt < 1 else -np.inf
         logprior_kabs = np.log(stats.lognorm.pdf(kabs,1.4396, scale = np.exp(-5.4591))) if kempt >= kabs and 0 < kabs < 1 else -np.inf
-
-        #TODO: logprior_beta = 0 if 0 < beta < 60 else -np.inf
+        logprior_beta = 0 if 0 <= beta <= 60 else -np.inf
         
         #Sum everything and return the value
-        return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs
+        return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
     
     def __log_likelihood(self, theta, rbg_data, rbg):
         """
@@ -472,7 +477,7 @@ class SingleMealT1DModel:
         """
 
         #Set model parameters to current guess
-        self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs'] = theta 
+        self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], self.model_parameters['kabs'], self.model_parameters['beta'] = theta 
 
         #Enforce contraints
         self.model_parameters['kgri'] = self.model_parameters['kempt']

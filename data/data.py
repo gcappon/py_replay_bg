@@ -16,7 +16,7 @@ class ReplayBGData:
 
         #Unpack insulin
         self.bolus, self.basal = self.__insulin_setup(data, rbg)
-        self.meal, self.meal_announcement = self.__meal_setup(data, rbg)
+        self.meal, self.meal_announcement, self.meal_type = self.__meal_setup(data, rbg)
 
         #TODO: manage the multimeal and exercise
         self.bolus_label = []
@@ -66,6 +66,9 @@ class ReplayBGData:
             #Initialize the mealAnnouncements vector
             meal_announcement = np.zeros([rbg.model.tsteps,])
             
+            #Initialize the meal type vector
+            meal_type = np.empty([rbg.model.tsteps,], dtype = str)
+
             if rbg.environment.cho_source == 'data':
                 
                 #Find the meals
@@ -76,15 +79,20 @@ class ReplayBGData:
                     meal[int( m_idx[i] * rbg.model.yts / rbg.model.ts ) : int( (m_idx[i] + 1) * rbg.model.yts / rbg.model.ts )] = data['cho'][m_idx[i]] * 1000 / rbg.model.model_parameters['BW'] #mg/(kg*min)
                     meal_announcement[ int( m_idx[i] * rbg.model.yts / rbg.model.ts )] = data['cho'][m_idx[i]] * rbg.model.yts / rbg.model.ts #mg/(kg*min)
 
+                    #Set the first meal to the MAIN meal (the one that can be delayed by beta) using the label 'M', set the other meal inputs to others using the label 'O'
+                    if i == 0:
+                        meal_type[ int( m_idx[i] * rbg.model.yts / rbg.model.ts )] = 'M'
+                    else:
+                        meal_type[ int( m_idx[i] * rbg.model.yts / rbg.model.ts )] = 'O'
+
             #Convert to lookup dictionaries
             keys = np.arange(0, rbg.model.tsteps)
             meal = dict(zip(keys, meal))
             meal_announcement = dict(zip(keys, meal_announcement))
-
-            #TODO: manage delays
+            meal_type = dict(zip(keys, meal_type))
 
         if rbg.environment.scenario == 'multi-meal':
             #TODO: implement multi-meal
             pass
         
-        return meal, meal_announcement
+        return meal, meal_announcement, meal_type

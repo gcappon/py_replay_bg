@@ -43,8 +43,8 @@ scenario = 'single-meal'
 save_name = 'test'
 
 #Instantiatie ReplayBG
-rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name)#,
-               #n_burn_in=50, n_steps = 200)
+rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name,
+               n_burn_in=50, n_steps = 200)
 
 #Run it
 rbg.run(data = data, BW = BW)

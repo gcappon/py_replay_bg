@@ -347,7 +347,6 @@ class ReplayBG:
         mcmc = MCMC(model, 
                  n_burn_in = n_burn_in, 
                  n_steps = n_steps, 
-                 thin_factor = 2, 
                  to_sample = to_sample,
                  callback_ncheck = 100)
 

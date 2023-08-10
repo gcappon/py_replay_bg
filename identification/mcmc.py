@@ -34,8 +34,6 @@ class MCMC:
         Number of steps to use for the burn_in session.
     n_steps: int
         Number of steps to use for the main chain.
-    thin_factor: int
-        Chain thin factor to use.
     to_sample: int
         Number of samples to generate via the copula.
     callback_ncheck: int
@@ -50,7 +48,6 @@ class MCMC:
     def __init__(self, model, 
                  n_burn_in = 1000, 
                  n_steps = 10000, 
-                 thin_factor = 2, 
                  to_sample = 1000,
                  callback_ncheck = 100):
         """
@@ -64,8 +61,6 @@ class MCMC:
             Number of steps to use for the burn_in session.
         n_steps: int, optional, default : 10000
             Number of steps to use for the main chain.
-        thin_factor: int, optional, default : 2
-            Chain thin factor to use.
         to_sample: int, optional, default : 1000
             Number of samples to generate via the copula.
         callback_ncheck: int, optional, default : 100
@@ -104,7 +99,7 @@ class MCMC:
         self.n_steps = n_steps
         
         #Chain thin factor to use 
-        self.thin_factor = thin_factor
+        self.thin_factor = int(np.ceil(n_steps/1000))
         
         #Number of samples to generate via the copula
         self.to_sample = to_sample
@@ -143,6 +138,7 @@ class MCMC:
 
         # Set the initial positions of the walkers.
         start = self.model.start_guess + self.model.start_guess_sigma * np.random.randn(self.n_walkers, self.n_dim) 
+        start[start<0]=0
 
         #Create the callbacks
         cb0 = zeus.callbacks.AutocorrelationCallback(ncheck = self.callback_ncheck)
@@ -194,6 +190,6 @@ class MCMC:
         #TODO: check physiological plausibility 
 
         #save results
-        np.savez(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws','draws_' + rbg.environment.save_name + '.npz'), 'draws', 'dist')
+        np.savez(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws','draws_' + rbg.environment.save_name + '.npz'), 'draws', 'sampler', 'dist')
 
         return draws
