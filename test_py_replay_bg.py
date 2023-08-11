@@ -4,7 +4,6 @@ import pandas as pd
 from replay_bg import ReplayBG
 from datetime import datetime, timedelta
 
-from multiprocessing import Pool
 def load_test_data(real = True):
 
     if real:

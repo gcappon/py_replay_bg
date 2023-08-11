@@ -39,7 +39,7 @@ class ReplayBG:
     def __init__(self, modality, data, BW, scenario, save_name, 
               yts = 5, glucose_model = 'IG', pathology = 't1d', exercise = False, seed = 1,
               bolus_source = 'data', basal_source = 'data', cho_source = 'data', 
-              cgm_model = 'IG',
+              cgm_model = 'CGM',
               n_burn_in = 1000, n_steps = 10000, to_sample = 1000,
               CR = 10, CF = 40, GT = 120,
               meal_generator_handler = default_meal_generator_handler, meal_generator_handler_params = {},
@@ -164,8 +164,19 @@ class ReplayBG:
         assess alternative therapies", IEEE TBME, 2023.
         """
 
-        # ================ TODO: Input validation ============================ 
-        input_validator = InputValidator(modality=modality)
+        # ================ Input validation =================================
+        input_validator = InputValidator(modality=modality, data = data, BW = BW, scenario=scenario, save_name=save_name, save_suffix = save_suffix,
+                                         yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
+                                         bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
+                                         cgm_model = cgm_model,
+                                         n_burn_in = n_burn_in, n_steps = n_steps, to_sample = to_sample,
+                                         CR = CR, CF = CF, GT = GT,
+                                         meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
+                                         bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,
+                                         basal_handler = basal_handler, basal_handler_params = basal_handler_params,
+                                         enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
+                                         enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
+                                         plot_mode = plot_mode, verbose = verbose)
         input_validator.validate()
         # ====================================================================
 
@@ -173,7 +184,7 @@ class ReplayBG:
         self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data = data, BW = BW, modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
                                                                 yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
                                                                 bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
-                                                                cgm_model = 'CGM',
+                                                                cgm_model = cgm_model,
                                                                 n_burn_in = n_burn_in, n_steps = n_steps, to_sample = to_sample,
                                                                 CR = CR, CF = CF, GT = GT, 
                                                                 meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
