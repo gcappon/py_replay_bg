@@ -81,9 +81,9 @@ class ReplayBGData:
 
                     #Set the first meal to the MAIN meal (the one that can be delayed by beta) using the label 'M', set the other meal inputs to others using the label 'O'
                     if i == 0:
-                        meal_type[ int( m_idx[i] * rbg.model.yts / rbg.model.ts )] = 'M'
+                        meal_type[int( m_idx[i] * rbg.model.yts / rbg.model.ts ) : int( (m_idx[i] + 1) * rbg.model.yts / rbg.model.ts )] = 'M'
                     else:
-                        meal_type[ int( m_idx[i] * rbg.model.yts / rbg.model.ts )] = 'O'
+                        meal_type[int( m_idx[i] * rbg.model.yts / rbg.model.ts ) : int( (m_idx[i] + 1) * rbg.model.yts / rbg.model.ts )] = 'O'
 
             #Convert to lookup dictionaries
             keys = np.arange(0, rbg.model.tsteps)

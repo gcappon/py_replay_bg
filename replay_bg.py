@@ -10,8 +10,14 @@ from data.data import ReplayBGData
 import matplotlib.pyplot as plt
 
 from identification.mcmc import MCMC
+from replay.replayer import Replayer
 
 from input_validation.input_validator import InputValidator
+
+import numpy as np 
+import os 
+
+import pickle
 
 class ReplayBG:
     """
@@ -432,16 +438,30 @@ class ReplayBG:
         --------
         None
         """
+        
+        rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
+
         if self.environment.modality == 'identification':
 
-            rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
-            
             #Run identification
             self.mcmc.identify(rbg_data = rbg_data, rbg = self)
 
-        else:
+        #data.bolus = data.bolus*3
+        rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
 
-            rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
-            [G, CGM, x] = self.model.simulate(rbg_data = rbg_data, rbg = self)
-            plt.plot(G)
-            plt.show()
+        with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws','draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
+            identification_results = pickle.load(file)
+        draws = identification_results['draws']
+
+        replayer = Replayer(rbg_data = rbg_data, draws = draws, rbg = self)
+        glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
+
+        #TODO: analyze results
+
+        #TODO: plot results
+        plt.plot(cgm['median'])
+        plt.plot(rbg_data.glucose)
+        plt.show()
+        #TODO: save results
+
+

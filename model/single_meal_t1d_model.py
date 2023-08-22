@@ -8,6 +8,8 @@ from numba.experimental import jitclass
 
 import scipy.stats as stats
 
+import pandas as pd
+
 spec = [
     ('ts', types.int32),   
     ('yts', types.int32),        
@@ -56,8 +58,10 @@ class SingleMealT1DModel:
     
     Methods
     -------
-    simulate(rbg_data, rbg):
-        Function that simulates the model and returns the obtained results.
+    simulate_for_identification(rbg_data, rbg):
+        Function that simulates the model and returns the obtained results. This is a light version suitable for identification.
+    simulate_for_replay(rbg_data, rbg):
+        Function that simulates the model and returns the obtained results. This is the complete version suitable for replay.
     log_posterior(theta, rbg_data, rbg):
         Function that computes the log posterior of unknown parameters.
     check_copula_extraction(theta):
@@ -182,14 +186,113 @@ class SingleMealT1DModel:
         model_parameters['SDn'] = 5
                 
         #Initial conditions
-        #TODO: if data contains the glucose vector, get the initial value from there
-        model_parameters['G0'] = model_parameters['Gb']
+        if 'glucose' in data:
+            idx = np.where(data.glucose.isnull().values == False)[0][0]
+            model_parameters['G0'] = data.glucose[idx]
+        else:
+            model_parameters['G0'] = model_parameters['Gb']
                                       
         return model_parameters
 
-    def simulate(self, rbg_data, rbg):
+    def simulate_for_identification(self, rbg_data, rbg):
         """
-        Function that simulates the model and returns the obtained results.
+        Function that simulates the model and returns the obtained results. This is a light version suitable for identification.
+
+        Parameters
+        ----------
+        rbg_data : ReplayBGData
+            The data to be used by ReplayBG during simulation.
+        rbg : ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        G: array
+            An array containing the simulated glucose concentration (mg/dl).
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+
+        #Rename parameters for brevity
+        mp = self.model_parameters
+
+        #Set the basal plasma insulin
+        mp['Ipb'] = (mp['ka1'] / mp['ke']) * mp['u2ss'] / (mp['ka1'] + mp['kd']) + (mp['ka2'] / mp['ke']) * (mp['kd'] / mp['ka2']) * mp['u2ss'] / (mp['ka1']+ mp['kd']) #from eq. 5 steady-state 
+
+        #Set the initial model conditions
+        initial_conditions = np.array([mp['G0'],
+            mp['Xpb'], 
+            mp['u2ss'] / ( mp['ka1'] + mp['kd'] ),                             
+            mp['kd'] / mp['ka2'] * mp['u2ss'] / ( mp['ka1'] + mp['kd'] ),
+            mp['ka1'] / mp['ke'] * mp['u2ss'] / ( mp['ka1'] + mp['kd'] ) + mp['ka2'] / mp['ke'] * mp['kd'] / mp['ka2'] * mp['u2ss'] / ( mp['ka1'] + mp['kd'] ),
+            0,
+            0,
+            mp['Qgutb'],
+            mp['G0']])
+        
+        #Initialize the glucose and cgm vectors
+        G = np.empty([self.tsteps,])
+        
+        #Set the initial glucose value
+        if self.glucose_model == 'IG': 
+            G[0] = initial_conditions[self.nx-1] #y(k) = IG(k)
+        if self.glucose_model == 'BG':
+            G[0] = initial_conditions[0] #(k) = BG(k)
+
+        #Initialize the state matrix
+        x = np.zeros([self.nx, self.tsteps])
+        x[:,0] = initial_conditions
+
+        #Simulate the physiological model
+        for k in np.arange(1, self.tsteps):
+            
+            #Set the insulin input delays
+            insulin_delay = int(np.floor(mp['tau'] / self.ts))
+            if k - 1 - insulin_delay > 0:
+                bol = rbg_data.bolus[k - 1 - insulin_delay]
+                bas = rbg_data.basal[k - 1 - insulin_delay]
+            else:
+                bol = 0
+                bas = rbg_data.basal[0]
+
+            #Set the meal input delay
+            meal_delay = int(np.floor(mp['beta'] / self.ts))
+
+            if k - 1 - meal_delay > 0:
+                if rbg_data.meal_type[k - 1 - meal_delay] == 'M':
+                    mea = rbg_data.meal[k - 1 - meal_delay]
+                else:
+                    mea = rbg_data.meal[k - 1]
+            else:
+                if rbg_data.meal_type[k - 1] == 'M':
+                    mea = 0
+                else:
+                    mea = rbg_data.meal[k - 1]
+
+            #Simulate a step
+            x[:,k] = self.__model_step_equations(bol + bas, mea, x[:,k-1]) #TODO: k or k-1?
+
+            #Get the glucose measurement
+            if self.glucose_model == 'IG': 
+                G[k] = x[self.nx-1,k] #y(k) = IG(k)
+            if self.glucose_model == 'BG':
+                G[k] = x[0,k] #(k) = BG(k)
+            
+        return G
+
+    def simulate_for_replay(self, rbg_data, rbg):
+        """
+        Function that simulates the model and returns the obtained results. This is the complete version suitable for replay.
 
         Parameters
         ----------
@@ -258,9 +361,103 @@ class SingleMealT1DModel:
         x = np.zeros([self.nx, self.tsteps])
         x[:,0] = initial_conditions
 
+        #Initialize the 'event' vectors
+        insulin_basal = pd.DataFrame(rbg_data.basal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
+        insulin_bolus = pd.DataFrame(rbg_data.bolus, index=[0]).to_numpy()[0] / 1000 * mp['BW']
+        correction_bolus = insulin_bolus*0
+        
+        #TODO: change this for multi-meal
+        CHO = pd.DataFrame(rbg_data.meal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
+        hypotreatments = CHO * 0 #Hypotreatments definition is not present in single-meal --> set to 0
+        meal_announcement = pd.DataFrame(rbg_data.meal_announcement, index=[0]).to_numpy()[0]
+
         #Simulate the physiological model
         for k in np.arange(1, self.tsteps):
             
+            if rbg.environment.cho_source == 'generated':
+                
+                #TODO: Call the meal generator function handler
+                #[C, MA, type, dss] = feval(dss.mealGeneratorHandler, G, meal, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
+
+                #Add the meal to meal model input
+                #meal(k+mP.beta) = meal(k+mP.beta) + C*1000/mP.BW;
+            
+                #Add the meal announcement for bolus calculation
+                #mealAnnouncements(k) = mealAnnouncements(k) + MA;
+                
+                #Update the CHO event vectors
+                #CHO(k) = CHO(k) + C;
+                pass
+
+            if rbg.environment.bolus_source == 'dss':
+
+                #TODO: Call the bolus calculator function handler
+                #[B, dss] = feval(dss.bolusCalculatorHandler, G, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
+                
+                #Add insulin boluses to insulin bolus input
+                #bolus(k+mP.tau) = bolus(k+mP.tau) + B*1000/mP.BW;
+
+                #Update the insulin bolus event vectors
+                #insulinBolus(k) = insulinBolus(k) + B;
+                pass
+
+            if rbg.environment.basal_source == 'dss':
+        
+                #TODO: Call the bolus calculator function handler
+                #[B, dss] = feval(dss.basalHandler, G, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
+                
+                #Add insulin basal to insulin basal input
+                #basal(k+mP.tau) = basal(k+mP.tau) + B*1000/mP.BW;
+
+                #Update the insulin bolus event vectors
+                #insulinBasal(k) = insulinBasal(k) + B
+                pass
+
+            #Use the hypotreatments module if it is enabled
+            if rbg.dss.enable_hypotreatments:
+            
+                #TODO: Call the hypotreatment function handler
+                #[HT, dss] = feval(dss.hypoTreatmentsHandler,G,CHO,hypotreatments,insulinBolus,insulinBasal,time,k-1,dss);
+
+                #Add the hypotreatments to meal model input if needed (remember
+                #to add meal absorption delay). NO need to announce an HT.
+                #meal(k+mP.beta) = meal(k+mP.beta) + HT*1000/mP.BW;
+                
+                #Update the CHO event vectors
+                #CHO(k) = CHO(k) + C;
+
+                #Update the hypotreatments event vectors
+                #hypotreatments(k) = hypotreatments(k) + HT;
+                pass
+        
+            #Use the correction bolus delivery module if it is enabled
+            if rbg.dss.enable_correction_boluses:
+            
+                #TODO: Call the hypotreatment function handler
+                #[CB, dss] = feval(dss.correctionBolusesHandler,G,CHO,insulinBolus,insulinBasal,time,k-1,dss);
+            
+                #Add correction boluses to insulin bolus input if needed
+                #bolus(k+mP.tau) = bolus(k+mP.tau) + CB*1000/mP.BW;
+            
+                #Update the insulin bolus event vectors
+                #insulinBolus(k) = insulinBolus(k) + CB;
+                #correctionBolus(k) = correctionBolus(k) + CB;
+                pass
+        
+            #Set the meal input delay
+            meal_delay = int(np.floor(mp['beta'] / self.ts))
+
+            if k - 1 - meal_delay > 0:
+                if rbg_data.meal_type[k - 1 - meal_delay] == 'M':
+                    mea = rbg_data.meal[k - 1 - meal_delay]
+                else:
+                    mea = rbg_data.meal[k - 1]
+            else:
+                if rbg_data.meal_type[k - 1] == 'M':
+                    mea = 0
+                else:
+                    mea = rbg_data.meal[k - 1]
+
             #Set the insulin input delays
             insulin_delay = int(np.floor(mp['tau'] / self.ts))
             if k - 1 - insulin_delay > 0:
@@ -269,14 +466,6 @@ class SingleMealT1DModel:
             else:
                 bol = 0
                 bas = rbg_data.basal[0]
-
-            #Set the meal input delay
-            if rbg_data.meal_type[k-1] == 'M':
-                meal_delay = int(np.floor(mp['beta'] / self.ts))
-                if k - 1 - meal_delay > 0:
-                    mea = rbg_data.meal[k - 1 - meal_delay]
-                else:
-                    mea = 0
 
             #Simulate a step
             x[:,k] = self.__model_step_equations(bol + bas, mea, x[:,k-1]) #TODO: k or k-1?
@@ -293,9 +482,10 @@ class SingleMealT1DModel:
                     CGM[int(k / rbg.sensors.cgm.ts)] = x[self.nx, k] #y(k) = IG(k)
                 if rbg.sensors.cgm.model == 'CGM': 
                     CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx - 1, k], k / (24 * 60))
-            
-        return G, CGM, x
-
+        
+        #TODO: add vo2
+        return G, CGM, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, x
+    
     #@jit
     def __model_step_equations(self, I, CHO, xkm1):
         """
@@ -483,7 +673,7 @@ class SingleMealT1DModel:
         self.model_parameters['kgri'] = self.model_parameters['kempt']
 
         #Simulate the model
-        [G, CGM, x] = self.simulate(rbg_data = rbg_data, rbg = rbg)
+        G = self.simulate_for_identification(rbg_data = rbg_data, rbg = rbg)
 
         #Sample the simulation 
         G = G[0::int(self.yts/self.ts)]
@@ -521,7 +711,10 @@ class SingleMealT1DModel:
         --------
         None
         """
-        return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data, rbg)
+        if self.__log_prior(theta) == -np.inf:
+            return -np.inf
+        else:
+            return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data, rbg)
     
     def check_copula_extraction(self, theta):
         """

@@ -59,10 +59,17 @@ class DataValidator():
     """
     Class for validating the 'data' input parameter of ReplayBG.
     """
-    def __init__(self, data,scenario, exercise):
+    def __init__(self, modality, data,scenario, exercise,
+                 bolus_source, basal_source, cho_source):
+        self.modality = modality
         self.data = data
         self.scenario = scenario
         self.exercise = exercise
+
+        self.bolus_source = bolus_source
+        self.basal_source = basal_source
+        self.cho_source = cho_source
+
 
     def validate(self):
 
@@ -72,36 +79,56 @@ class DataValidator():
         if not 't' in self.data:
             raise Exception("'data' must contain the 't' column.'")
         
-        if not 'glucose' in self.data:
-            raise Exception("'data' must contain the 'glucose' column.'")
-        
-        if not 'cho' in self.data:
-            raise Exception("'data' must contain the 'cho' column.'")
-        if self.data.cho.isnull().values.any():
-            raise Exception("'data.cho' must not contain nan values.'")
-        
-        if not 'bolus' in self.data:
-            raise Exception("'data' must contain the 'bolus' column.'")
-        if self.data.bolus.isnull().values.any():
-            raise Exception("'data.bolus' must not contain nan values.'")
-        
-        if not 'basal' in self.data:
-            raise Exception("'data' must contain the 'basal' column.'")
-        if self.data.basal.isnull().values.any():
-            raise Exception("'data.basal' must not contain nan values.'")
-        
-        if self.exercise:
+        if self.modality == 'identification':
 
-            if not 'exercise' in self.data:
-                raise Exception("'data' must contain the 'exercise' column.'")
-            if self.data.exercise.isnull().values.any():
-                raise Exception("'data.exercise' must not contain nan values.'")
+            if not 'glucose' in self.data:
+                raise Exception("'data' must contain the 'glucose' column.'")
+            
+            if not 'cho' in self.data:
+                raise Exception("'data' must contain the 'cho' column.'")
+            if self.data.cho.isnull().values.any():
+                raise Exception("'data.cho' must not contain nan values.'")
+            
+            if not 'bolus' in self.data:
+                raise Exception("'data' must contain the 'bolus' column.'")
+            if self.data.bolus.isnull().values.any():
+                raise Exception("'data.bolus' must not contain nan values.'")
+            
+            if not 'basal' in self.data:
+                raise Exception("'data' must contain the 'basal' column.'")
+            if self.data.basal.isnull().values.any():
+                raise Exception("'data.basal' must not contain nan values.'")
+            
+            if self.exercise:
 
-        if self.scenario == 'multi-meal':
-            #TODO: implement multi-meal extra checks
-            #d = {'t': t, 'glucose': glucose, 'cho': cho, 'choLabel' : choLabel, 'bolus' : bolus, 'bolusLabel' : bolusLabel, 'basal' : basal, 'exercise' : exercise}
-            pass
+                if not 'exercise' in self.data:
+                    raise Exception("'data' must contain the 'exercise' column.'")
+                if self.data.exercise.isnull().values.any():
+                    raise Exception("'data.exercise' must not contain nan values.'")
 
+            if self.scenario == 'multi-meal':
+                #TODO: implement multi-meal extra checks
+                #d = {'t': t, 'glucose': glucose, 'cho': cho, 'choLabel' : choLabel, 'bolus' : bolus, 'bolusLabel' : bolusLabel, 'basal' : basal, 'exercise' : exercise}
+                pass
+        
+        else:
+        
+            if self.cho_source == 'data' and not 'cho' in self.data:
+                raise Exception("'data' must contain the 'cho' column.'")
+            if self.data.cho.isnull().values.any():
+                raise Exception("'data.cho' must not contain nan values.'")
+            
+            if self.bolus_source == 'data' and not 'bolus' in self.data:
+                raise Exception("'data' must contain the 'bolus' column.'")
+            if self.data.bolus.isnull().values.any():
+                raise Exception("'data.bolus' must not contain nan values.'")
+            
+            if self.basal_source == 'data' and not 'basal' in self.data:
+                raise Exception("'data' must contain the 'basal' column.'")
+            if self.data.basal.isnull().values.any():
+                raise Exception("'data.basal' must not contain nan values.'")
+            
+            
 class SaveSuffixValidator():
     """
     Class for validating the 'save_suffix' input parameter of ReplayBG.
@@ -522,11 +549,23 @@ class InputValidator():
         #Validate the 'exercise' input
         ExerciseValidator(exercise=self.exercise).validate()
 
-        #Validate the 'data' input
-        DataValidator(data=self.data, scenario = self.scenario, exercise = self.exercise).validate()
-
         #Validate the 'save_suffix' input
         SaveSuffixValidator(save_suffix=self.save_suffix).validate()
+
+        
+        #Validate the 'bolus_source' input
+        BolusSourceValidator(bolus_source=self.bolus_source).validate()
+
+        #Validate the 'basal_source' input
+        BasalSourceValidator(basal_source=self.basal_source).validate()
+
+        #Validate the 'bolus_source' input
+        CHOSourceValidator(cho_source=self.cho_source).validate()
+
+
+        #Validate the 'data' input
+        DataValidator(modality = self.modality, data=self.data, scenario = self.scenario, exercise = self.exercise, 
+                      bolus_source=self.bolus_source, basal_source=self.basal_source, cho_source=self.cho_source).validate()
 
 
         #Validate the 'yts' input
@@ -540,16 +579,6 @@ class InputValidator():
 
         #Validate the 'seed' input
         SeedValidator(seed=self.seed).validate()
-
-
-        #Validate the 'bolus_source' input
-        BolusSourceValidator(bolus_source=self.bolus_source).validate()
-
-        #Validate the 'basal_source' input
-        BasalSourceValidator(basal_source=self.basal_source).validate()
-
-        #Validate the 'bolus_source' input
-        CHOSourceValidator(cho_source=self.cho_source).validate()
 
 
         #Validate the 'cgm_model' input

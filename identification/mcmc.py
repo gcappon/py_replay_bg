@@ -1,21 +1,14 @@
 import os 
 
-from data.data import ReplayBGData
-
-from physiology.model_diff_t1d import model_diff_single_meal_t1d
-
-import pymc as pm
-from pymc.ode import DifferentialEquation
-import pytensor
-
 import numpy as np
 import zeus 
-import matplotlib.pyplot as plt 
 
 from multiprocessing import Pool
 
 from copulas.multivariate import GaussianMultivariate
-from copulas.univariate import ParametricType, Univariate, BoundedType
+from copulas.univariate import ParametricType, Univariate
+
+import pickle
 
 class MCMC:
     """
@@ -146,29 +139,34 @@ class MCMC:
         cb2 = zeus.callbacks.MinIterCallback(nmin = self.n_burn_in)
 
         # Run first explorative session using the default 'DifferentialMove'
-        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data, rbg], verbose = rbg.environment.verbose) 
-        sampler.run_mcmc(start, self.n_burn_in)
+        #pool = Pool()
+        #pool = None
+        #sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data, rbg], verbose = rbg.environment.verbose, pool=pool) 
+        #sampler.run_mcmc(start, self.n_burn_in)
 
         # Get the burn-in samples
-        burn_in = sampler.get_chain()
+        #burn_in = sampler.get_chain()
 
         # Set the new starting positions of walkers based on their last positions
-        start = burn_in[-1]
+        #start = burn_in[-1]
 
         #TODO with Pool() as pool: 
 
+        
         #Initialize and run the "more advanced" sampler
-        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data, rbg], verbose = rbg.environment.verbose, moves = zeus.moves.GlobalMove())
+        #pool = Pool()
+        pool = None
+        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data, rbg], verbose = rbg.environment.verbose, pool = pool)
         sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2]) 
         sampler.summary # Print summary diagnostics
 
         #Get the chain
-        chain = sampler.get_chain(flat=True, thin = self.thin_factor)
+        chain = sampler.get_chain(flat=True, thin = self.thin_factor, discard = 0.5)
 
         #Fit the copula
         univariate = Univariate(parametric=ParametricType.NON_PARAMETRIC)
-        dist = GaussianMultivariate(distribution=univariate)
-        dist.fit(chain)
+        distributions = GaussianMultivariate(distribution=univariate)
+        distributions.fit(chain)
 
         #Get the draws to be used during replay
         draws = dict()
@@ -180,16 +178,22 @@ class MCMC:
         sampled = 0
         for i in range(self.to_sample):
             while True:
-                sample = dist.sample(1).to_numpy()[0]
+                sample = distributions.sample(1).to_numpy()[0]
                 if self.model.check_copula_extraction(sample):
                     for up in range(len(rbg.model.unknown_parameters)):
-                        draws[rbg.model.unknown_parameters[up]][sampled] = sample[up]
+                        draws[rbg.model.unknown_parameters[up]]['samples'][sampled] = sample[up]
                     sampled += 1
                     break
         
-        #TODO: check physiological plausibility 
+        #TODO: check physiological plausibility (need to complete the second step)
 
         #save results
-        np.savez(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws','draws_' + rbg.environment.save_name + '.npz'), 'draws', 'sampler', 'dist')
+        identification_results = dict()
+        identification_results['draws'] = draws
+        identification_results['sampler'] = sampler
+        identification_results['distributions'] = distributions
+
+        with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws','draws_' + rbg.environment.save_name + '.pkl'), 'wb') as file: 
+            pickle.dump(identification_results, file)
 
         return draws

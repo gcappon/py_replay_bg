@@ -4,6 +4,8 @@ import pandas as pd
 from replay_bg import ReplayBG
 from datetime import datetime, timedelta
 
+from multiprocessing import freeze_support
+
 def load_test_data(real = True):
 
     if real:
@@ -32,18 +34,21 @@ def load_test_data(real = True):
     
     return data
 
-#Get test data 
-data = load_test_data(real = True)
+if __name__ == '__main__':
+    freeze_support()
 
-#Set other parameters for identification
-modality = 'identification'
-BW = 100
-scenario = 'single-meal'
-save_name = 'test'
+    #Get test data 
+    data = load_test_data(real = True)
 
-#Instantiatie ReplayBG
-rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name,
-               n_burn_in=50, n_steps = 200)
+    #Set other parameters for identification
+    modality = 'replay'
+    BW = 100
+    scenario = 'single-meal'
+    save_name = 'test'
 
-#Run it
-rbg.run(data = data, BW = BW)
+    #Instantiate ReplayBG
+    rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name,
+                n_burn_in=500, n_steps = 5000)
+
+    #Run it
+    rbg.run(data = data, BW = BW)
