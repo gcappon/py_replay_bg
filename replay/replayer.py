@@ -1,5 +1,7 @@
 import numpy as np
 
+from multiprocessing import Pool
+
 class Replayer:
 
     def __init__(self, rbg_data, draws, rbg):

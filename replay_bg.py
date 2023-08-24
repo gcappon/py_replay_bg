@@ -55,7 +55,8 @@ class ReplayBG:
               enable_hypotreatments = False, hypotreatments_handler = ada_hypotreatments_handler, hypotreatments_handler_params = {},
               enable_correction_boluses = False, correction_boluses_handler = corrects_above_250_handler, correction_boluses_handler_params = {},
               save_suffix = '',
-              plot_mode = True, enable_log = True, verbose = True):
+              parallelize = False,
+              plot_mode = True, verbose = True):
         """
         Constructs all the necessary attributes for the ReplayBG object.
 
@@ -144,6 +145,8 @@ class ReplayBG:
         save_suffix : string, optional, default : ''
             A string to be attached as suffix to the resulting output files' name.
 
+        parallelize : boolean, optional, default : False
+            A boolean that specifies whether to parallelize the identification and replay process.
         plot_mode : boolean, optional, default : True
             A boolean that specifies whether to show the plot of the results or not.
         verbose : boolean, optional, default : True
@@ -199,7 +202,7 @@ class ReplayBG:
                                                                 basal_handler = basal_handler, basal_handler_params = basal_handler_params,
                                                                 enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
                                                                 enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
-                                                                plot_mode = plot_mode, verbose = verbose)
+                                                                parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
 
         # ====================================================================
 
@@ -214,7 +217,7 @@ class ReplayBG:
                             basal_handler, basal_handler_params,
                             enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
                             enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
-                            plot_mode, verbose):
+                            parallelize, plot_mode, verbose):
         """
         Initializes the core variables (i.e., environment, model, sensors, mcmc, and dss) of ReplayBG.
 
@@ -313,6 +316,8 @@ class ReplayBG:
             A dictionary that contains the parameters to pass to the correctionBolusesHandler function. It also serves as memory
             area for the correctionBolusesHandler function.
 
+        parallelize : boolean
+            A boolean that specifies whether to parallelize the identification process.
         plot_mode : boolean
             A boolean that specifies whether to show the plot of the results or not.
         verbose : boolean
@@ -347,7 +352,7 @@ class ReplayBG:
         #Initialize the environment parameters
         environment = Environment(modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
             bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source, seed = seed,
-            plot_mode = plot_mode, verbose = verbose)
+            parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
 
         #Initialize model
         if scenario == 'single-meal':
@@ -464,5 +469,5 @@ class ReplayBG:
                                     vo2 = vo2, data = data, rbg = self)
         
         #TODO: save results
-        
+
 

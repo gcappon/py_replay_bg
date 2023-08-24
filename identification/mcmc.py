@@ -154,8 +154,9 @@ class MCMC:
 
         
         #Initialize and run the "more advanced" sampler
-        #pool = Pool()
         pool = None
+        if rbg.environment.parallelize:
+            pool = Pool()
         sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data, rbg], verbose = rbg.environment.verbose, pool = pool)
         sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2]) 
         sampler.summary # Print summary diagnostics

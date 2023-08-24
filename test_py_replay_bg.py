@@ -41,14 +41,14 @@ if __name__ == '__main__':
     data = load_test_data(real = True)
 
     #Set other parameters for identification
-    modality = 'replay'
+    modality = 'identification'
     BW = 100
     scenario = 'single-meal'
     save_name = 'test'
 
     #Instantiate ReplayBG
     rbg = ReplayBG(modality = modality, data = data, BW = BW, scenario = scenario, save_name = save_name,
-                n_burn_in=500, n_steps = 5000)
+                n_burn_in=500, n_steps = 5000, parallelize = True)
 
     #Run it
     rbg.run(data = data, BW = BW)
