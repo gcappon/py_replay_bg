@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from identification.mcmc import MCMC
 from replay.replayer import Replayer
+from visualizer.visualizer import Visualizer
 
 from input_validation.input_validator import InputValidator
 
@@ -202,10 +203,6 @@ class ReplayBG:
 
         # ====================================================================
 
-        # ================ Unpack data for efficiency (before default model parameter setup) ========================
-        #t, glucose, bolus, basal, cho, bolus_label, cho_label, exercise = unpack_data(data) 
-        # ====================================================================
-
     def __init_core_variables(self,data, BW, modality, save_name, save_suffix, scenario, 
                             yts, glucose_model, pathology, exercise, seed,
                             bolus_source, basal_source, cho_source, 
@@ -356,7 +353,7 @@ class ReplayBG:
         if scenario == 'single-meal':
             if pathology == 't1d':
                 if ~exercise:
-                    model = SingleMealT1DModel(data = data, BW = BW, ts = 1, yts = yts, glucose_model = glucose_model)
+                    model = SingleMealT1DModel(data = data, BW = BW, ts = 1, yts = yts, glucose_model = glucose_model, exercise = exercise)
         #TODO: add multi-meal model 
 
         #Initialize sensors
@@ -439,29 +436,33 @@ class ReplayBG:
         None
         """
         
+        #Unpack data to optimize performance
         rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
 
+        #If modality is identification...
         if self.environment.modality == 'identification':
 
-            #Run identification
+            #...run identification
             self.mcmc.identify(rbg_data = rbg_data, rbg = self)
 
-        #data.bolus = data.bolus*3
-        rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
-
+        #Load model parameters
         with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws','draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
             identification_results = pickle.load(file)
         draws = identification_results['draws']
 
+        #Run replay
         replayer = Replayer(rbg_data = rbg_data, draws = draws, rbg = self)
         glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
 
         #TODO: analyze results
 
-        #TODO: plot results
-        plt.plot(cgm['median'])
-        plt.plot(rbg_data.glucose)
-        plt.show()
+        #Plot results if plot_mode is enabled
+        if self.environment.plot_mode:
+            viz = Visualizer()
+            viz.plot_replaybg_results(cgm = cgm, glucose = glucose, insulin_bolus = insulin_bolus, insulin_basal = insulin_basal,
+                                    CHO = CHO, hypotreatments = hypotreatments, correction_bolus = correction_bolus,
+                                    vo2 = vo2, data = data, rbg = self)
+        
         #TODO: save results
-
+        
 

@@ -55,6 +55,8 @@ class SingleMealT1DModel:
         An array that contains the initial starting point to be used by the mcmc procedure.
     start_guess_sigma: array
         An array that contains the initial starting SD of unknown parameters to be used by the mcmc procedure.
+    exercise: bool
+        A boolean indicating if the model includes the exercise.
     
     Methods
     -------
@@ -67,7 +69,7 @@ class SingleMealT1DModel:
     check_copula_extraction(theta):
         Function that checks if a copula extraction is valid or not.
     """
-    def __init__(self, data, BW, ts = 1, yts = 5, glucose_model = 'IG'):
+    def __init__(self, data, BW, ts = 1, yts = 5, glucose_model = 'IG', exercise = False):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -81,6 +83,8 @@ class SingleMealT1DModel:
             The measurement (cgm) sample time.
         glucose_model: string, {'IG','BG'}, optional, default : 'IG'
             The model equation to be used as measured glucose.
+        exercise: bool, optional, default : False
+        A boolean indicating if the model includes the exercise.
         """
 
         #Time constants during simulation
@@ -110,6 +114,9 @@ class SingleMealT1DModel:
         #initial guess for the SD of each parameter
         self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
 
+        #Exercise
+        self.exercise = exercise
+        
     def __get_default_model_parameters(self, data, BW):
         """
         Function that returns the default parameters values of the model.

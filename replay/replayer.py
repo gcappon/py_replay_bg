@@ -47,8 +47,6 @@ class Replayer:
             if(self.rbg.sensors.cgm.model == 'CGM'):
                 self.rbg.sensors.cgm.connect_new_cgm()
 
-            #TODO: enforce constraints on model parameters. ATTENTION: this is not needed here, since by definition, the constraints should be ok 
-
             #TODO: add vo2
             glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus[r], insulin_basal['realizations'][r], CHO['realizations'][r], hypotreatments['realizations'][r], meal_announcement['realizations'][r], x = self.rbg.model.simulate_for_replay(rbg_data = self.rbg_data, rbg = self.rbg)
 
