@@ -11,9 +11,11 @@ class Visualizer:
 
     def plot_replaybg_results(self, cgm, glucose, insulin_bolus, insulin_basal, CHO, hypotreatments, correction_bolus, vo2, data, rbg):
         
-        fig, ax = plt.subplots(3, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
+        fig, ax = None, None 
         if rbg.model.exercise:
             fig, ax = plt.subplots(4, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1, 1]})
+        else:
+            fig, ax = plt.subplots(3, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
 
         if rbg.environment.modality == 'identification':
 
@@ -57,11 +59,11 @@ class Visualizer:
             cb_events = np.sum(correction_bolus['realizations'],axis=0)/correction_bolus['realizations'].shape[0]
             basal_rate = np.sum(insulin_basal['realizations'],axis=0)/insulin_basal['realizations'].shape[0]
 
-            markerline, stemlines, baseline = ax[1].stem(t, bolus_events,basefmt = 'k:', label = 'Bolus insulin replay (Mean) [g/min]')
+            markerline, stemlines, baseline = ax[2].stem(t, bolus_events,basefmt = 'k:', label = 'Bolus insulin replay (Mean) [g/min]')
             plt.setp(stemlines, 'color', (50.0/255,205.0/255,50.0/255))
             plt.setp(markerline, 'color', (50.0/255,205.0/255,50.0/255))
 
-            markerline, stemlines, baseline = ax[1].stem(t, cb_events,basefmt = 'k:', label = 'CB insulin replay (Mean) [g/min]')
+            markerline, stemlines, baseline = ax[2].stem(t, cb_events,basefmt = 'k:', label = 'CB insulin replay (Mean) [g/min]')
             plt.setp(stemlines, 'color', (51.0/255,102.0/255,0.0/255))
             plt.setp(markerline, 'color', (51.0/255,102.0/255,0.0/255))
             
@@ -84,12 +86,12 @@ class Visualizer:
 
                 vo2_events = np.sum(vo2['realizations'],axis=0)/vo2['realizations'].shape[0]
 
-                markerline, stemlines, baseline = ax[2].stem(t, vo2_events,basefmt = 'k:', label = 'VO2 replay (Mean) [-]')
+                markerline, stemlines, baseline = ax[3].stem(t, vo2_events,basefmt = 'k:', label = 'VO2 replay (Mean) [-]')
                 plt.setp(stemlines, 'color', (249.0/255,115.0/255,6.0/255))
                 plt.setp(markerline, 'color', (249.0/255,115.0/255,6.0/255))
 
             else:
-                markerline, stemlines, baseline = ax[2].stem(data.t, data.bolus,basefmt = 'k:', label = 'VO2 data [-]')
+                markerline, stemlines, baseline = ax[3].stem(data.t, data.bolus,basefmt = 'k:', label = 'VO2 data [-]')
                 plt.setp(stemlines, 'color', (249.0/255,115.0/255,6.0/255))
                 plt.setp(markerline, 'color', (249.0/255,115.0/255,6.0/255))
 

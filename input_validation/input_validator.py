@@ -438,6 +438,17 @@ class CorrectionBolusesHandlerParamsValidator():
             raise Exception("'correction_boluses_handler_params' input must be a dict.'")
         
         
+class ParallelizeValidator():
+    """
+    Class for validating the 'parallelize' input parameter of ReplayBG.
+    """
+    def __init__(self, parallelize):
+        self.parallelize = parallelize
+
+    def validate(self):
+        if not isinstance(self.parallelize, bool):
+            raise Exception("'parallelize' input must be a boolean.'")
+
 class PlotModeValidator():
     """
     Class for validating the 'plot_mode' input parameter of ReplayBG.
@@ -486,7 +497,7 @@ class InputValidator():
                  basal_handler, basal_handler_params,
                  enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
                  enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
-                 plot_mode, verbose):
+                 parallelize, plot_mode, verbose):
         
         self.modality = modality
         self.data = data
@@ -529,6 +540,7 @@ class InputValidator():
         self.correction_boluses_handler = correction_boluses_handler
         self.correction_boluses_handler_params = correction_boluses_handler_params
 
+        self.parallelize = parallelize
         self.plot_mode = plot_mode
         self.verbose = verbose
                                                                 
@@ -643,8 +655,11 @@ class InputValidator():
         CorrectionBolusesHandlerParamsValidator(correction_boluses_handler_params=self.correction_boluses_handler_params).validate()
 
 
+        #Validate the 'parallelize' input
+        ParallelizeValidator(parallelize=self.parallelize).validate()
+
         #Validate the 'plot_mode' input
         PlotModeValidator(plot_mode=self.plot_mode).validate()
 
-        #Validate the 'enable_correction_boluses' input
-        VerboseValidator(verbose=self.verbose)
+        #Validate the 'verbose' input
+        VerboseValidator(verbose=self.verbose).validate()

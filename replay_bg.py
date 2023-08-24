@@ -146,7 +146,7 @@ class ReplayBG:
             A string to be attached as suffix to the resulting output files' name.
 
         parallelize : boolean, optional, default : False
-            A boolean that specifies whether to parallelize the identification and replay process.
+            A boolean that specifies whether to parallelize the identification process.
         plot_mode : boolean, optional, default : True
             A boolean that specifies whether to show the plot of the results or not.
         verbose : boolean, optional, default : True
@@ -186,7 +186,7 @@ class ReplayBG:
                                          basal_handler = basal_handler, basal_handler_params = basal_handler_params,
                                          enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
                                          enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
-                                         plot_mode = plot_mode, verbose = verbose)
+                                         parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
         input_validator.validate()
         # ====================================================================
 
@@ -460,6 +460,7 @@ class ReplayBG:
         glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
 
         #TODO: analyze results
+        analysis = []
 
         #Plot results if plot_mode is enabled
         if self.environment.plot_mode:
@@ -468,6 +469,55 @@ class ReplayBG:
                                     CHO = CHO, hypotreatments = hypotreatments, correction_bolus = correction_bolus,
                                     vo2 = vo2, data = data, rbg = self)
         
-        #TODO: save results
+        #Save results
+        self.__save_results(data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, analysis)
 
+    def __save_results(self, data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, analysis):
+        """
+        Save ReplayBG results.
 
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        results = dict()
+
+        results['data'] = data
+        results['BW'] = BW
+
+        results['environment'] = self.environment
+        results['mcmc'] = self.mcmc
+        results['model'] = self.model
+        results['sensors'] = self.sensors
+        results['dss'] = self.dss
+
+        results['glucose'] = glucose
+        results['cgm'] = cgm
+        results['insulin_bolus'] = insulin_bolus
+        results['correction_bolus'] = correction_bolus
+        results['insulin_basal'] = insulin_basal
+
+        results['CHO'] = CHO
+        results['hypotreatments'] = hypotreatments
+        results['meal_announcement'] = meal_announcement
+        results['vo2'] = vo2
+
+        results['analysis'] = analysis
+
+        with open(os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'), 'wb') as file: 
+            pickle.dump(results, file)
+            
