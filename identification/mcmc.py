@@ -30,12 +30,12 @@ class MCMC:
         Number of unknown parameters to identify.
     n_walkers: int
         Number of walkers to use.
-    n_burn_in: int
-        Number of steps to use for the burn_in session.
     n_steps: int
         Number of steps to use for the main chain.
     to_sample: int
         Number of samples to generate via the copula.
+    save_chains: bool
+        A flag that specifies whether to save the resulting mcmc chains and copula samplers.
     callback_ncheck: int
         Number of steps to be awaited before checking the callback functions.
 
@@ -46,9 +46,9 @@ class MCMC:
     """
 
     def __init__(self, model, 
-                 n_burn_in = 1000, 
                  n_steps = 10000, 
                  to_sample = 1000,
+                 save_chains = False,
                  callback_ncheck = 100):
         """
         Constructs all the necessary attributes for the MCMC object.
@@ -57,8 +57,6 @@ class MCMC:
         ----------
         model: Model
             An object that represents the physiological model hyperparameters to be used by ReplayBG.
-        n_burn_in: int, optional, default : 1000
-            Number of steps to use for the burn_in session.
         n_steps: int, optional, default : 10000
             Number of steps to use for the main chain.
         to_sample: int, optional, default : 1000
@@ -92,9 +90,6 @@ class MCMC:
         #Number of walkers to use. It should be at least twice the number of dimensions.
         self.n_walkers = 2*self.n_dim 
 
-        #Number of steps to use for the burn_in session     
-        self.n_burn_in = n_burn_in
-
         #Number of steps to use for the main chain
         self.n_steps = n_steps
         
@@ -103,6 +98,9 @@ class MCMC:
         
         #Number of samples to generate via the copula
         self.to_sample = to_sample
+        
+        #Save the chains?
+        self.save_chains = save_chains
 
         #Number of steps to be awaited before checking the callback functions 
         self.callback_ncheck = callback_ncheck
@@ -185,9 +183,10 @@ class MCMC:
         identification_results = dict()
         identification_results['draws'] = draws
 
-        #TODO: add save chain flag option
-        #identification_results['sampler'] = sampler
-        #identification_results['distributions'] = distributions
+        #Attach also chains and copula sampler if needed
+        if self.save_chains:
+            identification_results['sampler'] = sampler
+            identification_results['distributions'] = distributions
 
         with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws','draws_' + rbg.environment.save_name + '.pkl'), 'wb') as file: 
             pickle.dump(identification_results, file)
