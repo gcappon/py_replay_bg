@@ -444,11 +444,12 @@ class ReplayBG:
         #Unpack data to optimize performance
         rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
 
+
         #If modality is identification...
         if self.environment.modality == 'identification':
 
             #...run identification
-            self.mcmc.identify(rbg_data = rbg_data, rbg = self)
+            self.mcmc.identify(data = data, rbg_data = rbg_data, rbg = self)
 
         #Load model parameters
         with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws','draws_' + self.environment.save_name + '.pkl'), 'rb') as file:

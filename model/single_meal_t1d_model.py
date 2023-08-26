@@ -9,6 +9,7 @@ from numba.experimental import jitclass
 import scipy.stats as stats
 
 import pandas as pd
+import copy 
 
 spec = [
     ('ts', types.int32),   
@@ -116,7 +117,7 @@ class SingleMealT1DModel:
 
         #Exercise
         self.exercise = exercise
-        
+
     def __get_default_model_parameters(self, data, BW):
         """
         Function that returns the default parameters values of the model.
@@ -201,7 +202,7 @@ class SingleMealT1DModel:
                                       
         return model_parameters
 
-    def simulate_for_identification(self, rbg_data, rbg):
+    def simulate_for_identification(self, rbg_data):
         """
         Function that simulates the model and returns the obtained results. This is a light version suitable for identification.
 
@@ -642,7 +643,7 @@ class SingleMealT1DModel:
         #Sum everything and return the value
         return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
     
-    def __log_likelihood(self, theta, rbg_data, rbg):
+    def __log_likelihood(self, theta, rbg_data):
         """
         Internal function that computes the log likelihood of unknown parameters.
 
@@ -680,7 +681,7 @@ class SingleMealT1DModel:
         self.model_parameters['kgri'] = self.model_parameters['kempt']
 
         #Simulate the model
-        G = self.simulate_for_identification(rbg_data = rbg_data, rbg = rbg)
+        G = self.simulate_for_identification(rbg_data = rbg_data)
 
         #Sample the simulation 
         G = G[0::int(self.yts/self.ts)]
@@ -688,7 +689,7 @@ class SingleMealT1DModel:
         #Compute and return the log likelihood
         return -0.5 * np.sum( ( ( G - rbg_data.glucose ) / self.model_parameters['SDn'] )**2 )
 
-    def log_posterior(self, theta, rbg_data, rbg):
+    def log_posterior(self, theta, rbg_data):
         """
         Function that computes the log posterior of unknown parameters.
 
@@ -721,7 +722,7 @@ class SingleMealT1DModel:
         if self.__log_prior(theta) == -np.inf:
             return -np.inf
         else:
-            return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data, rbg)
+            return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data)
     
     def check_copula_extraction(self, theta):
         """
@@ -750,3 +751,6 @@ class SingleMealT1DModel:
         None
         """
         return self.__log_prior(theta) != -np.inf
+    
+    
+
