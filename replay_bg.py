@@ -195,7 +195,7 @@ class ReplayBG:
                                                                 yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
                                                                 bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
                                                                 cgm_model = cgm_model,
-                                                                n_steps = n_steps, to_sample = to_sample,
+                                                                n_steps = n_steps, to_sample = to_sample, save_chains = save_chains,
                                                                 CR = CR, CF = CF, GT = GT, 
                                                                 meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
                                                                 bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,

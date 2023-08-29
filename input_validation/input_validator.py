@@ -231,17 +231,6 @@ class CGMModelValidator():
         if not(self.cgm_model == 'CGM' or self.cgm_model == 'IG'):
             raise Exception("'cgm_model' input must be 'CGM' or 'IG'.")
         
-
-class NBurnInValidator():
-    """
-    Class for validating the 'n_burn_in' input parameter of ReplayBG.
-    """
-    def __init__(self, n_burn_in):
-        self.n_burn_in = n_burn_in
-
-    def validate(self):
-        if not isinstance(self.n_burn_in, int):
-            raise Exception("'n_burn_in' input must be an integer.'")
         
 class NStepsValidator():
     """
@@ -264,6 +253,18 @@ class ToSampleValidator():
     def validate(self):
         if not isinstance(self.to_sample, int):
             raise Exception("'to_sample' input must be an integer.'")
+        
+class SaveChainsValidator():
+    """
+    Class for validating the 'save_chains' input parameter of ReplayBG.
+    """
+    def __init__(self, save_chains):
+        self.save_chains = save_chains
+
+    def validate(self):
+        if not isinstance(self.save_chains, bool):
+            raise Exception("'save_chains' input must be a boolean.'")
+
 
 class CRValidator():
     """
@@ -490,7 +491,7 @@ class InputValidator():
                  yts, glucose_model, pathology, exercise, seed,
                  bolus_source, basal_source, cho_source,
                  cgm_model,
-                 n_burn_in, n_steps, to_sample,
+                 n_steps, to_sample, save_chains,
                  CR, CF, GT,
                  meal_generator_handler, meal_generator_handler_params,
                  bolus_calculator_handler, bolus_calculator_handler_params,
@@ -518,9 +519,9 @@ class InputValidator():
 
         self.cgm_model = cgm_model
 
-        self.n_burn_in = n_burn_in
         self.n_steps = n_steps
         self.to_sample = to_sample
+        self.save_chains = save_chains
 
         self.CR = CR
         self.CF = CF
@@ -597,14 +598,14 @@ class InputValidator():
         CGMModelValidator(cgm_model=self.cgm_model).validate()
 
 
-        #Validate the 'n_burn_in' input
-        NBurnInValidator(n_burn_in=self.n_burn_in).validate()
-
         #Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()
 
         #Validate the 'to_sample' input
         ToSampleValidator(to_sample=self.to_sample).validate()
+
+        #Validate the 'save_chains' input
+        SaveChainsValidator(save_chains=self.save_chains).validate()
 
         
         #Validate the 'CR' input

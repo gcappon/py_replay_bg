@@ -41,10 +41,10 @@ if __name__ == '__main__':
     data = load_test_data(real = True)
 
     #Set other parameters for identification
-    modality = 'identification'
+    modality = 'replay'
     BW = 100
     scenario = 'single-meal'
-    save_name = 'test_check_physio'
+    save_name = 'test'
     save_suffix = 'gg'
 
     #Instantiate ReplayBG
