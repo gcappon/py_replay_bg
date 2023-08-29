@@ -3,11 +3,10 @@ from model.single_meal_t1d_model import SingleMealT1DModel
 
 from sensors.sensors import CGM, Sensors
 from dss.dss import DSS
-from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
+from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
+    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
 from data.data import ReplayBGData
-
-import matplotlib.pyplot as plt
 
 from identification.mcmc import MCMC
 from replay.replayer import Replayer
@@ -15,10 +14,11 @@ from visualizer.visualizer import Visualizer
 
 from input_validation.input_validator import InputValidator
 
-import numpy as np 
-import os 
+import numpy as np
+import os
 
 import pickle
+
 
 class ReplayBG:
     """
@@ -43,20 +43,23 @@ class ReplayBG:
     run():
         Runs ReplayBG.
     """
-    def __init__(self, modality, data, BW, scenario, save_name, 
-              yts = 5, glucose_model = 'IG', pathology = 't1d', exercise = False, seed = 1,
-              bolus_source = 'data', basal_source = 'data', cho_source = 'data', 
-              cgm_model = 'CGM',
-              n_steps = 10000, to_sample = 1000, save_chains = False,
-              CR = 10, CF = 40, GT = 120,
-              meal_generator_handler = default_meal_generator_handler, meal_generator_handler_params = {},
-              bolus_calculator_handler = standard_bolus_calculator_handler, bolus_calculator_handler_params = {},
-              basal_handler = default_basal_handler, basal_handler_params = {},
-              enable_hypotreatments = False, hypotreatments_handler = ada_hypotreatments_handler, hypotreatments_handler_params = {},
-              enable_correction_boluses = False, correction_boluses_handler = corrects_above_250_handler, correction_boluses_handler_params = {},
-              save_suffix = '',
-              parallelize = False,
-              plot_mode = True, verbose = True):
+
+    def __init__(self, modality, data, BW, scenario, save_name,
+                 yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
+                 bolus_source='data', basal_source='data', cho_source='data',
+                 cgm_model='CGM',
+                 n_steps=10000, to_sample=1000, save_chains=False,
+                 CR=10, CF=40, GT=120,
+                 meal_generator_handler=default_meal_generator_handler, meal_generator_handler_params={},
+                 bolus_calculator_handler=standard_bolus_calculator_handler, bolus_calculator_handler_params={},
+                 basal_handler=default_basal_handler, basal_handler_params={},
+                 enable_hypotreatments=False, hypotreatments_handler=ada_hypotreatments_handler,
+                 hypotreatments_handler_params={},
+                 enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
+                 correction_boluses_handler_params={},
+                 save_suffix='',
+                 parallelize=False,
+                 plot_mode=True, verbose=True):
         """
         Constructs all the necessary attributes for the ReplayBG object.
 
@@ -174,50 +177,79 @@ class ReplayBG:
         assess alternative therapies", IEEE TBME, 2023.
         """
 
-        # ================ Input validation =================================
-        input_validator = InputValidator(modality=modality, data = data, BW = BW, scenario=scenario, save_name=save_name, save_suffix = save_suffix,
-                                         yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
-                                         bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
-                                         cgm_model = cgm_model,
-                                         n_steps = n_steps, to_sample = to_sample, save_chains = save_chains,
-                                         CR = CR, CF = CF, GT = GT,
-                                         meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
-                                         bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,
-                                         basal_handler = basal_handler, basal_handler_params = basal_handler_params,
-                                         enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
-                                         enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
-                                         parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
+        # Input validation
+        input_validator = InputValidator(modality=modality, data=data, BW=BW, scenario=scenario, save_name=save_name,
+                                         save_suffix=save_suffix,
+                                         yts=yts, glucose_model=glucose_model, pathology=pathology, exercise=exercise,
+                                         seed=seed,
+                                         bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
+                                         cgm_model=cgm_model,
+                                         n_steps=n_steps, to_sample=to_sample, save_chains=save_chains,
+                                         CR=CR, CF=CF, GT=GT,
+                                         meal_generator_handler=meal_generator_handler,
+                                         meal_generator_handler_params=meal_generator_handler_params,
+                                         bolus_calculator_handler=bolus_calculator_handler,
+                                         bolus_calculator_handler_params=bolus_calculator_handler_params,
+                                         basal_handler=basal_handler, basal_handler_params=basal_handler_params,
+                                         enable_hypotreatments=enable_hypotreatments,
+                                         hypotreatments_handler=hypotreatments_handler,
+                                         hypotreatments_handler_params=hypotreatments_handler_params,
+                                         enable_correction_boluses=enable_correction_boluses,
+                                         correction_boluses_handler=correction_boluses_handler,
+                                         correction_boluses_handler_params=correction_boluses_handler_params,
+                                         parallelize=parallelize, plot_mode=plot_mode, verbose=verbose)
         input_validator.validate()
+
+        # Initialize core variables
+        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, BW=BW,
+                                                                                                     modality=modality,
+                                                                                                     save_name=save_name,
+                                                                                                     save_suffix=save_suffix,
+                                                                                                     scenario=scenario,
+                                                                                                     yts=yts,
+                                                                                                     glucose_model=glucose_model,
+                                                                                                     pathology=pathology,
+                                                                                                     exercise=exercise,
+                                                                                                     seed=seed,
+                                                                                                     bolus_source=bolus_source,
+                                                                                                     basal_source=basal_source,
+                                                                                                     cho_source=cho_source,
+                                                                                                     cgm_model=cgm_model,
+                                                                                                     n_steps=n_steps,
+                                                                                                     to_sample=to_sample,
+                                                                                                     save_chains=save_chains,
+                                                                                                     CR=CR, CF=CF,
+                                                                                                     GT=GT,
+                                                                                                     meal_generator_handler=meal_generator_handler,
+                                                                                                     meal_generator_handler_params=meal_generator_handler_params,
+                                                                                                     bolus_calculator_handler=bolus_calculator_handler,
+                                                                                                     bolus_calculator_handler_params=bolus_calculator_handler_params,
+                                                                                                     basal_handler=basal_handler,
+                                                                                                     basal_handler_params=basal_handler_params,
+                                                                                                     enable_hypotreatments=enable_hypotreatments,
+                                                                                                     hypotreatments_handler=hypotreatments_handler,
+                                                                                                     hypotreatments_handler_params=hypotreatments_handler_params,
+                                                                                                     enable_correction_boluses=enable_correction_boluses,
+                                                                                                     correction_boluses_handler=correction_boluses_handler,
+                                                                                                     correction_boluses_handler_params=correction_boluses_handler_params,
+                                                                                                     parallelize=parallelize,
+                                                                                                     plot_mode=plot_mode,
+                                                                                                     verbose=verbose)
+
         # ====================================================================
 
-        # ================ Initialize core variables =========================
-        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data = data, BW = BW, modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
-                                                                yts = yts, glucose_model = glucose_model, pathology = pathology, exercise = exercise, seed = seed,
-                                                                bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source,
-                                                                cgm_model = cgm_model,
-                                                                n_steps = n_steps, to_sample = to_sample, save_chains = save_chains,
-                                                                CR = CR, CF = CF, GT = GT, 
-                                                                meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
-                                                                bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,
-                                                                basal_handler = basal_handler, basal_handler_params = basal_handler_params,
-                                                                enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
-                                                                enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params,
-                                                                parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
-
-        # ====================================================================
-
-    def __init_core_variables(self,data, BW, modality, save_name, save_suffix, scenario, 
-                            yts, glucose_model, pathology, exercise, seed,
-                            bolus_source, basal_source, cho_source, 
-                            cgm_model,
-                            n_steps, to_sample, save_chains,
-                            CR, CF, GT, 
-                            meal_generator_handler, meal_generator_handler_params,
-                            bolus_calculator_handler, bolus_calculator_handler_params,
-                            basal_handler, basal_handler_params,
-                            enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
-                            enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
-                            parallelize, plot_mode, verbose):
+    def __init_core_variables(self, data, BW, modality, save_name, save_suffix, scenario,
+                              yts, glucose_model, pathology, exercise, seed,
+                              bolus_source, basal_source, cho_source,
+                              cgm_model,
+                              n_steps, to_sample, save_chains,
+                              CR, CF, GT,
+                              meal_generator_handler, meal_generator_handler_params,
+                              bolus_calculator_handler, bolus_calculator_handler_params,
+                              basal_handler, basal_handler_params,
+                              enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
+                              enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
+                              parallelize, plot_mode, verbose):
         """
         Initializes the core variables (i.e., environment, model, sensors, mcmc, and dss) of ReplayBG.
 
@@ -349,40 +381,46 @@ class ReplayBG:
         None
         """
 
-        #Initialize the environment parameters
-        environment = Environment(modality = modality, save_name = save_name, save_suffix = save_suffix, scenario = scenario,
-            bolus_source = bolus_source, basal_source = basal_source, cho_source = cho_source, seed = seed,
-            parallelize = parallelize, plot_mode = plot_mode, verbose = verbose)
+        # Initialize the environment parameters
+        environment = Environment(modality=modality, save_name=save_name, save_suffix=save_suffix, scenario=scenario,
+                                  bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
+                                  seed=seed,
+                                  parallelize=parallelize, plot_mode=plot_mode, verbose=verbose)
 
-        #Initialize model
+        # Initialize model
         if scenario == 'single-meal':
             if pathology == 't1d':
                 if ~exercise:
-                    model = SingleMealT1DModel(data = data, BW = BW, ts = 1, yts = yts, glucose_model = glucose_model, exercise = exercise)
-        #TODO: add multi-meal model 
+                    model = SingleMealT1DModel(data=data, BW=BW, ts=1, yts=yts, glucose_model=glucose_model,
+                                               exercise=exercise)
+        # TODO: add multi-meal model
 
-        #Initialize sensors
+        # Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
 
-        #Initialize MCMC
-        mcmc = MCMC(model, 
-                 n_steps = n_steps, 
-                 to_sample = to_sample,
-                 save_chains = save_chains,
-                 callback_ncheck = 100)
+        # Initialize MCMC
+        mcmc = MCMC(model,
+                    n_steps=n_steps,
+                    to_sample=to_sample,
+                    save_chains=save_chains,
+                    callback_ncheck=100)
 
-        #Initialize DSS
-        dss = DSS(BW = BW, CR = CR, CF = CF, GT = GT, 
-                  meal_generator_handler = meal_generator_handler, meal_generator_handler_params = meal_generator_handler_params,
-                  bolus_calculator_handler = bolus_calculator_handler, bolus_calculator_handler_params = bolus_calculator_handler_params,
-                  basal_handler = basal_handler, basal_handler_params = basal_handler_params,
-                  enable_hypotreatments = enable_hypotreatments, hypotreatments_handler = hypotreatments_handler, hypotreatments_handler_params = hypotreatments_handler_params,
-                  enable_correction_boluses = enable_correction_boluses, correction_boluses_handler = correction_boluses_handler, correction_boluses_handler_params = correction_boluses_handler_params)
+        # Initialize DSS
+        dss = DSS(BW=BW, CR=CR, CF=CF, GT=GT,
+                  meal_generator_handler=meal_generator_handler,
+                  meal_generator_handler_params=meal_generator_handler_params,
+                  bolus_calculator_handler=bolus_calculator_handler,
+                  bolus_calculator_handler_params=bolus_calculator_handler_params,
+                  basal_handler=basal_handler, basal_handler_params=basal_handler_params,
+                  enable_hypotreatments=enable_hypotreatments, hypotreatments_handler=hypotreatments_handler,
+                  hypotreatments_handler_params=hypotreatments_handler_params,
+                  enable_correction_boluses=enable_correction_boluses,
+                  correction_boluses_handler=correction_boluses_handler,
+                  correction_boluses_handler_params=correction_boluses_handler_params)
 
         return environment, model, sensors, mcmc, dss
 
-
-    def __init_sensors(self,cgm_model, model):
+    def __init_sensors(self, cgm_model, model):
         """
         Utility function that initializes the sensor core object.
 
@@ -411,12 +449,11 @@ class ReplayBG:
         --------
         None
         """
-        #Init the CGM sensor
-        cgm = CGM(ts = model.yts, model = cgm_model)
+        # Init the CGM sensor
+        cgm = CGM(ts=model.yts, model=cgm_model)
 
-        #return the object
-        return Sensors(cgm = cgm)
-    
+        # return the object
+        return Sensors(cgm=cgm)
 
     def run(self, data, BW):
         """
@@ -424,9 +461,14 @@ class ReplayBG:
 
         Parameters
         ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        BW: double
+            The patient's body weight.
 
         Returns
         -------
+        None
 
         Raises
         ------
@@ -440,40 +482,62 @@ class ReplayBG:
         --------
         None
         """
-        
-        #Unpack data to optimize performance
-        rbg_data = ReplayBGData(data = data, BW = BW, rbg = self)
 
+        if self.environment.verbose:
+            print('Running ReplayBG in `' + self.environment.modality + '` mode')
 
-        #If modality is identification...
+        # Unpack data to optimize performance
+        rbg_data = ReplayBGData(data=data, BW=BW, rbg=self)
+
+        # If modality is identification...
         if self.environment.modality == 'identification':
+            # ...run identification
+            if self.environment.verbose:
+                print('Running model identification...')
+            self.mcmc.identify(data=data, rbg_data=rbg_data, rbg=self)
 
-            #...run identification
-            self.mcmc.identify(data = data, rbg_data = rbg_data, rbg = self)
-
-        #Load model parameters
-        with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws','draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
+        # Load model parameters
+        if self.environment.verbose:
+            print('Loading identified model parameter realizations...')
+        with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws',
+                               'draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
             identification_results = pickle.load(file)
         draws = identification_results['draws']
 
-        #Run replay
-        replayer = Replayer(rbg_data = rbg_data, draws = draws, rbg = self)
+        # Run replay
+        if self.environment.verbose:
+            print('Replaying scenario...')
+        replayer = Replayer(rbg_data=rbg_data, draws=draws, rbg=self)
         glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
 
-        #TODO: analyze results
+        if self.environment.verbose:
+            print('Analyzing results...')
+        # TODO: analyze results
         analysis = []
 
-        #Plot results if plot_mode is enabled
+        # Plot results if plot_mode is enabled
         if self.environment.plot_mode:
-            viz = Visualizer()
-            viz.plot_replaybg_results(cgm = cgm, glucose = glucose, insulin_bolus = insulin_bolus, insulin_basal = insulin_basal,
-                                    CHO = CHO, hypotreatments = hypotreatments, correction_bolus = correction_bolus,
-                                    vo2 = vo2, data = data, rbg = self)
-        
-        #Save results
-        self.__save_results(data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, analysis)
 
-    def __save_results(self, data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, analysis):
+            if self.environment.verbose:
+                print('Plotting results...')
+
+            viz = Visualizer()
+            viz.plot_replaybg_results(cgm=cgm, glucose=glucose, insulin_bolus=insulin_bolus,
+                                      insulin_basal=insulin_basal,
+                                      CHO=CHO, hypotreatments=hypotreatments, correction_bolus=correction_bolus,
+                                      vo2=vo2, data=data, rbg=self)
+
+        # Save results
+        if self.environment.verbose:
+            print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
+        self.__save_results(data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments,
+                            meal_announcement, vo2, analysis)
+
+        if self.environment.verbose:
+            print('Done. Bye!')
+
+    def __save_results(self, data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO,
+                       hypotreatments, meal_announcement, vo2, analysis):
         """
         Save ReplayBG results.
 
@@ -519,6 +583,7 @@ class ReplayBG:
 
         results['analysis'] = analysis
 
-        with open(os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'), 'wb') as file: 
+        with open(os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',
+                               self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'),
+                  'wb') as file:
             pickle.dump(results, file)
-            

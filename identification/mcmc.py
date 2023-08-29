@@ -141,7 +141,7 @@ class MCMC:
         #Create the callbacks
         cb0 = zeus.callbacks.AutocorrelationCallback(ncheck = self.callback_ncheck)
         cb1 = zeus.callbacks.SplitRCallback(ncheck = self.callback_ncheck)
-        cb2 = zeus.callbacks.MinIterCallback(nmin = self.n_burn_in)
+        cb2 = zeus.callbacks.MinIterCallback(nmin = 100)
 
         #Initialize and run the sampler
         pool = None
