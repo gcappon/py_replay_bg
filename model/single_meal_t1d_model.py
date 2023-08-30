@@ -418,15 +418,17 @@ class SingleMealT1DModel:
                 pass
 
             if rbg.environment.bolus_source == 'dss':
-                # TODO: Call the bolus calculator function handler
-                # [B, dss] = feval(dss.bolusCalculatorHandler, G, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
 
-                # Add insulin boluses to insulin bolus input
-                # bolus(k+mP.tau) = bolus(k+mP.tau) + B*1000/mP.BW;
+                # Call the bolus calculator function handler
+                bo, dss = rbg.dss.bolus_calculator_handler(G, meal_ann, insulin_bolus, insulin_basal,
+                                                rbg_data.t, k - 1, rbg.dss)
 
-                # Update the insulin bolus event vectors
-                # insulinBolus(k) = insulinBolus(k) + B;
-                pass
+                # Update the event vectors
+                insulin_bolus[k - 1] = insulin_bolus[k - 1] + bo
+
+                # Add the bolus to the input bolus vector.
+                bo = bo * 1000 / self.model_parameters['BW']
+                bolus[k - 1] = bolus[k - 1] + bo
 
             # Use the basal rate handler if enabled
             if rbg.environment.basal_source == 'dss':
