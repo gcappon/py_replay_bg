@@ -428,16 +428,18 @@ class SingleMealT1DModel:
                 # insulinBolus(k) = insulinBolus(k) + B;
                 pass
 
+            # Use the basal rate handler if enabled
             if rbg.environment.basal_source == 'dss':
-                # TODO: Call the bolus calculator function handler
-                # [B, dss] = feval(dss.basalHandler, G, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
+                # Call the basal rate function handler
+                ba, dss = rbg.dss.basal_handler(G, meal_ann, hypotreatments, insulin_bolus, insulin_basal,
+                                                         rbg_data.t, k - 1, rbg.dss)
 
-                # Add insulin basal to insulin basal input
-                # basal(k+mP.tau) = basal(k+mP.tau) + B*1000/mP.BW;
+                # Update the event vectors
+                insulin_basal[k - 1] = insulin_basal[k - 1] + ba
 
-                # Update the insulin bolus event vectors
-                # insulinBasal(k) = insulinBasal(k) + B
-                pass
+                # Add the correction bolus to the input bolus vector.
+                ba = ba * 1000 / self.model_parameters['BW']
+                basal[k - 1] = ba
 
             # Use the hypotreatments module if it is enabled
             ht = 0
@@ -447,7 +449,7 @@ class SingleMealT1DModel:
                 ht, dss = rbg.dss.hypotreatments_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal, rbg_data.t, k-1, rbg.dss)
 
                 # Update the hypotreatments event vectors
-                hypotreatments[k] = hypotreatments[k] + ht
+                hypotreatments[k - 1] = hypotreatments[k - 1] + ht
 
             # Use the correction bolus delivery module if it is enabled
             cb = 0
@@ -456,7 +458,7 @@ class SingleMealT1DModel:
                 # Call the correction boluses handler
                 cb, dss = rbg.dss.correction_boluses_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal,
                                                          rbg_data.t, k - 1, rbg.dss)
-                
+
                 # Update the event vectors
                 insulin_bolus[k] = insulin_bolus[k] + cb
                 correction_bolus[k] = correction_bolus[k] + cb

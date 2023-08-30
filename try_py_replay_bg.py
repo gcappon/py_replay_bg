@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, BW=BW, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
                    n_steps=100, parallelize=False,
-                   enable_correction_boluses = True,
+                   basal_source='dss',
                    verbose=True)
 
     # Run it
