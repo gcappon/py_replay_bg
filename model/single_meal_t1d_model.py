@@ -398,29 +398,28 @@ class SingleMealT1DModel:
         basal = copy.copy(rbg_data.basal)
         meal = copy.copy(rbg_data.meal)
         meal_type = copy.copy(rbg_data.meal_type)
-        meal_ann = copy.copy(rbg_data.meal_announcement)
 
         # Simulate the physiological model
         for k in np.arange(1, self.tsteps):
 
             if rbg.environment.cho_source == 'generated':
-                # TODO: Call the meal generator function handler
-                # [C, MA, type, dss] = feval(dss.mealGeneratorHandler, G, meal, mealAnnouncements, insulinBolus,basal,time,k-1,dss);
 
-                # Add the meal to meal model input
-                # meal(k+mP.beta) = meal(k+mP.beta) + C*1000/mP.BW;
+                # Call the meal generator function handler
+                c, ma, t, rbg.dss = rbg.dss.meal_generator_handler(G, meal, meal_announcement, insulin_bolus, insulin_basal, rbg_data.t, k - 1, rbg.dss, True)
 
-                # Add the meal announcement for bolus calculation
-                # mealAnnouncements(k) = mealAnnouncements(k) + MA;
+                # Update the event vectors
+                CHO[k - 1] = CHO[k - 1] + c
+                meal_announcement[k - 1] = meal_announcement[k - 1] + ma
+                meal_type[k - 1] = t
 
-                # Update the CHO event vectors
-                # CHO(k) = CHO(k) + C;
-                pass
+                # Add the meal to the input bolus vector.
+                c = c * 1000 / self.model_parameters['BW']
+                meal[k - 1] = meal[k - 1] + c
 
             if rbg.environment.bolus_source == 'dss':
 
                 # Call the bolus calculator function handler
-                bo, dss = rbg.dss.bolus_calculator_handler(G, meal_ann, insulin_bolus, insulin_basal,
+                bo, rbg.dss = rbg.dss.bolus_calculator_handler(G, meal_announcement, insulin_bolus, insulin_basal,
                                                 rbg_data.t, k - 1, rbg.dss)
 
                 # Update the event vectors
@@ -433,7 +432,7 @@ class SingleMealT1DModel:
             # Use the basal rate handler if enabled
             if rbg.environment.basal_source == 'dss':
                 # Call the basal rate function handler
-                ba, dss = rbg.dss.basal_handler(G, meal_ann, hypotreatments, insulin_bolus, insulin_basal,
+                ba, rbg.dss = rbg.dss.basal_handler(G, meal_announcement, hypotreatments, insulin_bolus, insulin_basal,
                                                          rbg_data.t, k - 1, rbg.dss)
 
                 # Update the event vectors
@@ -448,7 +447,7 @@ class SingleMealT1DModel:
             if rbg.dss.enable_hypotreatments:
 
                 # Call the hypotreatment handler
-                ht, dss = rbg.dss.hypotreatments_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal, rbg_data.t, k-1, rbg.dss)
+                ht, rbg.dss = rbg.dss.hypotreatments_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal, rbg_data.t, k-1, rbg.dss)
 
                 # Update the hypotreatments event vectors
                 hypotreatments[k - 1] = hypotreatments[k - 1] + ht
@@ -458,7 +457,7 @@ class SingleMealT1DModel:
             if rbg.dss.enable_correction_boluses:
 
                 # Call the correction boluses handler
-                cb, dss = rbg.dss.correction_boluses_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal,
+                cb, rbg.dss = rbg.dss.correction_boluses_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal,
                                                          rbg_data.t, k - 1, rbg.dss)
 
                 # Update the event vectors
@@ -473,15 +472,15 @@ class SingleMealT1DModel:
             meal_delay = int(np.floor(mp['beta'] / self.ts))
 
             if k - 1 - meal_delay > 0:
-                if rbg_data.meal_type[k - 1 - meal_delay] == 'M':
-                    mea = rbg_data.meal[k - 1 - meal_delay]
+                if meal_type[k - 1 - meal_delay] == 'M':
+                    mea = meal[k - 1 - meal_delay]
                 else:
-                    mea = rbg_data.meal[k - 1]
+                    mea = meal[k - 1]
             else:
-                if rbg_data.meal_type[k - 1] == 'M':
+                if meal_type[k - 1] == 'M':
                     mea = 0
                 else:
-                    mea = rbg_data.meal[k - 1]
+                    mea = meal[k - 1]
 
             # Add hypotreatment with no delay
             ht = ht * 1000 / self.model_parameters['BW']
