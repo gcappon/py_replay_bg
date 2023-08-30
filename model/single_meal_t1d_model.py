@@ -389,11 +389,16 @@ class SingleMealT1DModel:
         insulin_basal = pd.DataFrame(rbg_data.basal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
         insulin_bolus = pd.DataFrame(rbg_data.bolus, index=[0]).to_numpy()[0] / 1000 * mp['BW']
         correction_bolus = insulin_bolus * 0
-
-        # TODO: change this for multi-meal
         CHO = pd.DataFrame(rbg_data.meal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
         hypotreatments = CHO * 0  # Hypotreatments definition is not present in single-meal --> set to 0
         meal_announcement = pd.DataFrame(rbg_data.meal_announcement, index=[0]).to_numpy()[0]
+
+        # Make copies of the inputs
+        bolus = copy.copy(rbg_data.bolus)
+        basal = copy.copy(rbg_data.basal)
+        meal = copy.copy(rbg_data.meal)
+        meal_type = copy.copy(rbg_data.meal_type)
+        meal_ann = copy.copy(rbg_data.meal_announcement)
 
         # Simulate the physiological model
         for k in np.arange(1, self.tsteps):
@@ -437,27 +442,28 @@ class SingleMealT1DModel:
             # Use the hypotreatments module if it is enabled
             ht = 0
             if rbg.dss.enable_hypotreatments:
-                # TODO: Call the hypotreatment function handler
+
+                # Call the hypotreatment handler
                 ht, dss = rbg.dss.hypotreatments_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal, rbg_data.t, k-1, rbg.dss)
 
                 # Update the hypotreatments event vectors
                 hypotreatments[k] = hypotreatments[k] + ht
 
-                # Add the hypotreatments to meal model input if needed. NO need to announce an HT.
-                ht = ht * 1000 / self.model_parameters['BW']
-
             # Use the correction bolus delivery module if it is enabled
+            cb = 0
             if rbg.dss.enable_correction_boluses:
-                # TODO: Call the hypotreatment function handler
-                # [CB, dss] = feval(dss.correctionBolusesHandler,G,CHO,insulinBolus,insulinBasal,time,k-1,dss);
 
-                # Add correction boluses to insulin bolus input if needed
-                # bolus(k+mP.tau) = bolus(k+mP.tau) + CB*1000/mP.BW;
+                # Call the correction boluses handler
+                cb, dss = rbg.dss.correction_boluses_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal,
+                                                         rbg_data.t, k - 1, rbg.dss)
+                
+                # Update the event vectors
+                insulin_bolus[k] = insulin_bolus[k] + cb
+                correction_bolus[k] = correction_bolus[k] + cb
 
-                # Update the insulin bolus event vectors
-                # insulinBolus(k) = insulinBolus(k) + CB;
-                # correctionBolus(k) = correctionBolus(k) + CB;
-                pass
+                # Add the correction bolus to the input bolus vector.
+                cb = cb * 1000 / self.model_parameters['BW']
+                bolus[k - 1] = bolus[k - 1] + cb
 
             # Set the meal input delay
             meal_delay = int(np.floor(mp['beta'] / self.ts))
@@ -474,12 +480,14 @@ class SingleMealT1DModel:
                     mea = rbg_data.meal[k - 1]
 
             # Add hypotreatment with no delay
+            ht = ht * 1000 / self.model_parameters['BW']
             mea = mea + ht
 
             # Set the insulin input delays
             insulin_delay = int(np.floor(mp['tau'] / self.ts))
+
             if k - 1 - insulin_delay > 0:
-                bol = rbg_data.bolus[k - 1 - insulin_delay]
+                bol = bolus[k - 1 - insulin_delay]
                 bas = rbg_data.basal[k - 1 - insulin_delay]
             else:
                 bol = 0

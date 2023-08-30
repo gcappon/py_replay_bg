@@ -56,7 +56,7 @@ class Replayer:
                 self.rbg.sensors.cgm.connect_new_cgm()
 
             # TODO: add vo2
-            glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus[r], \
+            glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus['realizations'][r], \
             insulin_basal['realizations'][r], CHO['realizations'][r], hypotreatments['realizations'][r], \
             meal_announcement['realizations'][r], x = self.rbg.model.simulate_for_replay(rbg_data=self.rbg_data,
                                                                                          rbg=self.rbg)
