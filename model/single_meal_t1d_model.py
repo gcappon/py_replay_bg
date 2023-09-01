@@ -11,23 +11,7 @@ import scipy.stats as stats
 import pandas as pd
 import copy
 
-spec = [
-    ('ts', types.int32),
-    ('yts', types.int32),
-    ('t', types.int32),
-    ('tsteps', types.int32),
-    ('tysteps', types.int32),
-    ('glucose_model', types.unicode_type),
-    ('nx', types.int32),
-    ('glucose_model', types.unicode_type),
-    ('model_parameters', types.DictType(types.unicode_type, types.float64)),
-    ('unknown_parameters', types.List(types.unicode_type)),
-    ('start_guess', types.float64[:]),
-    ('start_guess_sigma', types.float64[:])
-]
 
-
-# @jitclass(spec)
 class SingleMealT1DModel:
     """
     A class that represents the single meal type 1 diabetes model.
@@ -62,11 +46,9 @@ class SingleMealT1DModel:
     
     Methods
     -------
-    simulate_for_identification(rbg_data, rbg):
-        Function that simulates the model and returns the obtained results. This is a light version suitable for identification.
-    simulate_for_replay(rbg_data, rbg):
-        Function that simulates the model and returns the obtained results. This is the complete version suitable for replay.
-    log_posterior(theta, rbg_data, rbg):
+    simulate(rbg_data, rbg):
+        Function that simulates the model and returns the obtained results.
+    log_posterior(theta, rbg_data):
         Function that computes the log posterior of unknown parameters.
     check_copula_extraction(theta):
         Function that checks if a copula extraction is valid or not.
@@ -87,7 +69,7 @@ class SingleMealT1DModel:
         glucose_model: string, {'IG','BG'}, optional, default : 'IG'
             The model equation to be used as measured glucose.
         exercise: bool, optional, default : False
-        A boolean indicating if the model includes the exercise.
+            A boolean indicating if the model includes the exercise.
         """
 
         # Time constants during simulation
@@ -95,7 +77,7 @@ class SingleMealT1DModel:
         self.yts = yts
         self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
                     60 * 1000000000) + self.yts)
-        # self.t = 365 #TODO: FOR NUMBAS: data Pandas here to be removed
+
         self.tsteps = int(self.t / self.ts)
         self.tysteps = int(self.t / self.yts)
 
@@ -109,17 +91,25 @@ class SingleMealT1DModel:
         self.model_parameters = self.__get_default_model_parameters(data, BW)
 
         # Unknown parameters
-        self.unknown_parameters = ['SI', 'Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt', 'kabs', 'beta']  # beta
+        # self.unknown_parameters = ['SI', 'Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt', 'kabs', 'beta']
+        self.unknown_parameters = ['SI', 'Gb', 'SG', 'ka2', 'kd', 'kempt', 'kabs', 'beta']
 
         # initial guess for unknown parameter
+        # self.start_guess = np.array(
+        #    [self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'],
+        #     self.model_parameters['p2'],
+        #     self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'],
+        #     self.model_parameters['kabs'],
+        #     self.model_parameters['beta']])
         self.start_guess = np.array(
             [self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'],
-             self.model_parameters['p2'],
              self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'],
              self.model_parameters['kabs'],
              self.model_parameters['beta']])
+
         # initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
+        # self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
+        self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
 
         # Exercise
         self.exercise = exercise
@@ -137,7 +127,7 @@ class SingleMealT1DModel:
 
         Returns
         -------
-        model_paramters: dict 
+        model_parameters: dict
             A dictionary containing the default model parameters.
 
         Raises
@@ -152,7 +142,7 @@ class SingleMealT1DModel:
         --------
         None
         """
-        model_parameters = {}
+        model_parameters = dict()
 
         # Initial conditions
         model_parameters['Xpb'] = 0.0  # Insulin action initial condition
@@ -168,14 +158,13 @@ class SingleMealT1DModel:
         model_parameters['SI'] = 10.35e-4 / model_parameters['VG']  # mL/(uU*min)
         model_parameters['p2'] = 0.012  # 1/min
         model_parameters['u2ss'] = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
-        # model_parameters['u2ss'] = 0.016666666915018998 #TODO: FOR NUMBAS: data Pandas here to be removed
 
         # Subcutaneous insulin absorption submodel parameters
         model_parameters['VI'] = 0.126  # L/kg
         model_parameters['ke'] = 0.127  # 1/min
         model_parameters['kd'] = 0.026  # 1/min
-        model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
-        model_parameters['ka1'] = 0
+        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
+        model_parameters['ka1'] = 0.0
         model_parameters['ka2'] = 0.014  # 1/min
         model_parameters['tau'] = 8  # min
         model_parameters['Ipb'] = (model_parameters['ka1'] / model_parameters['ke']) * model_parameters['u2ss'] / (
@@ -186,11 +175,11 @@ class SingleMealT1DModel:
             'kd'])  # from eq. 5 steady-state
 
         # Oral glucose absorption submodel parameters
-        model_parameters['kabs'] = 0.012;  # 1/min
-        model_parameters['kgri'] = 0.18;  # = kmax % 1/min
-        model_parameters['kempt'] = 0.18;  # 1/min
-        model_parameters['beta'] = 0;  # min
-        model_parameters['f'] = 0.9;  # dimensionless
+        model_parameters['kabs'] = 0.012  # 1/min
+        model_parameters['kgri'] = 0.18  # = kmax % 1/min
+        model_parameters['kempt'] = 0.18  # 1/min
+        model_parameters['beta'] = 0  # min
+        model_parameters['f'] = 0.9  # dimensionless
 
         # Exercise submodel parameters
         model_parameters['VO2rest'] = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
@@ -214,105 +203,7 @@ class SingleMealT1DModel:
 
         return model_parameters
 
-    def simulate_for_identification(self, rbg_data):
-        """
-        Function that simulates the model and returns the obtained results. This is a light version suitable for identification.
-
-        Parameters
-        ----------
-        rbg_data : ReplayBGData
-            The data to be used by ReplayBG during simulation.
-        rbg : ReplayBG
-            The instance of ReplayBG.
-
-        Returns
-        -------
-        G: array
-            An array containing the simulated glucose concentration (mg/dl).
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # Rename parameters for brevity
-        mp = self.model_parameters
-
-        # Set the basal plasma insulin
-        mp['Ipb'] = (mp['ka1'] / mp['ke']) * mp['u2ss'] / (mp['ka1'] + mp['kd']) + (mp['ka2'] / mp['ke']) * (
-                    mp['kd'] / mp['ka2']) * mp['u2ss'] / (mp['ka1'] + mp['kd'])  # from eq. 5 steady-state
-
-        # Set the initial model conditions
-        initial_conditions = np.array([mp['G0'],
-                                       mp['Xpb'],
-                                       mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['ka1'] / mp['ke'] * mp['u2ss'] / (mp['ka1'] + mp['kd']) + mp['ka2'] / mp[
-                                           'ke'] * mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       mp['G0']])
-
-        # Initialize the glucose and cgm vectors
-        G = np.empty([self.tsteps, ])
-
-        # Set the initial glucose value
-        if self.glucose_model == 'IG':
-            G[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
-        if self.glucose_model == 'BG':
-            G[0] = initial_conditions[0]  # (k) = BG(k)
-
-        # Initialize the state matrix
-        x = np.zeros([self.nx, self.tsteps])
-        x[:, 0] = initial_conditions
-
-        # Simulate the physiological model
-        for k in np.arange(1, self.tsteps):
-
-            # Set the insulin input delays
-            insulin_delay = int(np.floor(mp['tau'] / self.ts))
-            if k - 1 - insulin_delay > 0:
-                bol = rbg_data.bolus[k - 1 - insulin_delay]
-                bas = rbg_data.basal[k - 1 - insulin_delay]
-            else:
-                bol = 0
-                bas = rbg_data.basal[0]
-
-            # Set the meal input delay
-            meal_delay = int(np.floor(mp['beta'] / self.ts))
-
-            if k - 1 - meal_delay > 0:
-                if rbg_data.meal_type[k - 1 - meal_delay] == 'M':
-                    mea = rbg_data.meal[k - 1 - meal_delay]
-                else:
-                    mea = rbg_data.meal[k - 1]
-            else:
-                if rbg_data.meal_type[k - 1] == 'M':
-                    mea = 0
-                else:
-                    mea = rbg_data.meal[k - 1]
-
-            # Simulate a step
-            x[:, k] = self.__model_step_equations(bol + bas, mea, x[:, k - 1])  # TODO: k or k-1?
-
-            # Get the glucose measurement
-            if self.glucose_model == 'IG':
-                G[k] = x[self.nx - 1, k]  # y(k) = IG(k)
-            if self.glucose_model == 'BG':
-                G[k] = x[0, k]  # (k) = BG(k)
-
-        return G
-
-    def simulate_for_replay(self, rbg_data, rbg):
+    def simulate(self, rbg_data, modality, rbg):
         """
         Function that simulates the model and returns the obtained results. This is the complete version suitable for replay.
 
@@ -325,11 +216,22 @@ class SingleMealT1DModel:
 
         Returns
         -------
-        TODO: [G, CGM, insulinBolus, correctionBolus, insulinBasal, CHO, hypotreatments, mealAnnouncements, vo2, x]
         G: array
             An array containing the simulated glucose concentration (mg/dl).
         CGM: array
             An array containing the simulated CGM trace (mg/dl).
+        insulin_bolus: array
+            An array containing the simulated insulin bolus events (U/min). Also includes the correction insulin boluses.
+        correction_bolus: array
+            An array containing the simulated corrective insulin bolus events (U/min).
+        insulin_basal: array
+            An array containing the simulated basal insulin events (U/min).
+        CHO: array
+            An array containing the simulated CHO events (g/min).
+        hypotreatments: array
+            An array containing the simulated hypotreatments events (g/min).
+        meal_announcement: array
+            An array containing the simulated meal announcements events needed for bolus calculation (g/min).
         x: matrix
             A matrix containing all the simulated states.
 
@@ -365,9 +267,8 @@ class SingleMealT1DModel:
                                        mp['Qgutb'],
                                        mp['G0']])
 
-        # Initialize the glucose and cgm vectors
+        # Initialize the glucose vector
         G = np.empty([self.tsteps, ])
-        CGM = np.empty([self.tysteps, ])
 
         # Set the initial glucose value
         if self.glucose_model == 'IG':
@@ -375,102 +276,102 @@ class SingleMealT1DModel:
         if self.glucose_model == 'BG':
             G[0] = initial_conditions[0]  # (k) = BG(k)
 
-        # Set the initial cgm value
-        if rbg.sensors.cgm.model == 'IG':
-            CGM[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
-        if rbg.sensors.cgm.model == 'CGM':
-            CGM[0] = rbg.sensors.cgm.measure(initial_conditions[self.nx - 1], 0)
-
         # Initialize the state matrix
         x = np.zeros([self.nx, self.tsteps])
         x[:, 0] = initial_conditions
 
-        # Initialize the 'event' vectors
-        insulin_basal = pd.DataFrame(rbg_data.basal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
-        insulin_bolus = pd.DataFrame(rbg_data.bolus, index=[0]).to_numpy()[0] / 1000 * mp['BW']
-        correction_bolus = insulin_bolus * 0
-        CHO = pd.DataFrame(rbg_data.meal, index=[0]).to_numpy()[0] / 1000 * mp['BW']
-        hypotreatments = CHO * 0  # Hypotreatments definition is not present in single-meal --> set to 0
-        meal_announcement = pd.DataFrame(rbg_data.meal_announcement, index=[0]).to_numpy()[0]
+        if modality == 'replay':
 
-        # Make copies of the inputs
-        bolus = copy.copy(rbg_data.bolus)
-        basal = copy.copy(rbg_data.basal)
-        meal = copy.copy(rbg_data.meal)
-        meal_type = copy.copy(rbg_data.meal_type)
+            # Initialize the cgm vector
+            CGM = np.empty([self.tysteps, ])
+            # Set the initial cgm value
+            if rbg.sensors.cgm.model == 'IG':
+                CGM[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
+            if rbg.sensors.cgm.model == 'CGM':
+                CGM[0] = rbg.sensors.cgm.measure(initial_conditions[self.nx - 1], 0)
+
+            # Make copies of the inputs if replay to avoid to overwrite fields
+            bolus = copy.copy(rbg_data.bolus)
+            basal = copy.copy(rbg_data.basal)
+            meal = copy.copy(rbg_data.meal)
+            meal_type = copy.copy(rbg_data.meal_type)
+            meal_announcement = copy.copy(rbg_data.meal_announcement)
+
+            correction_bolus = bolus * 0
+            hypotreatments = meal * 0  # Hypotreatments definition is not present in single-meal --> set to 0
+
+        else:
+
+            bolus = rbg_data.bolus
+            basal = rbg_data.basal
+            meal = rbg_data.meal
+            meal_type = rbg_data.meal_type
+            meal_announcement = rbg_data.meal_announcement
 
         # Simulate the physiological model
         for k in np.arange(1, self.tsteps):
 
-            if rbg.environment.cho_source == 'generated':
+            if modality == 'replay':
 
-                # Call the meal generator function handler
-                c, ma, t, rbg.dss = rbg.dss.meal_generator_handler(G, meal, meal_announcement, insulin_bolus, insulin_basal, rbg_data.t, k - 1, rbg.dss, True)
+                # Meal generation module
+                if rbg.environment.cho_source == 'generated':
 
-                # Update the event vectors
-                CHO[k - 1] = CHO[k - 1] + c
-                meal_announcement[k - 1] = meal_announcement[k - 1] + ma
-                meal_type[k - 1] = t
+                    # Call the meal generator function handler
+                    ch, ma, t, rbg.dss = rbg.dss.meal_generator_handler(G, meal, meal_announcement, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'], rbg_data.t, k - 1, rbg.dss, True)
 
-                # Add the meal to the input bolus vector.
-                c = c * 1000 / self.model_parameters['BW']
-                meal[k - 1] = meal[k - 1] + c
+                    # Update the event vectors
+                    meal_announcement[k - 1] = meal_announcement[k - 1] + ma
+                    meal_type[k - 1] = t
 
-            if rbg.environment.bolus_source == 'dss':
+                    # Add the meal to the input bolus vector.
+                    ch = ch * 1000 / mp['BW']
+                    meal[k - 1] = meal[k - 1] + ch
 
-                # Call the bolus calculator function handler
-                bo, rbg.dss = rbg.dss.bolus_calculator_handler(G, meal_announcement, insulin_bolus, insulin_basal,
-                                                rbg_data.t, k - 1, rbg.dss)
+                # Bolus generation module
+                if rbg.environment.bolus_source == 'dss':
 
-                # Update the event vectors
-                insulin_bolus[k - 1] = insulin_bolus[k - 1] + bo
+                    # Call the bolus calculator function handler
+                    bo, rbg.dss = rbg.dss.bolus_calculator_handler(G, meal_announcement, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
+                                                    rbg_data.t, k - 1, rbg.dss)
 
-                # Add the bolus to the input bolus vector.
-                bo = bo * 1000 / self.model_parameters['BW']
-                bolus[k - 1] = bolus[k - 1] + bo
+                    # Add the bolus to the input bolus vector.
+                    bo = bo * 1000 / mp['BW']
+                    bolus[k - 1] = bolus[k - 1] + bo
 
-            # Use the basal rate handler if enabled
-            if rbg.environment.basal_source == 'dss':
-                # Call the basal rate function handler
-                ba, rbg.dss = rbg.dss.basal_handler(G, meal_announcement, hypotreatments, insulin_bolus, insulin_basal,
-                                                         rbg_data.t, k - 1, rbg.dss)
+                # Basal rate generation module
+                if rbg.environment.basal_source == 'dss':
+                    # Call the basal rate function handler
+                    ba, rbg.dss = rbg.dss.basal_handler(G, meal_announcement, hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
+                                                             rbg_data.t, k - 1, rbg.dss)
 
-                # Update the event vectors
-                insulin_basal[k - 1] = insulin_basal[k - 1] + ba
+                    # Add the correction bolus to the input bolus vector.
+                    ba = ba * 1000 / mp['BW']
+                    basal[k - 1] = basal[k - 1] + ba
 
-                # Add the correction bolus to the input bolus vector.
-                ba = ba * 1000 / self.model_parameters['BW']
-                basal[k - 1] = ba
+                # Hypotreatment generation module
+                ht = 0
+                if rbg.dss.enable_hypotreatments:
 
-            # Use the hypotreatments module if it is enabled
-            ht = 0
-            if rbg.dss.enable_hypotreatments:
+                    # Call the hypotreatment handler
+                    ht, rbg.dss = rbg.dss.hypotreatments_handler(G, meal / 1000 * mp['BW'], hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'], rbg_data.t, k-1, rbg.dss)
 
-                # Call the hypotreatment handler
-                ht, rbg.dss = rbg.dss.hypotreatments_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal, rbg_data.t, k-1, rbg.dss)
+                    # Update the hypotreatments event vectors
+                    hypotreatments[k - 1] = hypotreatments[k - 1] + ht
 
-                # Update the hypotreatments event vectors
-                hypotreatments[k - 1] = hypotreatments[k - 1] + ht
+                # Correction bolus delivery module if it is enabled
+                if rbg.dss.enable_correction_boluses:
 
-            # Use the correction bolus delivery module if it is enabled
-            cb = 0
-            if rbg.dss.enable_correction_boluses:
+                    # Call the correction boluses handler
+                    cb, rbg.dss = rbg.dss.correction_boluses_handler(G, meal / 1000 * mp['BW'], hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
+                                                             rbg_data.t, k - 1, rbg.dss)
 
-                # Call the correction boluses handler
-                cb, rbg.dss = rbg.dss.correction_boluses_handler(G, CHO, hypotreatments, insulin_bolus, insulin_basal,
-                                                         rbg_data.t, k - 1, rbg.dss)
-
-                # Update the event vectors
-                insulin_bolus[k] = insulin_bolus[k] + cb
-                correction_bolus[k] = correction_bolus[k] + cb
-
-                # Add the correction bolus to the input bolus vector.
-                cb = cb * 1000 / self.model_parameters['BW']
-                bolus[k - 1] = bolus[k - 1] + cb
+                    # Update the event vectors
+                    correction_bolus[k - 1] = correction_bolus[k - 1] + cb
 
             # Set the meal input delay
             meal_delay = int(np.floor(mp['beta'] / self.ts))
 
+            # Extract the correct meal input
             if k - 1 - meal_delay > 0:
                 if meal_type[k - 1 - meal_delay] == 'M':
                     mea = meal[k - 1 - meal_delay]
@@ -482,22 +383,26 @@ class SingleMealT1DModel:
                 else:
                     mea = meal[k - 1]
 
-            # Add hypotreatment with no delay
-            ht = ht * 1000 / self.model_parameters['BW']
-            mea = mea + ht
+            if modality == 'replay':
+                # Add hypotreatment with no delay
+                mea = mea + hypotreatments[k - 1] * 1000 / mp['BW']
+
+                # Add the correction bolus to the input bolus vector.
+                bolus[k - 1] = bolus[k - 1] + correction_bolus[k - 1] * 1000 / mp['BW']
 
             # Set the insulin input delays
             insulin_delay = int(np.floor(mp['tau'] / self.ts))
 
+            # Extract the correct insulin inputs
             if k - 1 - insulin_delay > 0:
                 bol = bolus[k - 1 - insulin_delay]
-                bas = rbg_data.basal[k - 1 - insulin_delay]
+                bas = basal[k - 1 - insulin_delay]
             else:
                 bol = 0
-                bas = rbg_data.basal[0]
+                bas = basal[0]
 
             # Simulate a step
-            x[:, k] = self.__model_step_equations(bol + bas, mea, x[:, k - 1])  # TODO: k or k-1?
+            x[:, k] = self.__model_step_equations(bol + bas, mea, x[:, k - 1]) # k-1
 
             # Get the glucose measurement
             if self.glucose_model == 'IG':
@@ -505,17 +410,21 @@ class SingleMealT1DModel:
             if self.glucose_model == 'BG':
                 G[k] = x[0, k]  # (k) = BG(k)
 
-            # Get the cgm
-            if np.mod(k, rbg.sensors.cgm.ts) == 0:
-                if rbg.sensors.cgm.model == 'IG':
-                    CGM[int(k / rbg.sensors.cgm.ts)] = x[self.nx, k]  # y(k) = IG(k)
-                if rbg.sensors.cgm.model == 'CGM':
-                    CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx - 1, k], k / (24 * 60))
+            if modality == 'replay':
 
-        # TODO: add vo2
-        return G, CGM, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, x
+                # Get the cgm
+                if np.mod(k, rbg.sensors.cgm.ts) == 0:
+                    if rbg.sensors.cgm.model == 'IG':
+                        CGM[int(k / rbg.sensors.cgm.ts)] = x[self.nx, k]  # y(k) = IG(k)
+                    if rbg.sensors.cgm.model == 'CGM':
+                        CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx - 1, k], k / (24 * 60))
 
-    # @jit
+        if modality == 'replay':
+            # TODO: add vo2
+            return G, CGM, bolus / 1000 * mp['BW'], correction_bolus, basal / 1000 * mp['BW'], meal / 1000 * mp['BW'], hypotreatments, meal_announcement, x
+        else:
+            return G
+
     def __model_step_equations(self, I, CHO, xkm1):
         """
         Internal function that simulates a step of the model using backward-euler method.
@@ -551,11 +460,21 @@ class SingleMealT1DModel:
         mp = self.model_parameters
 
         # unpack states
-        G, X, Isc1, Isc2, Ip, Qsto1, Qsto2, Qgut, IG = xkm1[0], xkm1[1], xkm1[2], xkm1[3], xkm1[4], xkm1[5], xkm1[6], \
-        xkm1[7], xkm1[8]
+        G, X, Isc1, Isc2, Ip, Qsto1, Qsto2, Qgut, IG = xkm1
 
         # Compute glucose risk
-        risk = self.__hypoglycemic_risk(G=G, r1=mp['r1'], r2=mp['r2'])
+
+        # Setting the risk model threshold
+        G_th = 60
+
+        # Set default risk
+        risk = 1
+
+        # Compute the risk
+        if 119.13 > G >= G_th:
+            risk = risk + 10 * mp['r1'] * (np.log(G) ** mp['r2'] - np.log(119.13) ** mp['r2']) ** 2
+        if G < G_th:
+            risk = risk + 10 * mp['r1'] * (np.log(G_th) ** mp['r2'] - np.log(119.13) ** mp['r2']) ** 2
 
         # Compute the model state at time k using backward Euler method
         Qsto1 = (Qsto1 + self.ts * CHO) / (1 + self.ts * mp['kgri'])
@@ -576,52 +495,6 @@ class SingleMealT1DModel:
 
         return [G, X, Isc1, Isc2, Ip, Qsto1, Qsto2, Qgut, IG]
 
-    # njit
-    def __hypoglycemic_risk(self, G, r1, r2):
-        """
-        Internal function that computes the hypoglycemic risk function.
-
-        Parameters
-        ----------
-        G : float
-            The current value of glucose (mg/dl).
-        r1 : float
-            The first parameter of the fuction.
-        r2 : float
-            The second parameter of the fuction.
-
-        Returns
-        -------
-        risk: float
-            The hypoglycemic risk value (dimensionless).
-        
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # Setting the risk model threshold
-        G_th = 60
-
-        # Set default risk
-        risk = 1
-
-        # Compute the risk
-        if 119.13 > G >= G_th:
-            risk = risk + 10 * r1 * (np.log(G) ** r2 - np.log(119.13) ** r2) ** 2
-        if G < G_th:
-            risk = risk + 10 * r1 * (np.log(G_th) ** r2 - np.log(119.13) ** r2) ** 2
-
-        return risk
-
     def __log_prior(self, theta):
         """
         Internal function that computes the log prior of unknown parameters.
@@ -634,7 +507,7 @@ class SingleMealT1DModel:
         Returns
         -------
         log_prior: float
-            The value of the log prior of current unknown model paraemters guess.
+            The value of the log prior of current unknown model parameters guess.
         
         Raises
         ------
@@ -650,7 +523,8 @@ class SingleMealT1DModel:
         """
 
         # unpack the model parameters
-        SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
+        # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
+        SI, Gb, SG, ka2, kd, kempt, kabs, beta = theta
 
         # compute each log prior
         logprior_SI = np.log(stats.gamma.pdf(SI * self.model_parameters['VG'], 3.3, 5e-4)) if 0 < SI * \
@@ -658,7 +532,7 @@ class SingleMealT1DModel:
                                                                                                   'VG'] < 1 else -np.inf
         logprior_Gb = np.log(stats.norm.pdf(Gb, 119.13, 7.11)) if 70 <= Gb <= 180 else -np.inf
         logprior_SG = np.log(stats.lognorm.pdf(SG, 0.5, scale=np.exp(-3.8))) if 0 < SG < 1 else -np.inf
-        logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
+        # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
         logprior_ka2 = np.log(
             stats.lognorm.pdf(ka2, 0.4274, scale=np.exp(-4.2875))) if 0 < ka2 < kd and ka2 < 1 else -np.inf
         logprior_kd = np.log(
@@ -669,7 +543,8 @@ class SingleMealT1DModel:
         logprior_beta = 0 if 0 <= beta <= 60 else -np.inf
 
         # Sum everything and return the value
-        return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
+        # return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
+        return logprior_SI + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
 
     def __log_likelihood(self, theta, rbg_data):
         """
@@ -681,8 +556,6 @@ class SingleMealT1DModel:
             The current guess of unknown model parameters.
         rbg_data : ReplayBGData
             The data to be used by ReplayBG during simulation.
-        rbg : ReplayBG
-            The instance of ReplayBG.
 
         Returns
         -------
@@ -703,15 +576,18 @@ class SingleMealT1DModel:
         """
 
         # Set model parameters to current guess
-        self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters[
-            'p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], \
-        self.model_parameters['kabs'], self.model_parameters['beta'] = theta
+        # self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters[
+        #     'p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], \
+        # self.model_parameters['kabs'], self.model_parameters['beta'] = theta
+
+        self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], \
+            self.model_parameters['kabs'], self.model_parameters['beta'] = theta
 
         # Enforce contraints
         self.model_parameters['kgri'] = self.model_parameters['kempt']
 
         # Simulate the model
-        G = self.simulate_for_identification(rbg_data=rbg_data)
+        G = self.simulate(rbg_data=rbg_data, modality='identification', rbg=None)
 
         # Sample the simulation
         G = G[0::int(self.yts / self.ts)]
@@ -729,13 +605,11 @@ class SingleMealT1DModel:
             The current guess of unknown model parameters.
         rbg_data : ReplayBGData
             The data to be used by ReplayBG during simulation.
-        rbg : ReplayBG
-            The instance of ReplayBG.
 
         Returns
         -------
         log_posterior: float
-            The value of the log posterior of current unknown model paraemters guess.
+            The value of the log posterior of current unknown model parameters guess.
         
         Raises
         ------
@@ -756,7 +630,7 @@ class SingleMealT1DModel:
 
     def check_copula_extraction(self, theta):
         """
-        Function that checks if a copula extraction is valid or not.
+        Function that checks if a copula extraction is valid or not depending on the prior constraints.
 
         Parameters
         ----------
@@ -766,8 +640,8 @@ class SingleMealT1DModel:
         Returns
         -------
         is_ok: bool
-            The flag indicating if the extraction is ok or not. 
-        
+            The flag indicating if the extraction is ok or not.
+
         Raises
         ------
         None

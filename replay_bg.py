@@ -44,7 +44,7 @@ class ReplayBG:
         Runs ReplayBG.
     """
 
-    def __init__(self, modality, data, BW, scenario, save_name,
+    def __init__(self, modality, data, bw, scenario, save_name,
                  yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
                  bolus_source='data', basal_source='data', cho_source='data',
                  cgm_model='CGM',
@@ -71,7 +71,7 @@ class ReplayBG:
             the given data.
         data: pd.DataFrame
             Pandas dataframe which contains the data to be used by the tool.
-        BW: double
+        bw: double
             The patient's body weight.
         scenario: string, {'single-meal', 'multi-meal'}
             A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
@@ -178,7 +178,7 @@ class ReplayBG:
         """
 
         # Input validation
-        input_validator = InputValidator(modality=modality, data=data, BW=BW, scenario=scenario, save_name=save_name,
+        input_validator = InputValidator(modality=modality, data=data, BW=bw, scenario=scenario, save_name=save_name,
                                          save_suffix=save_suffix,
                                          yts=yts, glucose_model=glucose_model, pathology=pathology, exercise=exercise,
                                          seed=seed,
@@ -201,7 +201,7 @@ class ReplayBG:
         input_validator.validate()
 
         # Initialize core variables
-        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, BW=BW,
+        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, BW=bw,
                                                                                                      modality=modality,
                                                                                                      save_name=save_name,
                                                                                                      save_suffix=save_suffix,
@@ -455,7 +455,7 @@ class ReplayBG:
         # return the object
         return Sensors(cgm=cgm)
 
-    def run(self, data, BW):
+    def run(self, data, bw):
         """
         Runs ReplayBG.
 
@@ -487,7 +487,7 @@ class ReplayBG:
             print('Running ReplayBG in `' + self.environment.modality + '` mode')
 
         # Unpack data to optimize performance
-        rbg_data = ReplayBGData(data=data, BW=BW, rbg=self)
+        rbg_data = ReplayBGData(data=data, rbg=self)
 
         # If modality is identification...
         if self.environment.modality == 'identification':
@@ -530,7 +530,7 @@ class ReplayBG:
         # Save results
         if self.environment.verbose:
             print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
-        self.__save_results(data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments,
+        self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments,
                             meal_announcement, vo2, analysis)
 
         if self.environment.verbose:

@@ -28,14 +28,14 @@ def ada_hypotreatments_handler(glucose, cho, hypotreatments, bolus, basal, time,
         An array vector as long the simulation length containing the time corresponding to the current step (hours) up to time_index.
         The values after time_index should be ignored.
     time_index: int
-        The index corresponding to the current simulation step of the replay simulation.
+        The index corresponding to the previous step of the replay simulation.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
 
     Returns
     -------
     ht: float
-        The hypotreatment to administer at time[time_index+1].
+        The hypotreatment to administer at time[time_index + 1].
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
         dss is also an output since it contains hypotreatments_handler_params that beside being a
@@ -61,7 +61,7 @@ def ada_hypotreatments_handler(glucose, cho, hypotreatments, bolus, basal, time,
     if glucose[time_index] < 70:
 
         # ...and if there are no CHO intakes in the last 15 minutes, then take an HT
-        if time_index >= 15 and not np.any(hypotreatments[(time_index-15+1):time_index+1]):
+        if time_index >= 15 and not np.any(hypotreatments[(time_index-15):time_index]):
 
             ht = 15
 
@@ -94,14 +94,14 @@ def corrects_above_250_handler(glucose, cho, hypotreatments, bolus, basal, time,
         An array vector as long the simulation length containing the time corresponding to the current step (hours) up to time_index.
         The values after time_index should be ignored.
     time_index: int
-        The index corresponding to the current simulation step of the replay simulation.
+        The index corresponding to the previous simulation step of the replay simulation.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
 
     Returns
     -------
     cb: float
-        The correction bolus to administer at time[time_index+1].
+        The correction bolus to administer at time[time_index + 1].
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
         dss is also an output since it contains correction_boluses_handler_params that beside being a
@@ -128,7 +128,7 @@ def corrects_above_250_handler(glucose, cho, hypotreatments, bolus, basal, time,
     if glucose[time_index] > 100:
 
         # ...and if there are no boluses in the last 60 minutes, then take a CB
-        if time_index >= 60 and not np.any(bolus[(time_index - 60 + 1):time_index + 1]):
+        if time_index >= 60 and not np.any(bolus[(time_index - 60):time_index]):
             cb = 1
 
     return cb, dss
@@ -155,7 +155,7 @@ def default_basal_handler(glucose, meal_announcement, hypotreatments, bolus, bas
         An array vector as long the simulation length containing the time corresponding to the current step (hours) up to time_index.
         The values after time_index should be ignored.
     time_index: int
-        The index corresponding to the current simulation step of the replay simulation.
+        The index corresponding to the previous simulation step of the replay simulation.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
 
@@ -216,7 +216,7 @@ def default_meal_generator_handler(glucose, meal, meal_announcement, bolus, basa
         An array vector as long the simulation length containing the time corresponding to the current step (hours) up to time_index.
         The values after time_index should be ignored.
     time_index: int
-        The index corresponding to the current simulation step of the replay simulation.
+        The index corresponding to the previous simulation step of the replay simulation.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
     is_single_meal: bool
@@ -291,7 +291,7 @@ def standard_bolus_calculator_handler(glucose, meal_announcement, bolus, basal, 
         An array vector as long the simulation length containing the time corresponding to the current step (hours) up to time_index.
         The values after time_index should be ignored.
     time_index: int
-        The index corresponding to the current simulation step of the replay simulation.
+        The index corresponding to the previous simulation step of the replay simulation.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
 

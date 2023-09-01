@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from multiprocessing import freeze_support
 
+from tqdm import tqdm
 
 def load_test_data(real=True):
     if real:
@@ -38,6 +39,7 @@ def load_test_data(real=True):
 
 
 if __name__ == '__main__':
+
     freeze_support()
 
     # Get test data
@@ -45,16 +47,15 @@ if __name__ == '__main__':
 
     # Set other parameters for identification
     modality = 'replay'
-    BW = 100
+    bw = 100
     scenario = 'single-meal'
-    save_name = 'test'
-    save_suffix = 'gg'
+    save_name = 'test_fast'
+    save_suffix = ''
 
     # Instantiate ReplayBG
-    rbg = ReplayBG(modality=modality, data=data, BW=BW, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
-                   n_steps=100, parallelize=False,
-                   cho_source='generated',
+    rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
+                   n_steps=25000, parallelize=True,
                    verbose=True)
 
     # Run it
-    rbg.run(data=data, BW=BW)
+    rbg.run(data=data, bw=bw)

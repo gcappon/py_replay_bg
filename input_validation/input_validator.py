@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-class ModalityValidator():
+class ModalityValidator:
     """
     Class for validating the 'modality' input parameter of ReplayBG.
     """
@@ -14,7 +14,7 @@ class ModalityValidator():
             raise Exception("'modality' input must be 'identification' or 'replay'.")
 
 
-class BWValidator():
+class BWValidator:
     """
     Class for validating the 'BW' input parameter of ReplayBG.
     """
@@ -27,7 +27,7 @@ class BWValidator():
             raise Exception("'BW' input must be a number.'")
 
 
-class ScenarioValidator():
+class ScenarioValidator:
     """
     Class for validating the 'scenario' input parameter of ReplayBG.
     """
@@ -40,7 +40,7 @@ class ScenarioValidator():
             raise Exception("'scenario' input must be 'single-meal' or 'multi-meal'.")
 
 
-class ExerciseValidator():
+class ExerciseValidator:
     """
     Class for validating the 'exercise' input parameter of ReplayBG.
     """
@@ -53,7 +53,7 @@ class ExerciseValidator():
             raise Exception("'exercise' input must be a boolean.'")
 
 
-class SaveNameValidator():
+class SaveNameValidator:
     """
     Class for validating the 'save_name' input parameter of ReplayBG.
     """
@@ -66,7 +66,7 @@ class SaveNameValidator():
             raise Exception("'save_name' input must be a string.'")
 
 
-class DataValidator():
+class DataValidator:
     """
     Class for validating the 'data' input parameter of ReplayBG.
     """
@@ -140,7 +140,7 @@ class DataValidator():
                 raise Exception("'data.basal' must not contain nan values.'")
 
 
-class SaveSuffixValidator():
+class SaveSuffixValidator:
     """
     Class for validating the 'save_suffix' input parameter of ReplayBG.
     """
@@ -153,7 +153,7 @@ class SaveSuffixValidator():
             raise Exception("'save_suffix' input must be a string.'")
 
 
-class YTSValidator():
+class YTSValidator:
     """
     Class for validating the 'yts' input parameter of ReplayBG.
     """
@@ -166,7 +166,7 @@ class YTSValidator():
             raise Exception("'yts' input must be an integer.'")
 
 
-class GlucoseModelValidator():
+class GlucoseModelValidator:
     """
     Class for validating the 'glucose_model' input parameter of ReplayBG.
     """
@@ -179,7 +179,7 @@ class GlucoseModelValidator():
             raise Exception("'glucose_model' input must be 'BG' or 'IG'.")
 
 
-class PathologyValidator():
+class PathologyValidator:
     """
     Class for validating the 'pathology' input parameter of ReplayBG.
     """
@@ -193,7 +193,7 @@ class PathologyValidator():
             raise Exception("'pathology' input must be 't1d', 't2d', 'pbh', or 'healthy'.")
 
 
-class SeedValidator():
+class SeedValidator:
     """
     Class for validating the 'seed' input parameter of ReplayBG.
     """
@@ -206,7 +206,7 @@ class SeedValidator():
             raise Exception("'seed' input must be an integer.'")
 
 
-class BolusSourceValidator():
+class BolusSourceValidator:
     """
     Class for validating the 'bolus_source' input parameter of ReplayBG.
     """
@@ -219,7 +219,7 @@ class BolusSourceValidator():
             raise Exception("'bolus_source' input must be 'data' or 'dss'.")
 
 
-class BasalSourceValidator():
+class BasalSourceValidator:
     """
     Class for validating the 'basal_source' input parameter of ReplayBG.
     """
@@ -232,7 +232,7 @@ class BasalSourceValidator():
             raise Exception("'basal_source' input must be 'data', 'u2ss', or 'dss'.")
 
 
-class CHOSourceValidator():
+class CHOSourceValidator:
     """
     Class for validating the 'cho_source' input parameter of ReplayBG.
     """
@@ -245,7 +245,7 @@ class CHOSourceValidator():
             raise Exception("'cho_source' input must be 'data' or 'generated'.")
 
 
-class CGMModelValidator():
+class CGMModelValidator:
     """
     Class for validating the 'cgm_model' input parameter of ReplayBG.
     """
@@ -258,7 +258,7 @@ class CGMModelValidator():
             raise Exception("'cgm_model' input must be 'CGM' or 'IG'.")
 
 
-class NStepsValidator():
+class NStepsValidator:
     """
     Class for validating the 'n_steps' input parameter of ReplayBG.
     """
@@ -271,7 +271,7 @@ class NStepsValidator():
             raise Exception("'n_steps' input must be an integer.'")
 
 
-class ToSampleValidator():
+class ToSampleValidator:
     """
     Class for validating the 'to_sample' input parameter of ReplayBG.
     """
@@ -284,7 +284,7 @@ class ToSampleValidator():
             raise Exception("'to_sample' input must be an integer.'")
 
 
-class SaveChainsValidator():
+class SaveChainsValidator:
     """
     Class for validating the 'save_chains' input parameter of ReplayBG.
     """
@@ -297,7 +297,7 @@ class SaveChainsValidator():
             raise Exception("'save_chains' input must be a boolean.'")
 
 
-class CRValidator():
+class CRValidator:
     """
     Class for validating the 'CR' input parameter of ReplayBG.
     """
@@ -310,7 +310,7 @@ class CRValidator():
             raise Exception("'CR' input must be a number.'")
 
 
-class CFValidator():
+class CFValidator:
     """
     Class for validating the 'CF' input parameter of ReplayBG.
     """
@@ -323,7 +323,7 @@ class CFValidator():
             raise Exception("'CF' input must be a number.'")
 
 
-class GTValidator():
+class GTValidator:
     """
     Class for validating the 'GT' input parameter of ReplayBG.
     """
@@ -336,7 +336,7 @@ class GTValidator():
             raise Exception("'GT' input must be a number.'")
 
 
-class MealGeneratorHandlerValidator():
+class MealGeneratorHandlerValidator:
     """
     Class for validating the 'meal_generator_handler' input parameter of ReplayBG.
     """
@@ -347,10 +347,9 @@ class MealGeneratorHandlerValidator():
     def validate(self):
         if not callable(self.meal_generator_handler):
             raise Exception("'meal_generator_handler' input must be a function.'")
-        # TODO: check number of arguments (I/O)
 
 
-class MealGeneratorHandlerParamsValidator():
+class MealGeneratorHandlerParamsValidator:
     """
     Class for validating the 'meal_generator_handler_params' input parameter of ReplayBG.
     """
@@ -363,7 +362,7 @@ class MealGeneratorHandlerParamsValidator():
             raise Exception("'meal_generator_handler_params' input must be a dict.'")
 
 
-class BolusCalculatorHandlerValidator():
+class BolusCalculatorHandlerValidator:
     """
     Class for validating the 'bolus_calculator_handler' input parameter of ReplayBG.
     """
@@ -374,10 +373,8 @@ class BolusCalculatorHandlerValidator():
     def validate(self):
         if not callable(self.bolus_calculator_handler):
             raise Exception("'bolus_calculator_handler' input must be a function.'")
-        # TODO: check number of arguments (I/O)
 
-
-class BolusCalculatorHandlerParamsValidator():
+class BolusCalculatorHandlerParamsValidator:
     """
     Class for validating the 'bolus_calculator_handler_params' input parameter of ReplayBG.
     """
@@ -390,7 +387,7 @@ class BolusCalculatorHandlerParamsValidator():
             raise Exception("'bolus_calculator_handler_params' input must be a dict.'")
 
 
-class BasalHandlerValidator():
+class BasalHandlerValidator:
     """
     Class for validating the 'basal_handler' input parameter of ReplayBG.
     """
@@ -401,10 +398,8 @@ class BasalHandlerValidator():
     def validate(self):
         if not callable(self.basal_handler):
             raise Exception("'basal_handler' input must be a function.'")
-        # TODO: check number of arguments (I/O)
 
-
-class BasalHandlerParamsValidator():
+class BasalHandlerParamsValidator:
     """
     Class for validating the 'basal_handler_params' input parameter of ReplayBG.
     """
@@ -441,10 +436,8 @@ class HypotreatmentsHandlerValidator:
     def validate(self):
         if not callable(self.hypotreatments_handler):
             raise Exception("'hypotreatments_handler' input must be a function.'")
-        # TODO: check number of arguments (I/O)
 
-
-class HypotreatmentsHandlerParamsValidator():
+class HypotreatmentsHandlerParamsValidator:
     """
     Class for validating the 'hypotreatments_handler_params' input parameter of ReplayBG.
     """
@@ -457,7 +450,7 @@ class HypotreatmentsHandlerParamsValidator():
             raise Exception("'hypotreatments_handler_params' input must be a dict.'")
 
 
-class EnableCorrectionBolusesValidator():
+class EnableCorrectionBolusesValidator:
     """
     Class for validating the 'enable_correction_boluses' input parameter of ReplayBG.
     """
@@ -470,7 +463,7 @@ class EnableCorrectionBolusesValidator():
             raise Exception("'enable_correction_boluses' input must be a boolean.'")
 
 
-class CorrectionBolusesHandlerValidator():
+class CorrectionBolusesHandlerValidator:
     """
     Class for validating the 'correction_boluses_handler' input parameter of ReplayBG.
     """
@@ -481,10 +474,8 @@ class CorrectionBolusesHandlerValidator():
     def validate(self):
         if not callable(self.correction_boluses_handler):
             raise Exception("'correction_boluses_handler' input must be a function.'")
-        # TODO: check number of arguments (I/O)
 
-
-class CorrectionBolusesHandlerParamsValidator():
+class CorrectionBolusesHandlerParamsValidator:
     """
     Class for validating the 'hypotreatments_handler_params' input parameter of ReplayBG.
     """
@@ -497,7 +488,7 @@ class CorrectionBolusesHandlerParamsValidator():
             raise Exception("'correction_boluses_handler_params' input must be a dict.'")
 
 
-class ParallelizeValidator():
+class ParallelizeValidator:
     """
     Class for validating the 'parallelize' input parameter of ReplayBG.
     """
@@ -510,7 +501,7 @@ class ParallelizeValidator():
             raise Exception("'parallelize' input must be a boolean.'")
 
 
-class PlotModeValidator():
+class PlotModeValidator:
     """
     Class for validating the 'plot_mode' input parameter of ReplayBG.
     """
@@ -523,7 +514,7 @@ class PlotModeValidator():
             raise Exception("'plot_mode' input must be a boolean.'")
 
 
-class VerboseValidator():
+class VerboseValidator:
     """
     Class for validating the 'verbose' input parameter of ReplayBG.
     """
@@ -536,7 +527,7 @@ class VerboseValidator():
             raise Exception("'verbose' input must be a boolean.'")
 
 
-class InputValidator():
+class InputValidator:
     """
     Class for validating the input of ReplayBG
     

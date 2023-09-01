@@ -58,7 +58,8 @@ class Replayer:
             # TODO: add vo2
             glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus['realizations'][r], \
             insulin_basal['realizations'][r], CHO['realizations'][r], hypotreatments['realizations'][r], \
-            meal_announcement['realizations'][r], x = self.rbg.model.simulate_for_replay(rbg_data=self.rbg_data,
+            meal_announcement['realizations'][r], x = self.rbg.model.simulate(rbg_data=self.rbg_data,
+                                                                              modality='replay',
                                                                                          rbg=self.rbg)
 
         # Compute median CGM and glucose profiles + CI
