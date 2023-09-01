@@ -3,13 +3,102 @@ from tqdm import tqdm
 
 
 class Replayer:
+    """
+    A class that orchestrates the replay process.
 
+    ...
+    Attributes
+    ----------
+    rbg_data: ReplayBGData
+        The data to be used by ReplayBG during simulation.
+    draws: array
+        An array containing the model parameter realizations to be used for simulating the model.
+    rbg: ReplayBG
+        The instance of ReplayBG.
+
+    Methods
+    -------
+    replay_scenario():
+        Replays the given scenario.
+    """
     def __init__(self, rbg_data, draws, rbg):
+        """
+        Constructs all the necessary attributes for the Replayer object.
+
+        Parameters
+        ----------
+        rbg_data: ReplayBGData
+            The data to be used by ReplayBG during simulation.
+        draws: array
+            An array containing the model parameter realizations to be used for simulating the model.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         self.rbg_data = rbg_data
         self.draws = draws
         self.rbg = rbg
 
     def replay_scenario(self):
+        """
+        Replays the given scenario.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        glucose: dict
+            A dictionary which contains the obtained glucose traces simulated via ReplayBG.
+        cgm: dict
+            A dictionary which contains the obtained cgm traces simulated via ReplayBG.
+        insulin_bolus: dict
+            A dictionary which contains the insulin boluses simulated via ReplayBG.
+        correction_bolus: dict
+            A dictionary which contains the correction boluses simulated via ReplayBG.
+        insulin_basal: dict
+            A dictionary which contains the basal insulin simulated via ReplayBG.
+        CHO: dict
+            A dictionary which contains the meals simulated via ReplayBG.
+        hypotreatments: dict
+            A dictionary which contains the hypotreatments simulated via ReplayBG.
+        meal_announcement: dict
+            A dictionary which contains the meal announcements simulated via ReplayBG.
+        vo2: dict
+            A dictionary which contains the vo2 simulated via ReplayBG.
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
 
         n = self.draws[self.rbg.model.unknown_parameters[0]]['samples'].shape[0]
 

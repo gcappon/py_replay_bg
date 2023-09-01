@@ -82,7 +82,7 @@ class MCMC:
         None
         """
 
-        # Physioogical model to identify
+        # Physiological model to identify
         self.model = model
 
         # Number of unknown parameters to identify
@@ -112,6 +112,8 @@ class MCMC:
 
         Parameters
         ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
         rbg_data: ReplayBGData
             An object containing the data to be used during the identification procedure.
         rbg: ReplayBG
@@ -120,7 +122,7 @@ class MCMC:
         Returns
         -------
         draws: dict
-            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling,respectively. 
+            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling, respectively.
 
         Raises
         ------
@@ -197,7 +199,35 @@ class MCMC:
         return draws
 
     def __check_physiological_plausibility(self, draws, data, rbg):
+        """
+        Check the physiological plausibility of the identified parameters.
 
+        Parameters
+        ----------
+        draws: dict
+            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling, respectively.
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        physiological_plausibility: dict
+            A dictionary containing the results of the "plausibility" tests.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         # Initialize the return vector
         physiological_plausibility = dict()
 
@@ -208,7 +238,6 @@ class MCMC:
 
         rbg_fake = copy.copy(rbg)
         rbg_fake.model = copy.copy(rbg.model)
-        data_fake = copy.copy(data)
 
         # Set "fake" model core variable for simulation
         rbg_fake.model.tsteps = 1440

@@ -2,8 +2,66 @@ import numpy as np
 
 
 class ReplayBGData:
+    """
+    A class that encloses in an optimal way the data to be used by ReplayBG during simulation.
 
+    ...
+    Attributes
+    ----------
+    t: array
+        An array containing the time of the day (hours).
+    idx: array
+        An array containing the indexes of the original data dataframe.
+    glucose: array
+        An array containing the glucose measurements (mg/dl).
+    bolus: array
+        An array containing the bolus data (U/min).
+    basal: array
+        An array containing the basal data (U/min).
+    meal: array
+        An array containing the meal data (g/min).
+    meal_announcement: array
+        An array containing the meal announcements (g/min).
+    meal_type: array
+        An array containing the meal types data (char).
+    bolus_label: array
+        An array containing the bolus label data (char).
+    cho_label: array
+        An array containing the meal label data (char).
+    exercise: array
+        An array containing the exercise data (-).
+
+    Methods
+    -------
+    None
+    """
     def __init__(self, data, rbg):
+        """
+        Constructs all the necessary attributes for the Visualizer object.
+
+        Parameters
+        ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
 
         # From the time retain only the hour since is the only thing actually needed during the simulation
         self.t = np.array(data.t.dt.hour.values).astype(int)
@@ -25,7 +83,35 @@ class ReplayBGData:
         self.exercise = []
 
     def __insulin_setup(self, data, rbg):
+        """
+        Unpacks the insulin data.
 
+        Parameters
+        ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        bolus: array
+            An array containing the bolus data (U/min).
+        basal: array
+            An array containing the basal data (U/min).
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         basal = np.zeros([rbg.model.tsteps, ])
         bolus = np.zeros([rbg.model.tsteps, ])
 
@@ -53,7 +139,37 @@ class ReplayBGData:
         return bolus, basal
 
     def __meal_setup(self, data, rbg):
+        """
+        Unpacks the meal data.
 
+        Parameters
+        ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        meal: array
+            An array containing the meal data (g/min).
+        meal_announcement: array
+            An array containing the meal announcements (g/min).
+        meal_type: array
+            An array containing the meal types data (char).
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         if rbg.environment.scenario == 'single-meal':
 
             # Initialize the meal vector

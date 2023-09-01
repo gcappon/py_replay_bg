@@ -5,12 +5,90 @@ import matplotlib.pyplot as plt
 
 
 class Visualizer:
+    """
+    A class that is to be used by ReplayBG for plotting.
 
+    ...
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    plot_replaybg_results(cgm, glucose, insulin_bolus, insulin_basal, CHO, hypotreatments, correction_bolus, vo2, data, rbg)
+    """
     def __init__(self):
+        """
+        Constructs all the necessary attributes for the Visualizer object.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         pass
 
     def plot_replaybg_results(self, cgm, glucose, insulin_bolus, insulin_basal, CHO, hypotreatments, correction_bolus,
                               vo2, data, rbg):
+        """
+        Function that plots the results of ReaplyBG simulation.
+
+        Parameters
+        ----------
+        cgm: dict
+            A dictionary which contains the obtained cgm traces simulated via ReplayBG.
+        glucose: dict
+            A dictionary which contains the obtained glucose traces simulated via ReplayBG.
+        insulin_bolus: dict
+            A dictionary which contains the insulin boluses simulated via ReplayBG.
+        insulin_basal: dict
+            A dictionary which contains the basal insulin simulated via ReplayBG.
+        CHO: dict
+            A dictionary which contains the meals simulated via ReplayBG.
+        hypotreatments: dict
+            A dictionary which contains the hypotreatments simulated via ReplayBG.
+        correction_bolus: dict
+            A dictionary which contains the correction boluses simulated via ReplayBG.
+        vo2: dict
+            A dictionary which contains the vo2 simulated via ReplayBG.
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+
+        # Subplot 1: Glucose
 
         fig, ax = None, None
         if rbg.model.exercise:
@@ -32,6 +110,8 @@ class Visualizer:
 
         ax[0].grid()
         ax[0].legend()
+
+        # Subplot 2: Meals
 
         if rbg.environment.modality == 'replay':
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
@@ -56,6 +136,7 @@ class Visualizer:
         ax[1].grid()
         ax[1].legend()
 
+        # Subplot 3: Insulin
         if rbg.environment.modality == 'replay':
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
                           timedelta(minutes=rbg.model.ts)).astype(datetime)
@@ -86,6 +167,8 @@ class Visualizer:
 
         ax[2].grid()
         ax[2].legend()
+
+        # Subplot 4: Exercise
 
         if rbg.model.exercise:
 

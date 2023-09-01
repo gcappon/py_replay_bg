@@ -1,5 +1,5 @@
 import os
-from datetime import datetime 
+
 
 class Environment:
     """
@@ -43,8 +43,9 @@ class Environment:
     None
     """
 
-    def __init__(self, modality, save_name, save_suffix = '', scenario = 'single_meal', bolus_source = 'data', basal_source = 'data', cho_source = 'data', seed = 1,
-                 parallelize = False, plot_mode = True, verbose = True):
+    def __init__(self, modality, save_name, save_suffix='', scenario='single_meal', bolus_source='data',
+                 basal_source='data', cho_source='data', seed=1,
+                 parallelize=False, plot_mode=True, verbose=True):
         """
         Constructs all the necessary attributes for the Environment object.
 
@@ -78,46 +79,45 @@ class Environment:
         verbose : boolean, optional, default : True
             A boolean that specifies the verbosity of ReplayBG.
         """
-        
+
         self.modality = modality
         self.save_name = save_name
         self.replay_bg_path = os.path.abspath('')
 
-        #Create the results subfolders if they do not exist
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results'))):
+        # Create the results subfolders if they do not exist
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'draws'))):
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'draws'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'draws'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'logs'))):
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'logs'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'logs'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'mcmc_chains'))):
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'mcmc_chains'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'mcmc_chains'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'model_parameters'))):
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'model_parameters'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'model_parameters'))
-        if not(os.path.exists(os.path.join(self.replay_bg_path, 'results', 'workspaces'))):
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'workspaces'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'workspaces'))
 
-        #Set the save suffix
+        # Set the save suffix
         if save_suffix == '':
             self.save_suffix = save_suffix
         else:
             self.save_suffix = '_' + save_suffix
 
-        #Single-meal or multi-meal scenario?
+        # Single-meal or multi-meal scenario?
         self.scenario = scenario
-        
-        #Set input sources
+
+        # Set input sources
         self.bolus_source = bolus_source
         self.basal_source = basal_source
         self.cho_source = cho_source
-        
-        #Set the seed 
-        self.seed = seed 
-        
-        #Set the parallelization option
-        self.parallelize = parallelize 
 
-        #Set the verbosity
-        self.plot_mode = plot_mode # if False do not plot 
-        self.verbose = verbose; # if False do not display stuff
-    
+        # Set the seed
+        self.seed = seed
+
+        # Set the parallelization option
+        self.parallelize = parallelize
+
+        # Set the verbosity
+        self.plot_mode = plot_mode  # if False do not plot
+        self.verbose = verbose;  # if False do not display stuff

@@ -1,9 +1,6 @@
-import random
-import time
-from datetime import datetime
-import numpy as np
+from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
+    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
-from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
 class DSS:
     """
@@ -52,12 +49,15 @@ class DSS:
     -------
     None
     """
-    def __init__(self, BW, CR = 10, CF = 40, GT = 120,
-                 meal_generator_handler = default_meal_generator_handler, meal_generator_handler_params = {},
-                 bolus_calculator_handler = standard_bolus_calculator_handler, bolus_calculator_handler_params = {},
-                 basal_handler = default_basal_handler, basal_handler_params = {},
-                 enable_hypotreatments = False, hypotreatments_handler = ada_hypotreatments_handler, hypotreatments_handler_params = {},
-                 enable_correction_boluses = False, correction_boluses_handler = corrects_above_250_handler, correction_boluses_handler_params = {}):
+
+    def __init__(self, BW, CR=10, CF=40, GT=120,
+                 meal_generator_handler=default_meal_generator_handler, meal_generator_handler_params={},
+                 bolus_calculator_handler=standard_bolus_calculator_handler, bolus_calculator_handler_params={},
+                 basal_handler=default_basal_handler, basal_handler_params={},
+                 enable_hypotreatments=False, hypotreatments_handler=ada_hypotreatments_handler,
+                 hypotreatments_handler_params={},
+                 enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
+                 correction_boluses_handler_params={}):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -100,32 +100,32 @@ class DSS:
             area for the correctionBolusesHandler function.
         """
 
-        #Patient's body weight
+        # Patient's body weight
         self.BW = BW
-        
-        #Patient therapy parameters
+
+        # Patient therapy parameters
         self.GT = GT
         self.CR = CR
         self.CF = CF
 
-        #Meal Generator module parameters
+        # Meal Generator module parameters
         self.meal_generator_handler = meal_generator_handler
         self.meal_generator_handler_params = meal_generator_handler_params
-    
-        #Bolus Calculator module parameters
+
+        # Bolus Calculator module parameters
         self.bolus_calculator_handler = bolus_calculator_handler
         self.bolus_calculator_handler_params = bolus_calculator_handler_params
-    
-        #Basal module parameters 
+
+        # Basal module parameters
         self.basal_handler = basal_handler
         self.basal_handler_params = basal_handler_params
-        
-        #Hypotreatment module parameters
+
+        # Hypotreatment module parameters
         self.enable_hypotreatments = enable_hypotreatments
         self.hypotreatments_handler = hypotreatments_handler
         self.hypotreatments_handler_params = hypotreatments_handler_params
 
-        #Correction bolus module parameters
+        # Correction bolus module parameters
         self.enable_correction_boluses = enable_correction_boluses
         self.correction_boluses_handler = correction_boluses_handler
         self.correction_boluses_handler_params = correction_boluses_handler_params
