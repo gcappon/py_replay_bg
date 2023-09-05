@@ -64,23 +64,64 @@ class ReplayBGData:
         """
 
         # From the time retain only the hour since is the only thing actually needed during the simulation
-        self.t = np.array(data.t.dt.hour.values).astype(int)
+        self.t_hour, self.t_min = self.__time_setup(data, rbg)
 
         # Save idxs
-        self.idx = np.arange(0, len(self.t))
+        self.idx = np.arange(0, data.shape[0])
 
         # Unpack glucose only if exists
         if 'glucose' in data:
             self.glucose = data.glucose.values.astype(float)
 
         # Unpack insulin
-        self.bolus, self.basal = self.__insulin_setup(data, rbg)
+        self.bolus, self.bolus_label, self.basal = self.__insulin_setup(data, rbg)
         self.meal, self.meal_announcement, self.meal_type = self.__meal_setup(data, rbg)
 
-        # TODO: manage the multimeal and exercise
-        self.bolus_label = []
-        self.cho_label = []
+        # TODO: manage exercise
         self.exercise = []
+
+    def __time_setup(self, data, rbg):
+        """
+        Unpacks the time data.
+
+        Parameters
+        ----------
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+
+        Returns
+        -------
+        t_hour: array
+            An array containing the time data (hour).
+        t_min: array
+            An array containing the time data (min).
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        t_hour = np.zeros([rbg.model.tsteps, ])
+        t_min = np.zeros([rbg.model.tsteps, ])
+
+        t_m = np.array(data.t.dt.minute.values).astype(int)
+        t_h = np.array(data.t.dt.hour.values).astype(int)
+
+        # Set the bolus vector
+        for t in range(data.shape[0]):
+            t_hour[ int( t * rbg.model.yts / rbg.model.ts ) : int( (t + 1) * rbg.model.yts / rbg.model.ts) ] = t_h[t]
+            t_min[int(t * rbg.model.yts / rbg.model.ts): int((t + 1) * rbg.model.yts / rbg.model.ts)] = np.arange(t_m[t],t_m[t] + rbg.model.yts)
+
+        return t_hour, t_min
 
     def __insulin_setup(self, data, rbg):
         """
@@ -114,6 +155,7 @@ class ReplayBGData:
         """
         basal = np.zeros([rbg.model.tsteps, ])
         bolus = np.zeros([rbg.model.tsteps, ])
+        bolus_label = np.empty([rbg.model.tsteps, ], dtype=str)
 
         if rbg.environment.bolus_source == 'data':
 
@@ -125,6 +167,9 @@ class ReplayBGData:
                 bolus[
                 int(b_idx[i] * rbg.model.yts / rbg.model.ts): int((b_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = \
                 data['bolus'][b_idx[i]] * 1000 / rbg.model.model_parameters['BW']  # mU/(kg*min)
+                bolus_label[
+                int(b_idx[i] * rbg.model.yts / rbg.model.ts): int((b_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = \
+                    data['bolus_label'][b_idx[i]]
 
         if rbg.environment.basal_source == 'data':
 
@@ -136,7 +181,7 @@ class ReplayBGData:
         if rbg.environment.basal_source == 'u2ss':
             basal[:] = rbg.model.model_parameters['u2ss']
 
-        return bolus, basal
+        return bolus, bolus_label, basal
 
     def __meal_setup(self, data, rbg):
         """
@@ -170,29 +215,30 @@ class ReplayBGData:
         --------
         None
         """
-        if rbg.environment.scenario == 'single-meal':
 
-            # Initialize the meal vector
-            meal = np.zeros([rbg.model.tsteps, ])
+        # Initialize the meal vector
+        meal = np.zeros([rbg.model.tsteps, ])
 
-            # Initialize the mealAnnouncements vector
-            meal_announcement = np.zeros([rbg.model.tsteps, ])
+        # Initialize the mealAnnouncements vector
+        meal_announcement = np.zeros([rbg.model.tsteps, ])
 
-            # Initialize the meal type vector
-            meal_type = np.empty([rbg.model.tsteps, ], dtype=str)
+        # Initialize the meal type vector
+        meal_type = np.empty([rbg.model.tsteps, ], dtype=str)
 
-            if rbg.environment.cho_source == 'data':
+        if rbg.environment.cho_source == 'data':
 
-                # Find the meals
-                m_idx = np.where(data.cho)[0]
+            # Find the meals
+            m_idx = np.where(data.cho)[0]
 
-                # Set the meal vector
-                for i in range(np.size(m_idx)):
-                    meal[
-                    int(m_idx[i] * rbg.model.yts / rbg.model.ts): int((m_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = \
-                    data['cho'][m_idx[i]] * 1000 / rbg.model.model_parameters['BW']  # mg/(kg*min)
-                    meal_announcement[int(m_idx[i] * rbg.model.yts / rbg.model.ts)] = data['cho'][m_idx[
-                        i]] * rbg.model.yts / rbg.model.ts  # mg/(kg*min)
+            # Set the meal vector
+            for i in range(np.size(m_idx)):
+                meal[
+                int(m_idx[i] * rbg.model.yts / rbg.model.ts): int((m_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = \
+                data['cho'][m_idx[i]] * 1000 / rbg.model.model_parameters['BW']  # mg/(kg*min)
+                meal_announcement[int(m_idx[i] * rbg.model.yts / rbg.model.ts)] = data['cho'][m_idx[
+                    i]] * rbg.model.yts / rbg.model.ts  # mg/(kg*min)
+
+                if rbg.environment.scenario == 'single-meal':
 
                     # Set the first meal to the MAIN meal (the one that can be delayed by beta) using the label 'M', set the other meal inputs to others using the label 'O'
                     if i == 0:
@@ -202,8 +248,8 @@ class ReplayBGData:
                         meal_type[int(m_idx[i] * rbg.model.yts / rbg.model.ts): int(
                             (m_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = 'O'
 
-        if rbg.environment.scenario == 'multi-meal':
-            # TODO: implement multi-meal
-            pass
+                if rbg.environment.scenario == 'multi-meal':
+                    meal_type[int(m_idx[i] * rbg.model.yts / rbg.model.ts): int(
+                        (m_idx[i] + 1) * rbg.model.yts / rbg.model.ts)] = data['cho_label'][m_idx[i]]
 
         return meal, meal_announcement, meal_type

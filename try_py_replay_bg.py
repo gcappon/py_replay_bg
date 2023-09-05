@@ -31,7 +31,7 @@ def load_test_data(real=True):
         bolusLabel = np.repeat('', t.size)
         bolusLabel[0] = 'B'
         exercise = np.zeros(t.size)
-        d = {'t': t, 'glucose': glucose, 'cho': cho, 'choLabel': choLabel, 'bolus': bolus, 'bolusLabel': bolusLabel,
+        d = {'t': t, 'glucose': glucose, 'cho': cho, 'cho_label': choLabel, 'bolus': bolus, 'bolus_label': bolusLabel,
              'basal': basal, 'exercise': exercise}
         df = pd.DataFrame(data=d)
 
@@ -49,12 +49,12 @@ if __name__ == '__main__':
     modality = 'replay'
     bw = 100
     scenario = 'single-meal'
-    save_name = 'test_fast'
+    save_name = 'test_single_meal'
     save_suffix = ''
 
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
-                   n_steps=25000, parallelize=True,
+                   n_steps=1000, parallelize=True,
                    verbose=True)
 
     # Run it

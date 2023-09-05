@@ -17,6 +17,7 @@ from data.data import ReplayBGData
 
 from datetime import datetime, timedelta
 
+from tqdm import tqdm
 
 class MCMC:
     """
@@ -170,8 +171,14 @@ class MCMC:
             draws[rbg.model.unknown_parameters[up]]['samples'] = np.empty(self.to_sample)
             draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
+        if rbg.environment.verbose:
+            print('Extracting samples from copula')
+            iterations = tqdm(range(self.to_sample))
+        else:
+            iterations = range(0, self.to_sample)
+
         sampled = 0
-        for i in range(self.to_sample):
+        for i in iterations:
             while True:
                 sample = distributions.sample(1).to_numpy()[0]
                 if self.model.check_copula_extraction(sample):
@@ -228,6 +235,10 @@ class MCMC:
         --------
         None
         """
+
+        if rbg.environment.verbose:
+            print('Running physiological plausibility checks...')
+
         # Initialize the return vector
         physiological_plausibility = dict()
 
@@ -238,6 +249,7 @@ class MCMC:
 
         rbg_fake = copy.copy(rbg)
         rbg_fake.model = copy.copy(rbg.model)
+        rbg_fake.environment = copy.copy(rbg.environment)
 
         # Set "fake" model core variable for simulation
         rbg_fake.model.tsteps = 1440
@@ -260,18 +272,22 @@ class MCMC:
         cho = np.zeros(rbg_fake.model.tysteps)
         choLabel = np.repeat('', rbg_fake.model.tysteps)
         exercise = np.zeros(rbg_fake.model.tysteps)
-        d = {'t': data_fake_time, 'glucose': glucose, 'cho': cho, 'choLabel': choLabel, 'bolus': bolus,
-             'bolusLabel': bolusLabel, 'basal': basal, 'exercise': exercise}
+        d = {'t': data_fake_time, 'glucose': glucose, 'cho': cho, 'cho_label': choLabel, 'bolus': bolus,
+             'bolus_label': bolusLabel, 'basal': basal, 'exercise': exercise}
         data_fake = pd.DataFrame(data=d)
 
         # Test 1: "if no insulin is injected, BG must go above 300 mg/dl in 1000 min"
+        if rbg.environment.verbose:
+            iterations = tqdm(range(self.to_sample), desc='Test 1 of 4')
+        else:
+            iterations = range(0, self.to_sample)
 
         # Set simulation data
         data_fake_test_1 = copy.copy(data_fake)
         rbg_data_fake = ReplayBGData(data=data_fake_test_1, rbg=rbg_fake)
 
         # For each parameter set...
-        for r in range(0, self.to_sample):
+        for r in iterations:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
@@ -287,6 +303,10 @@ class MCMC:
                 physiological_plausibility['test_1'][r] = False
 
         # Test 2: "if a bolus of 15 U is injected, BG should drop below 100 mg/dl"
+        if rbg.environment.verbose:
+            iterations = tqdm(range(self.to_sample), desc='Test 2 of 4')
+        else:
+            iterations = range(0, self.to_sample)
 
         # Set simulation data
         data_fake_test_2 = copy.copy(data_fake)
@@ -295,17 +315,17 @@ class MCMC:
         data_fake_test_2.basal = basal
 
         if data_fake_test_2.t.dt.hour.values[0] < 4 or data_fake_test_2.t.dt.hour.values[0] >= 17:
-            data_fake_test_2.at[0, 'bolusLabel'] = 'D'
+            data_fake_test_2.at[0, 'bolus_label'] = 'D'
         else:
             if data_fake_test_2.t.dt.hour.values[0] >= 4 and data_fake_test_2.t.dt.hour.values[0] < 11:
-                data_fake_test_2.at[0, 'bolusLabel'] = 'B'
+                data_fake_test_2.at[0, 'bolus_label'] = 'B'
             else:
-                data_fake_test_2.at[0, 'bolusLabel'] = 'L'
+                data_fake_test_2.at[0, 'bolus_label'] = 'L'
 
         rbg_data_fake = ReplayBGData(data=data_fake_test_2, rbg=rbg_fake)
 
         # For each parameter set...
-        for r in range(0, self.to_sample):
+        for r in iterations:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
@@ -321,6 +341,10 @@ class MCMC:
                 physiological_plausibility['test_2'][r] = False
 
         # Test 3: "it exists a basal insulin value such that glucose stays between 90 and 160 mg/dl", 
+        if rbg.environment.verbose:
+            iterations = tqdm(range(self.to_sample), desc='Test 3 of 4')
+        else:
+            iterations = range(0, self.to_sample)
 
         # Set simulation data
         data_fake_test_3 = copy.copy(data_fake)
@@ -333,7 +357,7 @@ class MCMC:
         rbg_data_fake = ReplayBGData(data=data_fake_test_3, rbg=rbg_fake)
 
         # For each parameter set...
-        for r in range(0, self.to_sample):
+        for r in iterations:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
@@ -369,6 +393,10 @@ class MCMC:
                         check = check + 1
 
         # Test 4: "a variation of basal insulin of 0.01 U/h does not vary basal glucose more than 20 mg/dl"
+        if rbg.environment.verbose:
+            iterations = tqdm(range(self.to_sample), desc='Test 4 of 4')
+        else:
+            iterations = range(0, self.to_sample)
 
         # Set simulation data
         data_fake_test_4 = copy.copy(data_fake)
@@ -377,7 +405,7 @@ class MCMC:
         rbg_data_fake = ReplayBGData(data=data_fake_test_4, rbg=rbg_fake)
 
         # For each parameter set...
-        for r in range(0, self.to_sample):
+        for r in iterations:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
