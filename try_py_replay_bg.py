@@ -8,12 +8,17 @@ from multiprocessing import freeze_support
 
 from tqdm import tqdm
 
-def load_test_data(real=True):
+def load_test_data(real=True, single_meal=True):
     if real:
-        # Load real data
-        df = pd.read_csv(os.path.join('example', 'data', 'single-meal_example.csv'))
-        df.t = pd.to_datetime(df['t'])
 
+        if single_meal:
+            # Load real single meal data
+            df = pd.read_csv(os.path.join('example', 'data', 'single-meal_example.csv'))
+            df.t = pd.to_datetime(df['t'])
+        else:
+            # Load real multi meal data
+            df = pd.read_csv(os.path.join('example', 'data', 'multi-meal_example.csv'))
+            df.t = pd.to_datetime(df['t'])
     else:
         # Set fake data
         t = np.arange(datetime(2023, 1, 1, 6, 0, 0), datetime(2023, 1, 1, 12, 0, 0), timedelta(minutes=5)).astype(
@@ -43,18 +48,18 @@ if __name__ == '__main__':
     freeze_support()
 
     # Get test data
-    data = load_test_data(real=True)
+    data = load_test_data(real=True, single_meal=False)
 
     # Set other parameters for identification
     modality = 'identification'
     bw = 100
-    scenario = 'single-meal'
+    scenario = 'multi-meal'
     save_name = 'test_single_meal'
     save_suffix = ''
 
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
-                   n_steps=10000, parallelize=True,
+                   n_steps=10000, parallelize=False,
                    verbose=True)
 
     # Run it
