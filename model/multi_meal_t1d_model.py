@@ -824,7 +824,7 @@ class MultiMealT1DModel:
         G = G[0::int(self.yts / self.ts)]
 
         # Compute and return the log likelihood
-        return -0.5 * np.sum(((G - rbg_data.glucose) / self.model_parameters['SDn']) ** 2)
+        return -0.5 * np.sum(((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters['SDn']) ** 2)
 
     def log_posterior(self, theta, rbg_data):
         """

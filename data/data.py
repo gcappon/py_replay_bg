@@ -72,6 +72,7 @@ class ReplayBGData:
         # Unpack glucose only if exists
         if 'glucose' in data:
             self.glucose = data.glucose.values.astype(float)
+            self.glucose_idxs = np.where(np.isnan(self.glucose) == False)
 
         # Unpack insulin
         self.bolus, self.bolus_label, self.basal = self.__insulin_setup(data, rbg)
