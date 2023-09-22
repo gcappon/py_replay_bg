@@ -1,6 +1,5 @@
 from environment.environment import Environment
-from model.single_meal_t1d_model import SingleMealT1DModel
-from model.multi_meal_t1d_model import MultiMealT1DModel
+from model.t1d_model import T1DModel
 
 from sensors.sensors import CGM, Sensors
 from dss.dss import DSS
@@ -389,16 +388,8 @@ class ReplayBG:
                                   parallelize=parallelize, plot_mode=plot_mode, verbose=verbose)
 
         # Initialize model
-        if scenario == 'single-meal':
-            if pathology == 't1d':
-                if ~exercise:
-                    model = SingleMealT1DModel(data=data, BW=BW, ts=1, yts=yts, glucose_model=glucose_model,
-                                               exercise=exercise)
-        if scenario == 'multi-meal':
-            if pathology == 't1d':
-                if ~exercise:
-                    model = MultiMealT1DModel(data=data, BW=BW, ts=1, yts=yts, glucose_model=glucose_model,
-                                               exercise=exercise)
+        if pathology == 't1d':
+            model = T1DModel(data=data, BW=BW, yts=yts, glucose_model=glucose_model, is_single_meal=(scenario=='single-meal'), exercise=exercise)
 
         # Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)

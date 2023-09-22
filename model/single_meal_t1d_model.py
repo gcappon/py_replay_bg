@@ -68,12 +68,11 @@ class SingleMealT1DModel:
         """
 
         # Time constants during simulation
-        self.ts = ts
         self.yts = yts
         self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
                     60 * 1000000000) + self.yts)
 
-        self.tsteps = int(self.t / self.ts)
+        self.tsteps = self.t
         self.tysteps = int(self.t / self.yts)
 
         # Glucose equation selection
@@ -83,7 +82,7 @@ class SingleMealT1DModel:
         self.nx = 9
 
         # Model parameters
-        self.model_parameters = self.__get_default_model_parameters(data, BW)
+        self.model_parameters = SingleMealModelParameters(data, BW)
 
         # Unknown parameters
         # self.unknown_parameters = ['SI', 'Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt', 'kabs', 'beta']
@@ -97,10 +96,10 @@ class SingleMealT1DModel:
         #     self.model_parameters['kabs'],
         #     self.model_parameters['beta']])
         self.start_guess = np.array(
-            [self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'],
-             self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'],
-             self.model_parameters['kabs'],
-             self.model_parameters['beta']])
+            [self.model_parameters.SI, self.model_parameters.Gb, self.model_parameters.SG,
+             self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt,
+             self.model_parameters.kabs,
+             self.model_parameters.beta])
 
         # initial guess for the SD of each parameter
         # self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
@@ -109,94 +108,10 @@ class SingleMealT1DModel:
         # Exercise
         self.exercise = exercise
 
-    def __get_default_model_parameters(self, data, BW):
-        """
-        Function that returns the default parameters values of the model.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-                Pandas dataframe which contains the data to be used by the tool.
-        BW : double
-            The patient's body weight.
-
-        Returns
-        -------
-        model_parameters: dict
-            A dictionary containing the default model parameters.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        model_parameters = dict()
-
-        # Initial conditions
-        model_parameters['Xpb'] = 0.0  # Insulin action initial condition
-        model_parameters['Qgutb'] = 0.0  # Intestinal content initial condition
-
-        # Glucose-insulin submodel parameters
-        model_parameters['VG'] = 1.45  # dl/kg
-        model_parameters['SG'] = 2.5e-2  # 1/min
-        model_parameters['Gb'] = 119.13  # mg/dL
-        model_parameters['r1'] = 1.4407  # unitless
-        model_parameters['r2'] = 0.8124  # unitless
-        model_parameters['alpha'] = 7  # 1/min
-        model_parameters['SI'] = 10.35e-4 / model_parameters['VG']  # mL/(uU*min)
-        model_parameters['p2'] = 0.012  # 1/min
-        model_parameters['u2ss'] = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
-
-        # Subcutaneous insulin absorption submodel parameters
-        model_parameters['VI'] = 0.126  # L/kg
-        model_parameters['ke'] = 0.127  # 1/min
-        model_parameters['kd'] = 0.026  # 1/min
-        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
-        model_parameters['ka1'] = 0.0
-        model_parameters['ka2'] = 0.014  # 1/min
-        model_parameters['tau'] = 8  # min
-        model_parameters['Ipb'] = (model_parameters['ka1'] / model_parameters['ke']) * model_parameters['u2ss'] / (
-                    model_parameters['ka1'] + model_parameters['kd']) + (
-                                              model_parameters['ka2'] / model_parameters['ke']) * (
-                                              model_parameters['kd'] / model_parameters['ka2']) * model_parameters[
-                                      'u2ss'] / (model_parameters['ka1'] + model_parameters[
-            'kd'])  # from eq. 5 steady-state
-
-        # Oral glucose absorption submodel parameters
-        model_parameters['kabs'] = 0.012  # 1/min
-        model_parameters['kgri'] = 0.18  # = kmax % 1/min
-        model_parameters['kempt'] = 0.18  # 1/min
-        model_parameters['beta'] = 0  # min
-        model_parameters['f'] = 0.9  # dimensionless
-
-        # Exercise submodel parameters
-        model_parameters['VO2rest'] = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
-        model_parameters[
-            'VO2max'] = 1  # dimensionless, VO2max is normalized and estimated from heart rate (220-age) = 100%.
-        model_parameters['e1'] = 1.6  # dimensionless
-        model_parameters['e2'] = 0.78  # dimensionless
-
-        # Patient specific parameters
-        model_parameters['BW'] = BW  # kg
-
-        # Measurement noise specifics
-        model_parameters['SDn'] = 5
-
-        # Initial conditions
-        if 'glucose' in data:
-            idx = np.where(data.glucose.isnull().values == False)[0][0]
-            model_parameters['G0'] = data.glucose[idx]
-        else:
-            model_parameters['G0'] = model_parameters['Gb']
-
-        return model_parameters
+        # Pre-initialization (for performance)
+        self.G = np.empty([self.tsteps, ])
+        self.x = np.zeros([self.nx, self.tsteps])
+        self.CGM = np.empty([self.tysteps, ])
 
     def simulate(self, rbg_data, modality, rbg):
         """
@@ -242,37 +157,35 @@ class SingleMealT1DModel:
         --------
         None
         """
-
         # Rename parameters for brevity
         mp = self.model_parameters
 
+        # Utility flag for checking the modality
+        is_replay = modality == 'replay'
+
         # Set the basal plasma insulin
-        mp['Ipb'] = (mp['ka1'] / mp['ke']) * mp['u2ss'] / (mp['ka1'] + mp['kd']) + (mp['ka2'] / mp['ke']) * (
-                    mp['kd'] / mp['ka2']) * mp['u2ss'] / (mp['ka1'] + mp['kd'])  # from eq. 5 steady-state
+        mp.Ipb = (mp.ka1 / mp.ke) * mp.u2ss / (mp.ka1 + mp.kd) + (mp.ka2 / mp.ke) * (
+                mp.kd / mp.ka2) * mp.u2ss / (mp.ka1 + mp.kd)  # from eq. 5 steady-state
 
         # Set the initial model conditions
-        initial_conditions = np.array([mp['G0'],
-                                       mp['Xpb'],
-                                       mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['ka1'] / mp['ke'] * mp['u2ss'] / (mp['ka1'] + mp['kd']) + mp['ka2'] / mp[
-                                           'ke'] * mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       mp['G0']])
+        initial_conditions = [mp.G0,
+                              mp.Xpb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              mp.u2ss / (mp.ka1 + mp.kd),
+                              mp.kd / mp.ka2 * mp.u2ss / (mp.ka1 + mp.kd),
+                              mp.Ipb,
+                              mp.G0]
 
         # Initialize the glucose vector
-        G = np.empty([self.tsteps, ])
+        G = self.G
 
         # Set the initial glucose value
-        if self.glucose_model == 'IG':
-            G[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
-        if self.glucose_model == 'BG':
-            G[0] = initial_conditions[0]  # (k) = BG(k)
+        G[0] = initial_conditions[self.nx - 1] if self.glucose_model == 'IG' else initial_conditions[0]  # (k) = BG(k)
 
         # Initialize the state matrix
-        x = np.zeros([self.nx, self.tsteps])
+        x = self.x
         x[:, 0] = initial_conditions
 
         if modality == 'replay':
@@ -364,7 +277,7 @@ class SingleMealT1DModel:
                     correction_bolus[k - 1] = correction_bolus[k - 1] + cb
 
             # Set the meal input delay
-            meal_delay = int(np.floor(mp['beta'] / self.ts))
+            meal_delay = mp.beta.__trunc__()
 
             # Extract the correct meal input
             if k - 1 - meal_delay > 0:
@@ -650,3 +563,166 @@ class SingleMealT1DModel:
         None
         """
         return self.__log_prior(theta) != -np.inf
+
+class SingleMealModelParameters:
+
+    def __init__(self,data,BW):
+
+        """
+        Function that returns the default parameters values of the model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+                Pandas dataframe which contains the data to be used by the tool.
+        BW : double
+            The patient's body weight.
+
+        Returns
+        -------
+        model_parameters: dict
+            A dictionary containing the default model parameters.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        # Initial conditions
+        self.Xpb = 0.0  # Insulin action initial condition
+        self.Qgutb = 0.0  # Intestinal content initial condition
+
+        # Glucose-insulin submodel parameters
+        self.VG = 1.45  # dl/kg
+        self.SG = 2.5e-2  # 1/min
+        self.Gb = 119.13  # mg/dL
+        self.r1 = 1.4407  # unitless
+        self.r2 = 0.8124  # unitless
+        self.alpha = 7  # 1/min
+        self.SI = 10.35e-4 / self.VG  # mL/(uU*min)
+        self.p2 = 0.012  # 1/min
+        self.u2ss = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
+
+        # Subcutaneous insulin absorption submodel parameters
+        self.VI = 0.126  # L/kg
+        self.ke = 0.127  # 1/min
+        self.kd = 0.026  # 1/min
+        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
+        self.ka1 = 0.0
+        self.ka2 = 0.014  # 1/min
+        self.tau = 8  # min
+        self.Ipb = (self.ka1 / self.ke) * self.u2ss / (
+                self.ka1 + self.kd) + (self.ka2 / self.ke) * (self.kd / self.ka2) * self.u2ss / (self.ka1 + self.kd)  # from eq. 5 steady-state
+
+        # Oral glucose absorption submodel parameters
+        self.kabs = 0.012  # 1/min
+        self.beta = 0  # min
+        self.f = 0.9  # dimensionless
+
+        # Exercise submodel parameters
+        self.VO2rest = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
+        self.VO2max = 1  # dimensionless, VO2max is normalized and estimated from heart rate (220-age) = 100%.
+        self.e1 = 1.6  # dimensionless
+        self.e2 = 0.78  # dimensionless
+
+        # Patient specific parameters
+        self.BW = BW  # kg
+
+        # Measurement noise specifics
+        self.SDn = 5
+
+        # Initial conditions
+        if 'glucose' in data:
+            idx = np.where(data.glucose.isnull().values == False)[0][0]
+            self.G0 = data.glucose[idx]
+        else:
+            self.G0 = self.Gb
+
+class SingleMealModelParameters:
+    def __init__(self, data, BW):
+        """
+        Function that returns the default parameters values of the model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+                Pandas dataframe which contains the data to be used by the tool.
+        BW : double
+            The patient's body weight.
+
+        Returns
+        -------
+        model_parameters: dict
+            A dictionary containing the default model parameters.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        # Initial conditions
+        self.Xpb = 0.0  # Insulin action initial condition
+        self.Qgutb = 0.0  # Intestinal content initial condition
+
+        # Glucose-insulin submodel parameters
+        self.VG = 1.45  # dl/kg
+        self.SG = 2.5e-2  # 1/min
+        self.Gb = 119.13  # mg/dL
+        self.r1 = 1.4407  # unitless
+        self.r2 = 0.8124  # unitless
+        self.alpha = 7  # 1/min
+        self.SI = 10.35e-4 / self.VG  # mL/(uU*min)
+        self.p2 = 0.012  # 1/min
+        self.u2ss = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
+
+        # Subcutaneous insulin absorption submodel parameters
+        self.VI = 0.126  # L/kg
+        self.ke = 0.127  # 1/min
+        self.kd = 0.026  # 1/min
+        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
+        self.ka1 = 0.0
+        self.ka2 = 0.014  # 1/min
+        self.tau = 8  # min
+        self.Ipb = (self.ka1 / self.ke) * self.u2ss / (
+                self.ka1 + self.kd) + (self.ka2 / self.ke) * (self.kd / self.ka2) * self.u2ss / (
+                           self.ka1 + self.kd)  # from eq. 5 steady-state
+
+        # Oral glucose absorption submodel parameters
+        self.kabs = 0.012  # 1/min
+        self.kgri = 0.18  # = kmax % 1/min
+        self.kempt = 0.18  # 1/min
+        self.beta = 0  # min
+        self.f = 0.9  # dimensionless
+
+        # Exercise submodel parameters
+        self.VO2rest = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
+        self.VO2max = 1  # dimensionless, VO2max is normalized and estimated from heart rate (220-age) = 100%.
+        self.e1 = 1.6  # dimensionless
+        self.e2 = 0.78  # dimensionless
+
+        # Patient specific parameters
+        self.BW = BW  # kg
+
+        # Measurement noise specifics
+        self.SDn = 5
+
+        # Initial conditions
+        if 'glucose' in data:
+            idx = np.where(data.glucose.isnull().values == False)[0][0]
+            self.G0 = data.glucose[idx]
+        else:
+            self.G0 = self.Gb

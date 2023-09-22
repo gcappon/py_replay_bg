@@ -115,7 +115,7 @@ class Visualizer:
 
         if rbg.environment.modality == 'replay':
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
-                          timedelta(minutes=rbg.model.ts)).astype(datetime)
+                          timedelta(minutes=1)).astype(datetime)
 
             cho_events = np.sum(CHO['realizations'], axis=0) / CHO['realizations'].shape[0]
             ht_events = np.sum(hypotreatments['realizations'], axis=0) / hypotreatments['realizations'].shape[0]
@@ -139,19 +139,19 @@ class Visualizer:
         # Subplot 3: Insulin
         if rbg.environment.modality == 'replay':
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
-                          timedelta(minutes=rbg.model.ts)).astype(datetime)
+                          timedelta(minutes=1)).astype(datetime)
 
             bolus_events = np.sum(insulin_bolus['realizations'], axis=0) / insulin_bolus['realizations'].shape[0]
             cb_events = np.sum(correction_bolus['realizations'], axis=0) / correction_bolus['realizations'].shape[0]
             basal_rate = np.sum(insulin_basal['realizations'], axis=0) / insulin_basal['realizations'].shape[0]
 
             markerline, stemlines, baseline = ax[2].stem(t, bolus_events, basefmt='k:',
-                                                         label='Bolus insulin replay (Mean) [g/min]')
+                                                         label='Bolus insulin replay (Mean) [U/min]')
             plt.setp(stemlines, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
             plt.setp(markerline, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
 
             markerline, stemlines, baseline = ax[2].stem(t, cb_events, basefmt='k:',
-                                                         label='CB insulin replay (Mean) [g/min]')
+                                                         label='CB insulin replay (Mean) [U/min]')
             plt.setp(stemlines, 'color', (51.0 / 255, 102.0 / 255, 0.0 / 255))
             plt.setp(markerline, 'color', (51.0 / 255, 102.0 / 255, 0.0 / 255))
 
@@ -174,7 +174,7 @@ class Visualizer:
 
             if rbg.environment.modality == 'replay':
                 t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
-                              timedelta(minutes=rbg.model.ts)).astype(datetime)
+                              timedelta(minutes=1)).astype(datetime)
 
                 vo2_events = np.sum(vo2['realizations'], axis=0) / vo2['realizations'].shape[0]
 

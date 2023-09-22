@@ -138,7 +138,7 @@ class Replayer:
 
             # set the model parameters
             for p in self.rbg.model.unknown_parameters:
-                self.rbg.model.model_parameters[p] = self.draws[p]['samples'][r]
+                setattr(self.rbg.model.model_parameters,p, self.draws[p]['samples'][r])
 
             # connect a new CGM sensor
             if self.rbg.sensors.cgm.model == 'CGM':

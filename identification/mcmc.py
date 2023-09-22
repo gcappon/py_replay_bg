@@ -151,8 +151,10 @@ class MCMC:
         pool = None
         if rbg.environment.parallelize:
             pool = Pool()
-        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, self.model.log_posterior, args=[rbg_data],
-                                       verbose=rbg.environment.verbose, pool=pool)
+
+        posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
+        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
+                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=10)
         sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
         sampler.summary  # Print summary diagnostics
         print('R =', cb1.estimates, flush=True)
@@ -173,19 +175,27 @@ class MCMC:
 
         if rbg.environment.verbose:
             print('Extracting samples from copula')
-            iterations = tqdm(range(self.to_sample))
-        else:
-            iterations = range(0, self.to_sample)
 
-        sampled = 0
-        for i in iterations:
-            while True:
-                sample = distributions.sample(1).to_numpy()[0]
-                if self.model.check_copula_extraction(sample):
+        to_be_sampled = [True] * self.to_sample
+        while any(to_be_sampled):
+
+            #Get the idxs of the missing samples
+            tbs = np.where(to_be_sampled)[0]
+
+            #Get the new samples
+            samples = distributions.sample(len(tbs)).to_numpy()
+
+            #For each sample...
+            for i in range(0, len(tbs)):
+
+                #...check if it is ok. If so...
+                if self.model.check_copula_extraction(samples[i]):
+
+                    # ...flag it and fill the final vector
+                    to_be_sampled[tbs[i]] = False
                     for up in range(len(rbg.model.unknown_parameters)):
-                        draws[rbg.model.unknown_parameters[up]]['samples'][sampled] = sample[up]
-                    sampled += 1
-                    break
+                        draws[rbg.model.unknown_parameters[up]]['samples'][tbs[i]] = samples[i,up]
+
 
         # Check physiological plausibility
         draws['physiological_plausibility'] = self.__check_physiological_plausibility(draws, data, rbg)
@@ -259,6 +269,11 @@ class MCMC:
         # Disable exercise
         rbg_fake.model.exercise = False
 
+        # Set new bigger x, G, CGM
+        rbg_fake.model.G = np.empty([1440, ])
+        rbg_fake.model.x = np.zeros([rbg_fake.model.nx, 1440])
+        rbg_fake.model.CGM = np.empty([int(rbg_fake.model.tsteps / rbg_fake.model.yts), ])
+
         # Set "fake" environment core variable for simulation
         rbg_fake.environment.modality = 'replay'
 
@@ -291,7 +306,8 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                rbg_fake.model.model_parameters[p] = draws[p]['samples'][r]
+                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples'][r])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
                 rbg_fake.sensors.cgm.connect_new_cgm()
@@ -329,7 +345,8 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                rbg_fake.model.model_parameters[p] = draws[p]['samples'][r]
+                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples'][r])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
                 rbg_fake.sensors.cgm.connect_new_cgm()
@@ -361,7 +378,8 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                rbg_fake.model.model_parameters[p] = draws[p]['samples'][r]
+                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples'][r])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
                 rbg_fake.sensors.cgm.connect_new_cgm()
@@ -409,7 +427,8 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                rbg_fake.model.model_parameters[p] = draws[p]['samples'][r]
+                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples'][r])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
                 rbg_fake.sensors.cgm.connect_new_cgm()

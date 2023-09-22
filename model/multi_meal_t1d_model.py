@@ -1,21 +1,19 @@
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 
 from datetime import datetime
 
 import copy
 
+from utils.stats import log_lognorm, log_gamma, log_norm
 
-class MultiMealT1DModel:
+class T1DModel:
     """
     A class that represents the multi meal type 1 diabetes model.
 
     ...
     Attributes 
     ----------
-    ts: int
-        The integration time step.
     yts: int
         The measurement (cgm) sample time.
     t: int
@@ -49,16 +47,14 @@ class MultiMealT1DModel:
         Function that checks if a copula extraction is valid or not.
     """
 
-    def __init__(self, data, BW, ts=1, yts=5, glucose_model='IG', exercise=False):
+    def __init__(self, data, BW, yts=5, glucose_model='IG', exercise=False):
         """
         Constructs all the necessary attributes for the Model object.
 
         Parameters
         ----------
         data : pandas.DataFrame
-            Pandas dataframe which contains the data to be used by the tool
-        ts: int, optional, default : 1 
-            The integration time step.
+            Pandas dataframe which contains the data to be used by the tool.
         yts: int, optional, default : 5 
             The measurement (cgm) sample time.
         glucose_model: string, {'IG','BG'}, optional, default : 'IG'
@@ -68,12 +64,12 @@ class MultiMealT1DModel:
         """
 
         # Time constants during simulation
-        self.ts = ts
+        #DEPRECATED self.ts = ts -> ALWAYS = 1
         self.yts = yts
         self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
-                    60 * 1000000000) + self.yts)
+                60 * 1000000000) + self.yts)
 
-        self.tsteps = int(self.t / self.ts)
+        self.tsteps = self.t
         self.tysteps = int(self.t / self.yts)
 
         # Glucose equation selection
@@ -83,7 +79,7 @@ class MultiMealT1DModel:
         self.nx = 21
 
         # Model parameters
-        self.model_parameters = self.__get_default_model_parameters(data, BW)
+        self.model_parameters = MultiMealModelParameters(data, BW)
 
         # Unknown parameters
         # self.unknown_parameters = ['SI', 'Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt', 'kabs', 'beta']
@@ -97,8 +93,8 @@ class MultiMealT1DModel:
         #     self.model_parameters['kabs'],
         #     self.model_parameters['beta']])
         self.start_guess = np.array(
-            [self.model_parameters['Gb'], self.model_parameters['SG'],
-             self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt']])
+            [self.model_parameters.Gb, self.model_parameters.SG,
+             self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt])
 
         # initial guess for the SD of each parameter
         # self.start_guess_sigma = np.array([1e-6, 1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 0.5])
@@ -112,7 +108,7 @@ class MultiMealT1DModel:
         if np.any(np.logical_and(t >= 4, t < 11)):
             self.pos_SI_B = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['SI_B'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
         # Attach lunch SI if data between 11:00 - 17:00 are available
@@ -120,7 +116,7 @@ class MultiMealT1DModel:
         if np.any(np.logical_and(t >= 11, t < 17)):
             self.pos_SI_L = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'SI_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['SI_L'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_L)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
         # Attach dinner SI if data between 0:00 - 4:00 or 17:00 - 24:00 are available
@@ -128,7 +124,7 @@ class MultiMealT1DModel:
         if np.any(np.logical_or(t < 4, t >= 17)):
             self.pos_SI_D = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'SI_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['SI_D'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_D)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
         # Attach kabs and beta breakfast if there is a breakfast
@@ -137,11 +133,11 @@ class MultiMealT1DModel:
         if np.any(np.array(data.cho_label) == 'B'):
             self.pos_kabs_B = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['kabs_B'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_B)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
             self.pos_beta_B = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'beta_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['beta_B'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_B)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Attach kabs and beta lunch if there is a lunch
@@ -150,11 +146,11 @@ class MultiMealT1DModel:
         if np.any(np.array(data.cho_label) == 'L'):
             self.pos_kabs_L = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['kabs_L'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_L)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
             self.pos_beta_L = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'beta_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['beta_L'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_L)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Attach kabs and beta dinner if there is a dinner
@@ -163,11 +159,11 @@ class MultiMealT1DModel:
         if np.any(np.array(data.cho_label) == 'D'):
             self.pos_kabs_D = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['kabs_D'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_D)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
             self.pos_beta_D = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'beta_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['beta_D'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_D)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Attach kabs and beta snack if there is a snack
@@ -176,11 +172,11 @@ class MultiMealT1DModel:
         if np.any(np.array(data.cho_label) == 'S'):
             self.pos_kabs_S = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_S')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['kabs_S'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_S)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
             self.pos_beta_S = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'beta_S')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['beta_S'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_S)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Attach kabs and hypotreatment if there is an hypotreatment
@@ -188,109 +184,16 @@ class MultiMealT1DModel:
         if np.any(np.array(data.cho_label) == 'H'):
             self.pos_kabs_H = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_H')
-            self.start_guess = np.append(self.start_guess, self.model_parameters['kabs_H'])
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_H)
             self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
 
         # Exercise
         self.exercise = exercise
 
-    def __get_default_model_parameters(self, data, BW):
-        """
-        Function that returns the default parameters values of the model.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-                Pandas dataframe which contains the data to be used by the tool.
-        BW : double
-            The patient's body weight.
-
-        Returns
-        -------
-        model_parameters: dict
-            A dictionary containing the default model parameters.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        model_parameters = dict()
-
-        # Initial conditions
-        model_parameters['Xpb'] = 0.0  # Insulin action initial condition
-        model_parameters['Qgutb'] = 0.0  # Intestinal content initial condition
-
-        # Glucose-insulin submodel parameters
-        model_parameters['VG'] = 1.45  # dl/kg
-        model_parameters['SG'] = 2.5e-2  # 1/min
-        model_parameters['Gb'] = 119.13  # mg/dL
-        model_parameters['r1'] = 1.4407  # unitless
-        model_parameters['r2'] = 0.8124  # unitless
-        model_parameters['alpha'] = 7  # 1/min
-        model_parameters['SI_B'] = 10.35e-4 / model_parameters['VG']  # mL/(uU*min)
-        model_parameters['SI_L'] = 10.35e-4 / model_parameters['VG']  # mL/(uU*min)
-        model_parameters['SI_D'] = 10.35e-4 / model_parameters['VG']  # mL/(uU*min)
-        model_parameters['p2'] = 0.012  # 1/min
-        model_parameters['u2ss'] = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
-
-        # Subcutaneous insulin absorption submodel parameters
-        model_parameters['VI'] = 0.126  # L/kg
-        model_parameters['ke'] = 0.127  # 1/min
-        model_parameters['kd'] = 0.026  # 1/min
-        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
-        model_parameters['ka1'] = 0.0
-        model_parameters['ka2'] = 0.014  # 1/min
-        model_parameters['tau'] = 8  # min
-        model_parameters['Ipb'] = (model_parameters['ka1'] / model_parameters['ke']) * model_parameters['u2ss'] / (
-                    model_parameters['ka1'] + model_parameters['kd']) + (
-                                              model_parameters['ka2'] / model_parameters['ke']) * (
-                                              model_parameters['kd'] / model_parameters['ka2']) * model_parameters[
-                                      'u2ss'] / (model_parameters['ka1'] + model_parameters[
-            'kd'])  # from eq. 5 steady-state
-
-        # Oral glucose absorption submodel parameters
-        model_parameters['kabs_B'] = 0.012  # 1/min
-        model_parameters['kabs_L'] = 0.012  # 1/min
-        model_parameters['kabs_D'] = 0.012  # 1/min
-        model_parameters['kabs_S'] = 0.012  # 1/min
-        model_parameters['kabs_H'] = 0.012  # 1/min
-        model_parameters['kgri'] = 0.18  # = kmax % 1/min
-        model_parameters['kempt'] = 0.18  # 1/min
-        model_parameters['beta_B'] = 0  # min
-        model_parameters['beta_L'] = 0  # min
-        model_parameters['beta_D'] = 0  # min
-        model_parameters['beta_S'] = 0  # min
-        model_parameters['f'] = 0.9  # dimensionless
-
-        # Exercise submodel parameters
-        model_parameters['VO2rest'] = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
-        model_parameters[
-            'VO2max'] = 1  # dimensionless, VO2max is normalized and estimated from heart rate (220-age) = 100%.
-        model_parameters['e1'] = 1.6  # dimensionless
-        model_parameters['e2'] = 0.78  # dimensionless
-
-        # Patient specific parameters
-        model_parameters['BW'] = BW  # kg
-
-        # Measurement noise specifics
-        model_parameters['SDn'] = 5
-
-        # Initial conditions
-        if 'glucose' in data:
-            idx = np.where(data.glucose.isnull().values == False)[0][0]
-            model_parameters['G0'] = data.glucose[idx]
-        else:
-            model_parameters['G0'] = model_parameters['Gb']
-
-        return model_parameters
+        # Pre-initialization (for performance)
+        self.G = np.empty([self.tsteps, ])
+        self.x = np.zeros([self.nx, self.tsteps])
+        self.CGM = np.empty([self.tysteps, ])
 
     def simulate(self, rbg_data, modality, rbg):
         """
@@ -340,51 +243,50 @@ class MultiMealT1DModel:
         # Rename parameters for brevity
         mp = self.model_parameters
 
+        # Utility flag for checking the modality
+        is_replay = modality == 'replay'
+
         # Set the basal plasma insulin
-        mp['Ipb'] = (mp['ka1'] / mp['ke']) * mp['u2ss'] / (mp['ka1'] + mp['kd']) + (mp['ka2'] / mp['ke']) * (
-                    mp['kd'] / mp['ka2']) * mp['u2ss'] / (mp['ka1'] + mp['kd'])  # from eq. 5 steady-state
+        mp.Ipb = (mp.ka1 / mp.ke) * mp.u2ss / (mp.ka1 + mp.kd) + (mp.ka2 / mp.ke) * (
+                mp.kd / mp.ka2) * mp.u2ss / (mp.ka1 + mp.kd)  # from eq. 5 steady-state
 
         # Set the initial model conditions
-        initial_conditions = np.array([mp['G0'],
-                                       mp['Xpb'],
-                                       mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       mp['ka1'] / mp['ke'] * mp['u2ss'] / (mp['ka1'] + mp['kd']) + mp['ka2'] / mp[
-                                           'ke'] * mp['kd'] / mp['ka2'] * mp['u2ss'] / (mp['ka1'] + mp['kd']),
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       0,
-                                       0,
-                                       mp['Qgutb'],
-                                       mp['G0']])
+        initial_conditions = [mp.G0,
+                              mp.Xpb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              0,
+                              0,
+                              mp.Qgutb,
+                              mp.u2ss / (mp.ka1 + mp.kd),
+                              mp.kd / mp.ka2 * mp.u2ss / (mp.ka1 + mp.kd),
+                              mp.Ipb,
+                              mp.G0]
 
         # Initialize the glucose vector
-        G = np.empty([self.tsteps, ])
+        G = self.G
 
         # Set the initial glucose value
-        if self.glucose_model == 'IG':
-            G[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
-        if self.glucose_model == 'BG':
-            G[0] = initial_conditions[0]  # (k) = BG(k)
+        G[0] = initial_conditions[self.nx - 1] if self.glucose_model == 'IG' else initial_conditions[0]  # (k) = BG(k)
 
         # Initialize the state matrix
-        x = np.zeros([self.nx, self.tsteps])
+        x = self.x
         x[:, 0] = initial_conditions
 
-        if modality == 'replay':
+        if is_replay:
 
             # Initialize the cgm vector
-            CGM = np.empty([self.tysteps, ])
+            CGM = self.CGM
             # Set the initial cgm value
             if rbg.sensors.cgm.model == 'IG':
                 CGM[0] = initial_conditions[self.nx - 1]  # y(k) = IG(k)
@@ -392,11 +294,11 @@ class MultiMealT1DModel:
                 CGM[0] = rbg.sensors.cgm.measure(initial_conditions[self.nx - 1], 0)
 
             # Make copies of the inputs if replay to avoid to overwrite fields
-            bolus = copy.copy(rbg_data.bolus)
-            basal = copy.copy(rbg_data.basal)
-            meal = copy.copy(rbg_data.meal)
+            bolus = rbg_data.bolus * 1
+            basal = rbg_data.basal * 1
+            meal = rbg_data.meal * 1
             meal_type = copy.copy(rbg_data.meal_type)
-            meal_announcement = copy.copy(rbg_data.meal_announcement)
+            meal_announcement = rbg_data.meal_announcement * 1
 
             correction_bolus = bolus * 0
             hypotreatments = meal * 0  # Hypotreatments definition is not present in single-meal --> set to 0
@@ -405,35 +307,80 @@ class MultiMealT1DModel:
 
             bolus = rbg_data.bolus
             basal = rbg_data.basal
-            meal = rbg_data.meal
-            meal_type = rbg_data.meal_type
-            meal_announcement = rbg_data.meal_announcement
+            meal_B = rbg_data.meal_B
+            meal_L = rbg_data.meal_L
+            meal_D = rbg_data.meal_D
+            meal_H = rbg_data.meal_H
+            meal_S = rbg_data.meal_S
 
-        # Simulate the physiological model
-        for k in np.arange(1, self.tsteps):
+        # Shift the insulin vectors according to the delays
+        bolus_delayed = np.append(np.zeros(shape=(mp.tau.__trunc__(),)), bolus)
+        basal_delayed = np.append(np.ones(shape=(mp.tau.__trunc__(),)) * basal[0], basal)
 
-            if modality == 'replay':
+        # Shift the meal vector according to the delays
+        meal_B_delayed = np.append(np.zeros(shape=(mp.beta_B.__trunc__(),)), meal_B)
+        meal_L_delayed = np.append(np.zeros(shape=(mp.beta_L.__trunc__(),)), meal_L)
+        meal_D_delayed = np.append(np.zeros(shape=(mp.beta_D.__trunc__(),)), meal_D)
+        meal_S_delayed = np.append(np.zeros(shape=(mp.beta_S.__trunc__(),)), meal_S)
 
+        # Create the state-space matrix for the inputs
+        k1 = 1 / (1 + mp.kgri)
+        k2 =  mp.kgri / (1 + mp.kempt)
+        k3 = 1 / (1 + mp.kempt)
+        A = np.array([[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [k2, k3, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, mp.kempt / (1 + mp.kabs_B), 1 / (1 + mp.kabs_B), 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, k2, k3, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, mp.kempt / (1 + mp.kabs_L), 1 / (1 + mp.kabs_L), 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, k2, k3,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, mp.kempt / (1 + mp.kabs_D),
+                       1 / (1 + mp.kabs_D), 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt / (1 + mp.kabs_S),
+                       1 / (1 + mp.kabs_S), 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt / (1 + mp.kabs_H),
+                       1 / (1 + mp.kabs_H), 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 / (1 + mp.ka1 + mp.kd), 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd / (1 + mp.ka2),
+                       1 / (1 + mp.ka2), 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.ka1 / (1 + mp.ke),
+                       mp.ka2 / (1 + mp.ke), 1 / (1 + mp.ke)]
+                      ])
+
+        if is_replay:
+
+            for k in np.arange(1, self.tsteps):
                 # Meal generation module
                 if rbg.environment.cho_source == 'generated':
-
                     # Call the meal generator function handler
-                    ch, ma, t, rbg.dss = rbg.dss.meal_generator_handler(G, meal, meal_announcement, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'], rbg_data.t_hour, k - 1, rbg.dss, True)
+                    ch, ma, t, rbg.dss = rbg.dss.meal_generator_handler(G, meal, meal_announcement,
+                                                                        bolus / 1000 * mp.BW, basal / 1000 * mp.BW,
+                                                                        rbg_data.t_hour, k - 1, rbg.dss, True)
 
                     # Update the event vectors
                     meal_announcement[k - 1] = meal_announcement[k - 1] + ma
                     meal_type[k - 1] = t
 
                     # Add the meal to the input bolus vector.
-                    ch = ch * 1000 / mp['BW']
+                    ch = ch * 1000 / mp.BW
                     meal[k - 1] = meal[k - 1] + ch
 
                 # Bolus generation module
                 if rbg.environment.bolus_source == 'dss':
-
                     # Call the bolus calculator function handler
-                    bo, rbg.dss = rbg.dss.bolus_calculator_handler(G, meal_announcement, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
-                                                    rbg_data.t_hour, k - 1, rbg.dss)
+                    bo, rbg.dss = rbg.dss.bolus_calculator_handler(G, meal_announcement, bolus / 1000 * mp.BW,
+                                                                   basal / 1000 * mp.BW,
+                                                                   rbg_data.t_hour, k - 1, rbg.dss)
 
                     # Add the bolus to the input bolus vector.
                     bo = bo * 1000 / mp['BW']
@@ -442,8 +389,9 @@ class MultiMealT1DModel:
                 # Basal rate generation module
                 if rbg.environment.basal_source == 'dss':
                     # Call the basal rate function handler
-                    ba, rbg.dss = rbg.dss.basal_handler(G, meal_announcement, hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
-                                                             rbg_data.t_hour, k - 1, rbg.dss)
+                    ba, rbg.dss = rbg.dss.basal_handler(G, meal_announcement, hypotreatments, bolus / 1000 * mp['BW'],
+                                                        basal / 1000 * mp['BW'],
+                                                        rbg_data.t_hour, k - 1, rbg.dss)
 
                     # Add the correction bolus to the input bolus vector.
                     ba = ba * 1000 / mp['BW']
@@ -452,108 +400,35 @@ class MultiMealT1DModel:
                 # Hypotreatment generation module
                 ht = 0
                 if rbg.dss.enable_hypotreatments:
-
                     # Call the hypotreatment handler
-                    ht, rbg.dss = rbg.dss.hypotreatments_handler(G, meal / 1000 * mp['BW'], hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'], rbg_data.t_hour, k-1, rbg.dss)
+                    ht, rbg.dss = rbg.dss.hypotreatments_handler(G, meal / 1000 * mp.BW, hypotreatments,
+                                                                 bolus / 1000 * mp.BW, basal / 1000 * mp.BW,
+                                                                 rbg_data.t_hour, k - 1, rbg.dss)
 
                     # Update the hypotreatments event vectors
                     hypotreatments[k - 1] = hypotreatments[k - 1] + ht
 
                 # Correction bolus delivery module if it is enabled
                 if rbg.dss.enable_correction_boluses:
-
                     # Call the correction boluses handler
-                    cb, rbg.dss = rbg.dss.correction_boluses_handler(G, meal / 1000 * mp['BW'], hypotreatments, bolus / 1000 * mp['BW'], basal / 1000 * mp['BW'],
-                                                             rbg_data.t_hour, k - 1, rbg.dss)
+                    cb, rbg.dss = rbg.dss.correction_boluses_handler(G, meal / 1000 * mp.BW, hypotreatments,
+                                                                     bolus / 1000 * mp.BW, basal / 1000 * mp.BW,
+                                                                     rbg_data.t_hour, k - 1, rbg.dss)
 
                     # Update the event vectors
                     correction_bolus[k - 1] = correction_bolus[k - 1] + cb
 
-            # Set the breakfast meal input delay
-            meal_delay_B = int(np.floor(mp['beta_B'] / self.ts))
-
-            # Extract the correct breakfast meal input
-            if k - 1 - meal_delay_B > 0:
-                if meal_type[k - 1 - meal_delay_B] == 'B':
-                    mea_B = meal[k - 1 - meal_delay_B]
-                else:
-                    mea_B = 0
-            else:
-                mea_B = 0
-
-            # Set the lunch meal input delay
-            meal_delay_L = int(np.floor(mp['beta_L'] / self.ts))
-
-            # Extract the correct lunch meal input
-            if k - 1 - meal_delay_L > 0:
-                if meal_type[k - 1 - meal_delay_L] == 'L':
-                    mea_L = meal[k - 1 - meal_delay_L]
-                else:
-                    mea_L = 0
-            else:
-                mea_L = 0
-
-            # Set the dinner meal input delay
-            meal_delay_D = int(np.floor(mp['beta_D'] / self.ts))
-
-            # Extract the correct dinner meal input
-            if k - 1 - meal_delay_D > 0:
-                if meal_type[k - 1 - meal_delay_D] == 'D':
-                    mea_D = meal[k - 1 - meal_delay_D]
-                else:
-                    mea_D = 0
-            else:
-                mea_D = 0
-
-            # Set the snack meal input delay
-            meal_delay_S = int(np.floor(mp['beta_S'] / self.ts))
-
-            # Extract the correct snack meal input
-            if k - 1 - meal_delay_S > 0:
-                if meal_type[k - 1 - meal_delay_S] == 'S':
-                    mea_S = meal[k - 1 - meal_delay_S]
-                else:
-                    mea_S = 0
-            else:
-                mea_S = 0
-
-            # Extract the correct snack meal input
-            if meal_type[k - 1] == 'H':
-                mea_H = meal[k - 1]
-            else:
-                mea_H = 0
-
-            if modality == 'replay':
                 # Add hypotreatment with no delay
-                mea_H = mea_H + hypotreatments[k - 1] * 1000 / mp['BW']
+                mea_H = mea_H + hypotreatments[k - 1] * 1000 / mp.BW
 
                 # Add the correction bolus to the input bolus vector.
-                bolus[k - 1] = bolus[k - 1] + correction_bolus[k - 1] * 1000 / mp['BW']
+                bolus[k - 1] = bolus[k - 1] + correction_bolus[k - 1] * 1000 / mp.BW
 
-            # Set the insulin input delays
-            insulin_delay = int(np.floor(mp['tau'] / self.ts))
-
-            # Extract the correct insulin inputs
-            if k - 1 - insulin_delay > 0:
-                bol = bolus[k - 1 - insulin_delay]
-                bas = basal[k - 1 - insulin_delay]
-            else:
-                bol = 0
-                bas = basal[0]
-
-            # Get the time of the day
-            hod = rbg_data.t_hour[k - 1]
-
-            # Simulate a step
-            x[:, k] = self.__model_step_equations(bol + bas, mea_B, mea_L, mea_D, mea_S, mea_H, hod, x[:, k - 1]) # k-1
-
-            # Get the glucose measurement
-            if self.glucose_model == 'IG':
-                G[k] = x[self.nx - 1, k]  # y(k) = IG(k)
-            if self.glucose_model == 'BG':
-                G[k] = x[0, k]  # (k) = BG(k)
-
-            if modality == 'replay':
+                # Integration step
+                x[:, k] = self.__model_step_equations(A, mp, bolus_delayed[k - 1] + basal_delayed[k - 1],
+                                                      meal_B_delayed[k - 1], meal_L_delayed[k - 1],
+                                                      meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1],
+                                                      rbg_data.t_hour[k - 1], x[:, k - 1])  # k-1
 
                 # Get the cgm
                 if np.mod(k, rbg.sensors.cgm.ts) == 0:
@@ -562,13 +437,18 @@ class MultiMealT1DModel:
                     if rbg.sensors.cgm.model == 'CGM':
                         CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(x[self.nx - 1, k], k / (24 * 60))
 
-        if modality == 'replay':
             # TODO: add vo2
-            return G, CGM, bolus / 1000 * mp['BW'], correction_bolus, basal / 1000 * mp['BW'], meal / 1000 * mp['BW'], hypotreatments, meal_announcement, x
+            return G, CGM, bolus / 1000 * mp.BW, correction_bolus, basal / 1000 * mp.BW, meal / 1000 * mp.BW, hypotreatments, meal_announcement, x
         else:
-            return G
+            for k in np.arange(1, self.tsteps):
+                # Integration step
+                x[:, k] = self.__model_step_equations(A, mp, bolus_delayed[k - 1] + basal_delayed[k - 1],
+                                                      meal_B_delayed[k - 1], meal_L_delayed[k - 1],
+                                                      meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1],
+                                                      rbg_data.t_hour[k - 1], x[:, k - 1])  # k-1
+            return x[self.nx - 1, :] if self.glucose_model == 'IG' else x[0, :]
 
-    def __model_step_equations(self, I, CHO_B, CHO_L, CHO_D, CHO_S, CHO_H, hour_of_the_day, xkm1):
+    def __model_step_equations(self, A, mp, I, CHO_B, CHO_L, CHO_D, CHO_S, CHO_H, hour_of_the_day, xkm1):
         """
         Internal function that simulates a step of the model using backward-euler method.
 
@@ -609,73 +489,44 @@ class MultiMealT1DModel:
         None
         """
 
-        # Rename model parameters for brevity
-        mp = self.model_parameters
-
-        # unpack states
-        G, X, Isc1, Isc2, Ip, Qsto1_B, Qsto2_B, Qgut_B, Qsto1_L, Qsto2_L, Qgut_L, Qsto1_D, Qsto2_D, Qgut_D, Qsto1_S, Qsto2_S, Qgut_S, Qsto1_H, Qsto2_H, Qgut_H, IG = xkm1
+        xk = xkm1
 
         # Set the insulin sensitivity based on the time of the day
         if hour_of_the_day < 4 or hour_of_the_day >= 17:
-            SI = mp['SI_D']
+            SI = mp.SI_D
         else:
             if 4 <= hour_of_the_day < 11:
-                SI = mp['SI_B']
+                SI = mp.SI_B
             else:
-                SI = mp['SI_L']
+                SI = mp.SI_L
 
         # Compute glucose risk
-
-        # Setting the risk model threshold
-        G_th = 60
 
         # Set default risk
         risk = 1
 
         # Compute the risk
-        if 119.13 > G >= G_th:
-            risk = risk + 10 * mp['r1'] * (np.log(G) ** mp['r2'] - np.log(119.13) ** mp['r2']) ** 2
-        if G < G_th:
-            risk = risk + 10 * mp['r1'] * (np.log(G_th) ** mp['r2'] - np.log(119.13) ** mp['r2']) ** 2
+        if 119.13 > xkm1[0] >= 60:
+            risk = risk + 10 * mp.r1 * (np.log(xkm1[0]) ** mp.r2 - np.log(119.13) ** mp.r2) ** 2
+        if xkm1[0] < 60:
+            risk = risk + 10 * mp.r1 * (np.log(60) ** mp.r2 - np.log(119.13) ** mp.r2) ** 2
 
         # Compute the model state at time k using backward Euler method
-        Qsto1_B = (Qsto1_B + self.ts * CHO_B) / (1 + self.ts * mp['kgri'])
-        Qsto2_B = (Qsto2_B + self.ts * mp['kgri'] * Qsto1_B) / (1 + self.ts * mp['kempt'])
-        Qgut_B = (Qgut_B + self.ts * mp['kempt'] * Qsto2_B) / (1 + self.ts * mp['kabs_B'])
 
-        Qsto1_L = (Qsto1_L + self.ts * CHO_L) / (1 + self.ts * mp['kgri'])
-        Qsto2_L = (Qsto2_L + self.ts * mp['kgri'] * Qsto1_L) / (1 + self.ts * mp['kempt'])
-        Qgut_L = (Qgut_L + self.ts * mp['kempt'] * Qsto2_L) / (1 + self.ts * mp['kabs_L'])
+        B = [CHO_B / (1 + mp.kgri), 0, 0,
+             CHO_L / (1 + mp.kgri), 0, 0,
+             CHO_D / (1 + mp.kgri), 0, 0,
+             CHO_S / (1 + mp.kgri), 0, 0,
+             CHO_H / (1 + mp.kgri), 0, 0,
+             I / (1 + mp.ka1 + mp.kd), 0, 0]
 
-        Qsto1_D = (Qsto1_D + self.ts * CHO_D) / (1 + self.ts * mp['kgri'])
-        Qsto2_D = (Qsto2_D + self.ts * mp['kgri'] * Qsto1_D) / (1 + self.ts * mp['kempt'])
-        Qgut_D = (Qgut_D + self.ts * mp['kempt'] * Qsto2_D) / (1 + self.ts * mp['kabs_D'])
+        xk[2:20] = A @ xkm1[2:20] + B
 
-        Qsto1_S = (Qsto1_S + self.ts * CHO_S) / (1 + self.ts * mp['kgri'])
-        Qsto2_S = (Qsto2_S + self.ts * mp['kgri'] * Qsto1_S) / (1 + self.ts * mp['kempt'])
-        Qgut_S = (Qgut_S + self.ts * mp['kempt'] * Qsto2_S) / (1 + self.ts * mp['kabs_S'])
+        xk[1] = (xkm1[1] + mp.p2 * (SI / mp.VI) * (xk[19] - mp.Ipb)) / (1 + mp.p2)
+        xk[0] = (xkm1[0] + mp.SG * mp.Gb + mp.f * (mp.kabs_B * xk[4] + mp.kabs_L * xk[7] + mp.kabs_D * xk[10] + mp.kabs_S * xk[13] + mp.kabs_H * xk[17]) / mp.VG) / (1 + mp.SG + (1 + mp.r1 * risk) * xk[1])
+        xk[20] = (xkm1[20] + mp.alpha * xk[0]) / (1 + mp.alpha)
 
-        Qsto1_H = (Qsto1_H + self.ts * CHO_H) / (1 + self.ts * mp['kgri'])
-        Qsto2_H = (Qsto2_H + self.ts * mp['kgri'] * Qsto1_H) / (1 + self.ts * mp['kempt'])
-        Qgut_H = (Qgut_H + self.ts * mp['kempt'] * Qsto2_H) / (1 + self.ts * mp['kabs_H'])
-
-        Ra_B = mp['f'] * mp['kabs_B'] * Qgut_B
-        Ra_L = mp['f'] * mp['kabs_L'] * Qgut_L
-        Ra_D = mp['f'] * mp['kabs_D'] * Qgut_D
-        Ra_S = mp['f'] * mp['kabs_S'] * Qgut_S
-        Ra_H = mp['f'] * mp['kabs_H'] * Qgut_H
-
-        Isc1 = (Isc1 + self.ts * I) / (1 + self.ts * (mp['ka1'] + mp['kd']))
-        Isc2 = (Isc2 + self.ts * mp['kd'] * Isc1) / (1 + self.ts * mp['ka2'])
-        Ip = (Ip + self.ts * (mp['ka1'] * Isc1 + mp['ka2'] * Isc2)) / (1 + self.ts * mp['ke'])
-
-        X = (X + self.ts * mp['p2'] * (SI / mp['VI']) * (Ip - mp['Ipb'])) / (1 + self.ts * mp['p2'])
-
-        G = (G + self.ts * (mp['SG'] * mp['Gb'] + ( Ra_B + Ra_L + Ra_D + Ra_S + Ra_H ) / mp['VG'])) / (
-                    1 + self.ts * (mp['SG'] + (1 + mp['r1'] * risk) * X))
-        IG = (IG + (self.ts / mp['alpha']) * G) / (1 + self.ts / mp['alpha'])
-
-        return [G, X, Isc1, Isc2, Ip, Qsto1_B, Qsto2_B, Qgut_B, Qsto1_L, Qsto2_L, Qgut_L, Qsto1_D, Qsto2_D, Qgut_D, Qsto1_S, Qsto2_S, Qgut_S, Qsto1_H, Qsto2_H, Qgut_H, IG]
+        return xk
 
     def __log_prior(self, theta):
         """
@@ -709,52 +560,44 @@ class MultiMealT1DModel:
 
         Gb, SG, ka2, kd, kempt = theta[0:5]
 
-        SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters['SI_B']
-        SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters['SI_L']
-        SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters['SI_D']
+        SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
+        SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
+        SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
 
-        kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters['kabs_B']
-        kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters['kabs_L']
-        kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters['kabs_D']
-        kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters['kabs_S']
-        kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters['kabs_H']
+        kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
+        kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
+        kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
+        kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
+        kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
 
-        beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters['beta_B']
-        beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters['beta_L']
-        beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters['beta_D']
-        beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters['beta_S']
-
+        beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
+        beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
+        beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
+        beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
 
         # compute each log prior
-        logprior_SI_B = np.log(stats.gamma.pdf(SI_B * self.model_parameters['VG'], 3.3, 5e-4)) if 0 < SI_B * \
-                                                                                              self.model_parameters[
-                                                                                                  'VG'] < 1 else -np.inf
-        logprior_SI_L = np.log(stats.gamma.pdf(SI_L * self.model_parameters['VG'], 3.3, 5e-4)) if 0 < SI_L * \
-                                                                                              self.model_parameters[
-                                                                                                  'VG'] < 1 else -np.inf
-        logprior_SI_D = np.log(stats.gamma.pdf(SI_D * self.model_parameters['VG'], 3.3, 5e-4)) if 0 < SI_D * \
-                                                                                              self.model_parameters[
-                                                                                                  'VG'] < 1 else -np.inf
+        # NB: gamma.pdf(0.001 * 1.45, 3.3, scale=5e-4) <=> gampdf(0.001*1.45, 3.3, 5e-4)
+        logprior_SI_B = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
+        logprior_SI_L = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
+        logprior_SI_D = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
 
-        logprior_Gb = np.log(stats.norm.pdf(Gb, 119.13, 7.11)) if 70 <= Gb <= 180 else -np.inf
-        logprior_SG = np.log(stats.lognorm.pdf(SG, 0.5, scale=np.exp(-3.8))) if 0 < SG < 1 else -np.inf
+        logprior_Gb = log_lognorm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
+        logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
         # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
-        logprior_ka2 = np.log(
-            stats.lognorm.pdf(ka2, 0.4274, scale=np.exp(-4.2875))) if 0 < ka2 < kd and ka2 < 1 else -np.inf
-        logprior_kd = np.log(
-            stats.lognorm.pdf(kd, 0.6187, scale=np.exp(-3.5090))) if 0 < ka2 < kd and kd < 1 else -np.inf
-        logprior_kempt = np.log(stats.lognorm.pdf(kempt, 0.7069, scale=np.exp(-1.9646))) if 0 < kempt < 1 else -np.inf
+        logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
+        logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
+        logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
 
-        logprior_kabs_B = np.log(
-            stats.lognorm.pdf(kabs_B, 1.4396, scale=np.exp(-5.4591))) if kempt >= kabs_B and 0 < kabs_B < 1 else -np.inf
-        logprior_kabs_L = np.log(
-            stats.lognorm.pdf(kabs_L, 1.4396, scale=np.exp(-5.4591))) if kempt >= kabs_L and 0 < kabs_L < 1 else -np.inf
-        logprior_kabs_D = np.log(
-            stats.lognorm.pdf(kabs_D, 1.4396, scale=np.exp(-5.4591))) if kempt >= kabs_D and 0 < kabs_D < 1 else -np.inf
-        logprior_kabs_S = np.log(
-            stats.lognorm.pdf(kabs_S, 1.4396, scale=np.exp(-5.4591))) if kempt >= kabs_S and 0 < kabs_S < 1 else -np.inf
-        logprior_kabs_H = np.log(
-            stats.lognorm.pdf(kabs_H, 1.4396, scale=np.exp(-5.4591))) if kempt >= kabs_H and 0 < kabs_H < 1 else -np.inf
+        logprior_kabs_B = log_lognorm(kabs_B, mu=-5.4591,
+                                             sigma=1.4396) if kempt >= kabs_B and 0 < kabs_B < 1 else -np.inf
+        logprior_kabs_L = log_lognorm(kabs_L, mu=-5.4591,
+                                             sigma=1.4396) if kempt >= kabs_L and 0 < kabs_L < 1 else -np.inf
+        logprior_kabs_D = log_lognorm(kabs_D, mu=-5.4591,
+                                             sigma=1.4396) if kempt >= kabs_D and 0 < kabs_D < 1 else -np.inf
+        logprior_kabs_S = log_lognorm(kabs_S, mu=-5.4591,
+                                             sigma=1.4396) if kempt >= kabs_S and 0 < kabs_S < 1 else -np.inf
+        logprior_kabs_H = log_lognorm(kabs_H, mu=-5.4591,
+                                             sigma=1.4396) if kempt >= kabs_H and 0 < kabs_H < 1 else -np.inf
 
         logprior_beta_B = 0 if 0 <= beta_B <= 60 else -np.inf
         logprior_beta_L = 0 if 0 <= beta_L <= 60 else -np.inf
@@ -762,7 +605,6 @@ class MultiMealT1DModel:
         logprior_beta_S = 0 if 0 <= beta_S <= 60 else -np.inf
 
         # Sum everything and return the value
-        # return logprior_SI + logprior_Gb + logprior_SG + logprior_p2 + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
         return logprior_SI_B + logprior_SI_L + logprior_SI_D + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs_B + logprior_kabs_L + logprior_kabs_D + logprior_kabs_S + logprior_kabs_H + logprior_beta_B + logprior_beta_L + logprior_beta_D + logprior_beta_S
 
     def __log_likelihood(self, theta, rbg_data):
@@ -798,33 +640,35 @@ class MultiMealT1DModel:
         # self.model_parameters['SI'], self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters[
         #     'p2'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'], \
         # self.model_parameters['kabs'], self.model_parameters['beta'] = theta
-        self.model_parameters['Gb'], self.model_parameters['SG'], self.model_parameters['ka2'], self.model_parameters['kd'], self.model_parameters['kempt'] = theta[0:5]
-        self.model_parameters['SI_B'] = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters['SI_B']
-        self.model_parameters['SI_L'] = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters['SI_L']
-        self.model_parameters['SI_D'] = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters['SI_D']
+        self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt = theta[
+                                                                                                                                               0:5]
+        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
+        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
+        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
 
-        self.model_parameters['kabs_B'] = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters['kabs_B']
-        self.model_parameters['kabs_L'] = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters['kabs_L']
-        self.model_parameters['kabs_D'] = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters['kabs_D']
-        self.model_parameters['kabs_S'] = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters['kabs_S']
-        self.model_parameters['kabs_H'] = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters['kabs_H']
+        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
+        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
+        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
+        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
+        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
 
-        self.model_parameters['beta_B'] = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters['beta_B']
-        self.model_parameters['beta_L'] = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters['beta_L']
-        self.model_parameters['beta_D'] = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters['beta_D']
-        self.model_parameters['beta_S'] = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters['beta_S']
+        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
+        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
+        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
+        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
 
         # Enforce contraints
-        self.model_parameters['kgri'] = self.model_parameters['kempt']
+        self.model_parameters.kgri = self.model_parameters.kempt
 
         # Simulate the model
         G = self.simulate(rbg_data=rbg_data, modality='identification', rbg=None)
 
         # Sample the simulation
-        G = G[0::int(self.yts / self.ts)]
+        G = G[0::self.yts]
 
         # Compute and return the log likelihood
-        return -0.5 * np.sum(((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters['SDn']) ** 2)
+        return -0.5 * np.sum(
+            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
 
     def log_posterior(self, theta, rbg_data):
         """
@@ -854,10 +698,8 @@ class MultiMealT1DModel:
         --------
         None
         """
-        if self.__log_prior(theta) == -np.inf:
-            return -np.inf
-        else:
-            return self.__log_prior(theta) + self.__log_likelihood(theta, rbg_data)
+        p = self.__log_prior(theta)
+        return -np.inf if p == -np.inf else p + self.__log_likelihood(theta, rbg_data)
 
     def check_copula_extraction(self, theta):
         """
@@ -886,3 +728,104 @@ class MultiMealT1DModel:
         None
         """
         return self.__log_prior(theta) != -np.inf
+
+
+class ModelParameters:
+
+    def __init__(self, data, BW, is_single_meal):
+
+        """
+        Function that returns the default parameters values of the model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+                Pandas dataframe which contains the data to be used by the tool.
+        BW : double
+            The patient's body weight.
+
+        Returns
+        -------
+        model_parameters: dict
+            A dictionary containing the default model parameters.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        # Initial conditions
+        self.Xpb = 0.0  # Insulin action initial condition
+        self.Qgutb = 0.0  # Intestinal content initial condition
+
+        # Glucose-insulin submodel parameters
+        self.VG = 1.45  # dl/kg
+        self.SG = 2.5e-2  # 1/min
+        self.Gb = 119.13  # mg/dL
+        self.r1 = 1.4407  # unitless
+        self.r2 = 0.8124  # unitless
+        self.alpha = 7  # 1/min
+        if is_single_meal:
+            self.SI = 10.35e-4 / self.VG  # mL/(uU*min)
+        else:
+            self.SI_B = 10.35e-4 / self.VG  # mL/(uU*min)
+            self.SI_L = 10.35e-4 / self.VG  # mL/(uU*min)
+            self.SI_D = 10.35e-4 / self.VG  # mL/(uU*min)
+        self.p2 = 0.012  # 1/min
+        self.u2ss = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
+
+        # Subcutaneous insulin absorption submodel parameters
+        self.VI = 0.126  # L/kg
+        self.ke = 0.127  # 1/min
+        self.kd = 0.026  # 1/min
+        # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
+        self.ka1 = 0.0
+        self.ka2 = 0.014  # 1/min
+        self.tau = 8  # min
+        self.Ipb = (self.ka1 / self.ke) * self.u2ss / (
+                self.ka1 + self.kd) + (self.ka2 / self.ke) * (self.kd / self.ka2) * self.u2ss / (
+                               self.ka1 + self.kd)  # from eq. 5 steady-state
+
+        # Oral glucose absorption submodel parameters
+        if is_single_meal:
+            self.kabs = 0.012 #1/min
+            self.beta = 0 #1/min
+        else:
+            self.kabs_B = 0.012  # 1/min
+            self.kabs_L = 0.012  # 1/min
+            self.kabs_D = 0.012  # 1/min
+            self.kabs_S = 0.012  # 1/min
+            self.kabs_H = 0.012  # 1/min
+            self.beta_B = 0  # min
+            self.beta_L = 0  # min
+            self.beta_D = 0  # min
+            self.beta_S = 0  # min
+        self.kgri = 0.18  # = kmax % 1/min
+        self.kempt = 0.18  # 1/min
+        self.f = 0.9  # dimensionless
+
+        # Exercise submodel parameters
+        self.VO2rest = 0.33  # dimensionless, VO2rest was derived from heart rate round(66/(220-30))
+        self.VO2max = 1  # dimensionless, VO2max is normalized and estimated from heart rate (220-age) = 100%.
+        self.e1 = 1.6  # dimensionless
+        self.e2 = 0.78  # dimensionless
+
+        # Patient specific parameters
+        self.BW = BW  # kg
+
+        # Measurement noise specifics
+        self.SDn = 5
+
+        # Initial conditions
+        if 'glucose' in data:
+            idx = np.where(data.glucose.isnull().values == False)[0][0]
+            self.G0 = data.glucose[idx]
+        else:
+            self.G0 = self.Gb

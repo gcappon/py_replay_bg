@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def ada_hypotreatments_handler(glucose, cho, hypotreatments, bolus, basal, time, time_index, dss):
+def ada_hypotreatments_handler(glucose, meal_announcement, meal_type, hypotreatments, bolus, basal, time, time_index, dss):
     """
     Implements the default hypotreatment strategy: "take an hypotreatment of 10 g every 15 minutes while in hypoglycemia".
 
@@ -67,7 +67,7 @@ def ada_hypotreatments_handler(glucose, cho, hypotreatments, bolus, basal, time,
     return ht, dss
 
 
-def corrects_above_250_handler(glucose, cho, hypotreatments, bolus, basal, time, time_index, dss):
+def corrects_above_250_handler(glucose, meal_announcement, meal_type, hypotreatments, bolus, basal, time, time_index, dss):
     """
     Implements the default correction bolus strategy: "take a correction bolus of 1 U every 1 hour while above 250 mg/dl".
 
@@ -134,7 +134,7 @@ def corrects_above_250_handler(glucose, cho, hypotreatments, bolus, basal, time,
     return cb, dss
 
 
-def default_basal_handler(glucose, meal_announcement, hypotreatments, bolus, basal, time, time_index, dss):
+def default_basal_handler(glucose, meal_announcement, meal_type, hypotreatments, bolus, basal, time, time_index, dss):
     """
     Implements the default basal rate controller: "if G < 70, basal = 0; otherwise, basal = 0.01 U/min".
 
@@ -194,7 +194,7 @@ def default_basal_handler(glucose, meal_announcement, hypotreatments, bolus, bas
     return b, dss
 
 
-def default_meal_generator_handler(glucose, meal, meal_announcement, bolus, basal, time, time_index, dss,
+def default_meal_generator_handler(glucose, meal, meal_type, meal_announcement, hypotreatments, bolus, basal, time, time_index, dss,
                                    is_single_meal):
     """
     Implements the default meal generation policy: "put a main meal of 50 g of CHO in the first instant and announce
@@ -272,7 +272,8 @@ def default_meal_generator_handler(glucose, meal, meal_announcement, bolus, basa
     return c, ma, type, dss
 
 
-def standard_bolus_calculator_handler(glucose, meal_announcement, bolus, basal, time, time_index, dss):
+def standard_bolus_calculator_handler(glucose, meal_announcement, meal_type, hypotreatments, bolus, basal, time, time_index, dss):
+
     """
     Implements the default bolus calculator formula: B = CHO/CR + (GT-GC)/CF - IOB
 
@@ -328,7 +329,6 @@ def standard_bolus_calculator_handler(glucose, meal_announcement, bolus, basal, 
     if meal_announcement[time_index] > 0:
 
         # compute iob
-        insulin = bolus[0:(time_index + 1)]
         ts = 5
 
         k1 = 0.0173
@@ -342,10 +342,10 @@ def standard_bolus_calculator_handler(glucose, meal_announcement, bolus, basal, 
                         k1 * (k1 - k2)) * (np.exp(-k1 * t / 0.75) - 1)) / (2.4947e4))
         iob_6h_curve = iob_6h_curve[ts::ts]
 
-        iob = np.convolve(insulin, iob_6h_curve)
-        iob = iob[insulin.shape[0] - 1]
+        iob = np.convolve(bolus, iob_6h_curve)
+        iob = iob[bolus.shape[0] - 1]
 
         # ...give a bolus
-        b = meal_announcement[time_index] / dss.CR + (glucose[time_index] - dss.GT) / dss.CF - iob
+        b = np.max([0, meal_announcement[time_index] / dss.CR + (glucose[time_index] - dss.GT) / dss.CF - iob])
 
     return b, dss
