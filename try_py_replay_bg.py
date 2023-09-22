@@ -48,18 +48,18 @@ if __name__ == '__main__':
     freeze_support()
 
     # Get test data
-    data = load_test_data(real=True, single_meal=True)
+    data = load_test_data(real=True, single_meal=False)
 
     # Set other parameters for identification
     modality = 'identification'
     bw = 100
-    scenario = 'single-meal'
+    scenario = 'multi-meal'
     save_name = 'test_single_meal'
     save_suffix = ''
 
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_suffix=save_suffix,
-                   n_steps=100, parallelize=True, verbose=True)
+                   n_steps=2500, parallelize=True, verbose=True)
 
     # Run it
     rbg.run(data=data, bw=bw)
