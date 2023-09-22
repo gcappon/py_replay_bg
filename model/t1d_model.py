@@ -625,6 +625,7 @@ class T1DModel:
         return xk
 
     @staticmethod
+    @njit
     def __model_step_equations_multi_meal(A, I, CHO_B, CHO_L, CHO_D, CHO_S, CHO_H, hour_of_the_day, xkm1, B, r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb, f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha):
         """
         Internal function that simulates a step of the model using backward-euler method.
