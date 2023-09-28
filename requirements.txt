@@ -57,8 +57,6 @@ pure-eval==0.2.2
 pydantic==2.1.1
 pydantic-core==2.4.0
 Pygments==2.15.1
-pymc==5.5.0
-pymc3==3.11.5
 pyparsing==3.0.9
 pytensor==2.12.1
 pytest==7.3.2
@@ -85,6 +83,5 @@ Werkzeug==2.2.2
 wrapt==1.15.0
 xarray==2023.5.0
 xarray-einstats==0.5.1
-xport==3.6.1
 zeus-mcmc==2.5.4
 zipp==3.8.1
