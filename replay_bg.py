@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 from environment.environment import Environment
 from model.t1d_model import T1DModel
 
@@ -14,10 +17,13 @@ from visualizer.visualizer import Visualizer
 
 from input_validation.input_validator import InputValidator
 
-import numpy as np
 import os
 
 import pickle
+
+from py_agata.py_agata import Agata
+from py_agata.utils import glucose_vector_to_dataframe
+from py_agata.error import *
 
 
 class ReplayBG:
@@ -508,8 +514,7 @@ class ReplayBG:
 
         if self.environment.verbose:
             print('Analyzing results...')
-        # TODO: analyze results
-        analysis = []
+        analysis = self.__analyze_results(glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, data)
 
         # Plot results if plot_mode is enabled
         if self.environment.plot_mode:
@@ -531,6 +536,128 @@ class ReplayBG:
 
         if self.environment.verbose:
             print('Done. Bye!')
+
+
+    def __analyze_results(self, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2, data):
+        """
+        Analyzes ReplayBG results.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        agata = Agata(glycemic_target='diabetes')
+
+        analysis = dict()
+        fields = ['median', 'ci5th', 'ci25th', 'ci75th', 'ci95th']
+        for f in fields:
+            analysis[f] = dict()
+
+
+            # Transform the glucose profile under examination to a dataframe compatible with Agata
+            glucose_profile = glucose_vector_to_dataframe(glucose[f], self.model.ts)
+
+            # Analyse the glucose profile
+            analysis[f]["glucose"] = agata.analyze_glucose_profile(glucose_profile)
+
+            # Transform the cgm profile under examination to a dataframe compatible with Agata
+            cgm_profile = glucose_vector_to_dataframe(cgm[f], self.model.yts)
+
+            # Analyse the cgm profile
+            analysis[f]["cgm"] = agata.analyze_glucose_profile(cgm_profile)
+
+
+        total_insulin = np.zeros(shape=(insulin_bolus["realizations"].shape[0],))
+        total_bolus_insulin = np.zeros(shape=(insulin_bolus["realizations"].shape[0],))
+        total_correction_bolus_insulin = np.zeros(shape=(insulin_bolus["realizations"].shape[0],))
+        total_basal_insulin = np.zeros(shape=(insulin_bolus["realizations"].shape[0],))
+
+        total_cho = np.zeros(shape=(CHO["realizations"].shape[0],))
+        total_hypotreatments = np.zeros(shape=(CHO["realizations"].shape[0],))
+        total_meal_announcements = np.zeros(shape=(CHO["realizations"].shape[0],))
+
+        correction_bolus_insulin_number = np.zeros(shape=(insulin_bolus["realizations"].shape[0],))
+        hypotreatment_number = np.zeros(shape=(CHO["realizations"].shape[0],))
+
+        exercise_session_number = np.zeros(shape=(vo2["realizations"].shape[0],))
+        # TODO: add other metrics for exercise (e.g., average VO2 per session, duration of each session)
+
+        for r in range(total_insulin.size):
+
+            # Compute insulin amounts for each realization
+            total_insulin[r] = np.sum(insulin_bolus["realizations"][r, :]) + np.sum(insulin_basal["realizations"][r, :])
+            total_bolus_insulin[r] = np.sum(insulin_bolus["realizations"][r, :])
+            total_basal_insulin[r] = np.sum(insulin_basal["realizations"][r, :])
+            total_correction_bolus_insulin[r] = np.sum(correction_bolus["realizations"][r, :])
+
+            # Compute CHO amounts for each realization
+            total_cho[r] = np.sum(CHO["realizations"][r, :])
+            total_hypotreatments[r] = np.sum(hypotreatments["realizations"][r, :])
+            total_meal_announcements[r] = np.sum(meal_announcement["realizations"][r, :])
+
+            # Compute numbers for each realization
+            correction_bolus_insulin_number[r] = np.where(correction_bolus["realizations"])[0].size
+            hypotreatment_number[r] = np.where(hypotreatments["realizations"])[0].size
+
+            # Compute exercise metrics for each realization
+            e = np.where(hypotreatments["realizations"])[0]
+            if e.size == 0:
+                exercise_session_number[r] = 0
+            else:
+                d = np.diff(e)
+                idxs = np.where(d > 1)[0]
+                exercise_session_number[r] = 1 + idxs.size
+
+        p = [50, 5, 25, 75, 95]
+        for f in range(len(fields)):
+            analysis[fields[f]]["event"] = dict()
+
+            analysis[fields[f]]["event"]["total_insulin"] = np.percentile(total_insulin, p[f])
+            analysis[fields[f]]["event"]["total_bolus_insulin"] = np.percentile(total_bolus_insulin, p[f])
+            analysis[fields[f]]["event"]["total_basal_insulin"] = np.percentile(total_basal_insulin, p[f])
+            analysis[fields[f]]["event"]["total_correction_bolus_insulin"] = np.percentile(total_correction_bolus_insulin, p[f])
+
+            analysis[fields[f]]["event"]["total_cho"] = np.percentile(total_cho, p[f])
+            analysis[fields[f]]["event"]["total_hypotreatments"] = np.percentile(total_hypotreatments, p[f])
+            analysis[fields[f]]["event"]["total_meal_announcements"] = np.percentile(total_meal_announcements, p[f])
+
+            analysis[fields[f]]["event"]["correction_bolus_insulin_number"] = np.percentile(correction_bolus_insulin_number, p[f])
+            analysis[fields[f]]["event"]["hypotreatment_number"] = np.percentile(hypotreatment_number, p[f])
+
+            analysis[fields[f]]["event"]["exercise_session_number"] = np.percentile(exercise_session_number, p[f])
+
+        if self.environment.modality == 'identification':
+            for f in fields:
+                analysis[f]["identification"] = dict()
+
+                data_hat = glucose_vector_to_dataframe(cgm[f], self.model.yts, pd.to_datetime(data.t.values[0]).to_pydatetime())
+
+                analysis[f]["identification"]["rmse"] = rmse(data, data_hat)
+                analysis[f]["identification"]["mard"] = mard(data, data_hat)
+                analysis[f]["identification"]["clarke"] = clarke(data, data_hat)
+                analysis[f]["identification"]["cod"] = cod(data, data_hat)
+                analysis[f]["identification"]["g_rmse"] = g_rmse(data, data_hat)
+
+        return analysis
+
+
+
+
+
 
     def __save_results(self, data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO,
                        hypotreatments, meal_announcement, vo2, analysis):

@@ -51,7 +51,7 @@ if __name__ == '__main__':
     data = load_test_data(real=True, single_meal=True)
 
     # Set other parameters for identification
-    modality = 'identification'
+    modality = 'replay'
     bw = 100
     scenario = 'single-meal'
     save_name = 'test_single_meal'

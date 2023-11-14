@@ -8,6 +8,7 @@ import copy
 from utils.stats import log_lognorm, log_gamma, log_norm
 
 from numba import njit
+
 class T1DModel:
     """
     A class that represents the multi meal type 1 diabetes model.
@@ -72,6 +73,7 @@ class T1DModel:
 
         # Time constants during simulation
         # self.ts = ts # DEPRECATED -> IT WILL BE ALWAYS = 1
+        self.ts = 1
         self.yts = yts
         self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
                 60 * 1000000000) + self.yts)
