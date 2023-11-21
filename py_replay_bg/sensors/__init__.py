@@ -212,8 +212,8 @@ class CGM:
         e = u + self.cgm_error_parameters[4] * self.ekm1 + self.cgm_error_parameters[5] * self.ekm2
 
         # Update memory terms
-        self.ekm1 = e
         self.ekm2 = self.ekm1
+        self.ekm1 = e
 
         # Get final CGM
         return IGs + e
