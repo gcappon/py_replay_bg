@@ -15,7 +15,7 @@ class Visualizer:
 
     Methods
     -------
-    plot_replaybg_results(cgm, glucose, insulin_bolus, insulin_basal, CHO, hypotreatments, correction_bolus, vo2, data, rbg)
+    plot_replaybg_results(cgm, glucose, insulin_bolus, insulin_basal, cho, hypotreatments, correction_bolus, vo2, data, rbg)
     """
     def __init__(self):
         """
@@ -43,7 +43,7 @@ class Visualizer:
         """
         pass
 
-    def plot_replaybg_results(self, cgm, glucose, insulin_bolus, insulin_basal, CHO, hypotreatments, correction_bolus,
+    def plot_replaybg_results(self, cgm, glucose, insulin_bolus, insulin_basal, cho, hypotreatments, correction_bolus,
                               vo2, data, rbg):
         """
         Function that plots the results of ReaplyBG simulation.
@@ -58,7 +58,7 @@ class Visualizer:
             A dictionary which contains the insulin boluses simulated via ReplayBG.
         insulin_basal: dict
             A dictionary which contains the basal insulin simulated via ReplayBG.
-        CHO: dict
+        cho: dict
             A dictionary which contains the meals simulated via ReplayBG.
         hypotreatments: dict
             A dictionary which contains the hypotreatments simulated via ReplayBG.
@@ -117,7 +117,7 @@ class Visualizer:
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
                           timedelta(minutes=1)).astype(datetime)
 
-            cho_events = np.sum(CHO['realizations'], axis=0) / CHO['realizations'].shape[0]
+            cho_events = np.sum(cho['realizations'], axis=0) / cho['realizations'].shape[0]
             ht_events = np.sum(hypotreatments['realizations'], axis=0) / hypotreatments['realizations'].shape[0]
 
             markerline, stemlines, baseline = ax[1].stem(t, cho_events, basefmt='k:', label='CHO replay (Mean) [g/min]')

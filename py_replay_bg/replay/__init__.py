@@ -74,7 +74,7 @@ class Replayer:
             A dictionary which contains the correction boluses simulated via ReplayBG.
         insulin_basal: dict
             A dictionary which contains the basal insulin simulated via ReplayBG.
-        CHO: dict
+        cho: dict
             A dictionary which contains the meals simulated via ReplayBG.
         hypotreatments: dict
             A dictionary which contains the hypotreatments simulated via ReplayBG.
@@ -117,8 +117,8 @@ class Replayer:
         insulin_basal = dict()
         insulin_basal['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
 
-        CHO = dict()
-        CHO['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
+        cho = dict()
+        cho['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
 
         hypotreatments = dict()
         hypotreatments['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
@@ -146,7 +146,7 @@ class Replayer:
 
             # TODO: add vo2
             glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus['realizations'][r], \
-            insulin_basal['realizations'][r], CHO['realizations'][r], hypotreatments['realizations'][r], \
+            insulin_basal['realizations'][r], cho['realizations'][r], hypotreatments['realizations'][r], \
             meal_announcement['realizations'][r], x = self.rbg.model.simulate(rbg_data=self.rbg_data,
                                                                               modality='replay',
                                                                                          rbg=self.rbg)
@@ -164,4 +164,4 @@ class Replayer:
         glucose['ci5th'] = np.percentile(glucose['realizations'], 5, axis=0)
         glucose['ci95th'] = np.percentile(glucose['realizations'], 95, axis=0)
 
-        return glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, CHO, hypotreatments, meal_announcement, vo2
+        return glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2

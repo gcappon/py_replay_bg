@@ -8,10 +8,14 @@ class ReplayBGData:
     ...
     Attributes
     ----------
-    t: array
-        An array containing the time of the day (hours).
+    t_hour: array
+        An array containing the time of the day (hour).
+    t_min: array
+        An array containing the time of the day (minute).
     idx: array
         An array containing the indexes of the original data dataframe.
+    glucose_idxs: array
+        An array containing the indexes where the glucose values are not nan in the original dataframe.
     glucose: array
         An array containing the glucose measurements (mg/dl).
     bolus: array
@@ -72,7 +76,7 @@ class ReplayBGData:
         # Unpack glucose only if exists
         if 'glucose' in data:
             self.glucose = data.glucose.values.astype(float)
-            self.glucose_idxs = np.where(np.isnan(self.glucose) == False)
+            self.glucose_idxs = np.where(np.isnan(self.glucose) == False)[0]
 
         # Unpack insulin
         self.__insulin_setup(data, rbg)

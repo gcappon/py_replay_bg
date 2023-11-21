@@ -1,4 +1,4 @@
-from dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
+from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
     default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
 
@@ -7,7 +7,7 @@ class DSS:
     A class that represents the hyperparameters of the integrated decision support system.
 
     ...
-    Attributes 
+    Attributes
     ----------
     BW: double
         The patient's body weight.
@@ -43,8 +43,8 @@ class DSS:
         A callback function that implements a corrective bolusing strategy during the replay of a given scenario.
     correction_boluses_handler_params: dict
         A dictionary that contains the parameters to pass to the correctionBolusesHandler function. It also serves as memory
-        area for the correctionBolusesHandler function. 
-        
+        area for the correctionBolusesHandler function.
+
     Methods
     -------
     None

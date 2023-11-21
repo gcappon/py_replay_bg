@@ -7,11 +7,11 @@ class Sensors:
     A class that represents the sensors to be used by ReplayBG.
 
     ...
-    Attributes 
+    Attributes
     ----------
     cgm: CGM
         The CGM sensor used to measure the interstitial glucose.
-    
+
     Methods
     -------
     None
@@ -34,7 +34,7 @@ class CGM:
     A class that represents a CGM sensor.
 
     ...
-    Attributes 
+    Attributes
     ----------
     ts: int
         The sample time of the cgm sensor (min).
@@ -50,7 +50,7 @@ class CGM:
     -------
     connect_new_cgm():
         Connects a new CGM sensor by sampling new error parameters.
-    
+
     measure(IG, t):
         Function that provides a CGM measure using the model of Vettoretti et al., Sensors, 2019.
     """
@@ -152,11 +152,11 @@ class CGM:
 
             # Check the stability of the resulting AR(2) model
             stable = (cgm_error_parameters[5] >= -1) and (
-                        cgm_error_parameters[5] <= (1 - np.abs(cgm_error_parameters[4]) - toll))
+                    cgm_error_parameters[5] <= (1 - np.abs(cgm_error_parameters[4]) - toll))
 
             # Compute the output noise standard deviation
             output_noise_SD = np.sqrt(cgm_error_parameters[6] ** 2 / (
-                        1 - (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) - cgm_error_parameters[5] * (
+                    1 - (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) - cgm_error_parameters[5] * (
                     (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) + cgm_error_parameters[5])))
 
         # Set the parameters of the CGM
@@ -177,10 +177,10 @@ class CGM:
             The interstitial glucose concentration at current time (mg/dl).
         t: float
             Current time in days from the start of CGM sensor.
-        
+
         Returns
         -------
-        CGM: float 
+        CGM: float
             The CGM measurement at current time (mg/dl).
 
         Raises
@@ -202,7 +202,7 @@ class CGM:
 
         # Apply calibration error
         IGs = (self.cgm_error_parameters[0] + self.cgm_error_parameters[1] * t + self.cgm_error_parameters[
-            2] * (t ** 2) ) * IG + self.cgm_error_parameters[3]
+            2] * (t ** 2)) * IG + self.cgm_error_parameters[3]
 
         # Generate noise
         z = np.random.normal(0, 1)

@@ -374,6 +374,7 @@ class BolusCalculatorHandlerValidator:
         if not callable(self.bolus_calculator_handler):
             raise Exception("'bolus_calculator_handler' input must be a function.'")
 
+
 class BolusCalculatorHandlerParamsValidator:
     """
     Class for validating the 'bolus_calculator_handler_params' input parameter of ReplayBG.
@@ -398,6 +399,7 @@ class BasalHandlerValidator:
     def validate(self):
         if not callable(self.basal_handler):
             raise Exception("'basal_handler' input must be a function.'")
+
 
 class BasalHandlerParamsValidator:
     """
@@ -437,6 +439,7 @@ class HypotreatmentsHandlerValidator:
         if not callable(self.hypotreatments_handler):
             raise Exception("'hypotreatments_handler' input must be a function.'")
 
+
 class HypotreatmentsHandlerParamsValidator:
     """
     Class for validating the 'hypotreatments_handler_params' input parameter of ReplayBG.
@@ -474,6 +477,7 @@ class CorrectionBolusesHandlerValidator:
     def validate(self):
         if not callable(self.correction_boluses_handler):
             raise Exception("'correction_boluses_handler' input must be a function.'")
+
 
 class CorrectionBolusesHandlerParamsValidator:
     """
@@ -530,9 +534,9 @@ class VerboseValidator:
 class InputValidator:
     """
     Class for validating the input of ReplayBG
-    
+
     ...
-    Attributes 
+    Attributes
     ----------
     (same as ReplayBG)
 
