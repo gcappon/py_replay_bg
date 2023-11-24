@@ -64,6 +64,7 @@ class ReplayBG:
                  enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
                  correction_boluses_handler_params={},
                  save_suffix='',
+                 save_workspace=True,
                  parallelize=False,
                  plot_mode=True, verbose=True):
         """
@@ -212,6 +213,7 @@ class ReplayBG:
                                                                                                      save_name=save_name,
                                                                                                      save_folder=save_folder,
                                                                                                      save_suffix=save_suffix,
+                                                                                                     save_workspace=save_workspace,
                                                                                                      scenario=scenario,
                                                                                                      yts=yts,
                                                                                                      glucose_model=glucose_model,
@@ -249,7 +251,7 @@ class ReplayBG:
                               yts, glucose_model, pathology, exercise, seed,
                               bolus_source, basal_source, cho_source,
                               cgm_model,
-                              n_steps, to_sample, save_chains,
+                              n_steps, to_sample, save_chains, save_workspace,
                               CR, CF, GT,
                               meal_generator_handler, meal_generator_handler_params,
                               bolus_calculator_handler, bolus_calculator_handler_params,
@@ -389,7 +391,8 @@ class ReplayBG:
         """
 
         # Initialize the environment parameters
-        environment = Environment(modality=modality, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix, scenario=scenario,
+        environment = Environment(modality=modality, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix,
+                                  save_workspace=save_workspace, scenario=scenario,
                                   bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
                                   seed=seed,
                                   parallelize=parallelize, plot_mode=plot_mode, verbose=verbose)
@@ -530,10 +533,11 @@ class ReplayBG:
                                       vo2=vo2, data=data, rbg=self)
 
         # Save results
-        if self.environment.verbose:
-            print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
-        self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
-                            meal_announcement, vo2, analysis)
+        if self.environment.save_workspace:
+            if self.environment.verbose:
+                print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
+            self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
+                                meal_announcement, vo2, analysis)
 
         if self.environment.verbose:
             print('Done. Bye!')

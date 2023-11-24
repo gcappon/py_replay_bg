@@ -43,7 +43,7 @@ class Environment:
     None
     """
 
-    def __init__(self, modality, save_name, save_folder, save_suffix='', scenario='single_meal', bolus_source='data',
+    def __init__(self, modality, save_name, save_folder, save_suffix='', save_workspace=False, scenario='single_meal', bolus_source='data',
                  basal_source='data', cho_source='data', seed=1,
                  parallelize=False, plot_mode=True, verbose=True):
         """
@@ -103,6 +103,7 @@ class Environment:
             self.save_suffix = save_suffix
         else:
             self.save_suffix = '_' + save_suffix
+        self.save_workspace = save_workspace
 
         # Single-meal or multi-meal scenario?
         self.scenario = scenario
@@ -120,4 +121,4 @@ class Environment:
 
         # Set the verbosity
         self.plot_mode = plot_mode  # if False do not plot
-        self.verbose = verbose;  # if False do not display stuff
+        self.verbose = verbose  # if False do not display stuff
