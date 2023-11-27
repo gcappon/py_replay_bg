@@ -66,6 +66,7 @@ class ReplayBG:
                  save_suffix='',
                  save_workspace=True,
                  parallelize=False,
+                 n_processes=None,
                  plot_mode=True, verbose=True):
         """
         Constructs all the necessary attributes for the ReplayBG object.
@@ -242,6 +243,7 @@ class ReplayBG:
                                                                                                      correction_boluses_handler=correction_boluses_handler,
                                                                                                      correction_boluses_handler_params=correction_boluses_handler_params,
                                                                                                      parallelize=parallelize,
+                                                                                                     n_processes=n_processes,
                                                                                                      plot_mode=plot_mode,
                                                                                                      verbose=verbose)
 
@@ -258,7 +260,7 @@ class ReplayBG:
                               basal_handler, basal_handler_params,
                               enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
                               enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
-                              parallelize, plot_mode, verbose):
+                              parallelize, n_processes, plot_mode, verbose):
         """
         Initializes the core variables (i.e., environment, model, sensors, mcmc, and dss) of ReplayBG.
 
@@ -395,7 +397,7 @@ class ReplayBG:
                                   save_workspace=save_workspace, scenario=scenario,
                                   bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
                                   seed=seed,
-                                  parallelize=parallelize, plot_mode=plot_mode, verbose=verbose)
+                                  parallelize=parallelize, n_processes=n_processes, plot_mode=plot_mode, verbose=verbose)
 
         # Initialize model
         if pathology == 't1d':

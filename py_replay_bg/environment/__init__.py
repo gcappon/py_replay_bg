@@ -45,7 +45,7 @@ class Environment:
 
     def __init__(self, modality, save_name, save_folder, save_suffix='', save_workspace=False, scenario='single_meal', bolus_source='data',
                  basal_source='data', cho_source='data', seed=1,
-                 parallelize=False, plot_mode=True, verbose=True):
+                 parallelize=False, n_processes=None, plot_mode=True, verbose=True):
         """
         Constructs all the necessary attributes for the Environment object.
 
@@ -118,6 +118,7 @@ class Environment:
 
         # Set the parallelization option
         self.parallelize = parallelize
+        self.n_processes = n_processes
 
         # Set the verbosity
         self.plot_mode = plot_mode  # if False do not plot

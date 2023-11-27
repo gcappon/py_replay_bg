@@ -150,7 +150,7 @@ class MCMC:
         # Initialize and run the sampler
         pool = None
         if rbg.environment.parallelize:
-            pool = Pool()
+            pool = Pool(processes=rbg.environment.n_processes)
 
         posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
         sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
