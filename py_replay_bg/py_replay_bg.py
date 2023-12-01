@@ -535,14 +535,17 @@ class ReplayBG:
                                       vo2=vo2, data=data, rbg=self)
 
         # Save results
+        results = dict()
         if self.environment.save_workspace:
             if self.environment.verbose:
                 print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
-            self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
+            results = self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
                                 meal_announcement, vo2, analysis)
 
         if self.environment.verbose:
             print('Done. Bye!')
+
+        return results
 
     def __analyze_results(self, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2, data):
         """
@@ -711,3 +714,5 @@ class ReplayBG:
                                self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'),
                   'wb') as file:
             pickle.dump(results, file)
+
+        return results
