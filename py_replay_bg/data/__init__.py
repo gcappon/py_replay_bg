@@ -8,31 +8,46 @@ class ReplayBGData:
     ...
     Attributes
     ----------
-    t_hour: array
+    t_hour: np.ndarray
         An array containing the time of the day (hour).
-    t_min: array
+    t_min: np.ndarray
         An array containing the time of the day (minute).
-    idx: array
+    idx: np.ndarray
         An array containing the indexes of the original data dataframe.
-    glucose_idxs: array
+    glucose_idxs: np.ndarray
         An array containing the indexes where the glucose values are not nan in the original dataframe.
-    glucose: array
+    glucose: np.ndarray
         An array containing the glucose measurements (mg/dl).
-    bolus: array
+    bolus: np.ndarray
         An array containing the bolus data (U/min).
-    basal: array
+    basal: np.ndarray
         An array containing the basal data (U/min).
-    meal: array
+    meal: np.ndarray
         An array containing the meal data (g/min).
-    meal_announcement: array
+    meal_M: np.ndarray
+        An array containing the main meal data (g/min). Present only if scenario is `single-meal`.
+    meal_O: np.ndarray
+        An array containing the meal data of the secondary (other) meals (g/min). Present only if scenario is
+        `single-meal`.
+    meal_B: np.ndarray
+        An array containing the meal breakfast data (g/min). Present only if scenario is `multi-meal`.
+    meal_L: np.ndarray
+        An array containing the meal lunch data (g/min). Present only if scenario is `multi-meal`.
+    meal_D: np.ndarray
+        An array containing the meal dinner data (g/min). Present only if scenario is `multi-meal`.
+    meal_S: np.ndarray
+        An array containing the meal snack data (g/min). Present only if scenario is `multi-meal`.
+    meal_H: np.ndarray
+        An array containing the meal hypotreatment data (g/min). Present only if scenario is `multi-meal`.
+    meal_announcement: np.ndarray
         An array containing the meal announcements (g/min).
-    meal_type: array
-        An array containing the meal types data (char).
-    bolus_label: array
-        An array containing the bolus label data (char).
-    cho_label: array
-        An array containing the meal label data (char).
-    exercise: array
+    meal_type: np.ndarray
+        An array containing the meal types data (str).
+    bolus_label: np.ndarray
+        An array containing the bolus label data (str).
+    cho_label: np.ndarray
+        An array containing the meal label data (str).
+    exercise: np.ndarray
         An array containing the exercise data (-).
 
     Methods

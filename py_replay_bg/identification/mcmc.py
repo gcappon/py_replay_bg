@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 
 from tqdm import tqdm
 
+
 class MCMC:
     """
     A class that orchestrates the identification process.
@@ -34,6 +35,8 @@ class MCMC:
         Number of walkers to use.
     n_steps: int
         Number of steps to use for the main chain.
+    thin_factor: int
+        Chain thin factor to use.
     to_sample: int
         Number of samples to generate via the copula.
     save_chains: bool
@@ -63,6 +66,8 @@ class MCMC:
             Number of steps to use for the main chain.
         to_sample: int, optional, default : 1000
             Number of samples to generate via the copula.
+        save_chains: bool, optional, default : False
+            A flag that specifies whether to save the resulting mcmc chains and copula samplers.
         callback_ncheck: int, optional, default : 100
             Number of steps to be awaited before checking the callback functions.
 
@@ -157,7 +162,7 @@ class MCMC:
                                        verbose=rbg.environment.verbose, pool=pool, maxsteps=10)
         sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
         sampler.summary  # Print summary diagnostics
-        print('R =', cb1.estimates, flush=True)
+
         # Get the chain
         chain = sampler.get_chain(flat=True, thin=self.thin_factor, discard=0.5)
 
@@ -208,6 +213,7 @@ class MCMC:
         if self.save_chains:
             identification_results['sampler'] = sampler
             identification_results['distributions'] = distributions
+            identification_results['R'] = cb1.estimates
 
         with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws',
                                'draws_' + rbg.environment.save_name + '.pkl'), 'wb') as file:
@@ -217,7 +223,7 @@ class MCMC:
 
     def __check_physiological_plausibility(self, draws, data, rbg):
         """
-        Check the physiological plausibility of the identified parameters.
+        Check the physiological plausibility of the identified parameters running a set of benchmark scenarios.
 
         Parameters
         ----------

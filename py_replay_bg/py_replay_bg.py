@@ -186,7 +186,7 @@ class ReplayBG:
         """
 
         # Input validation
-        input_validator = InputValidator(modality=modality, data=data, BW=bw, scenario=scenario, save_name=save_name,
+        input_validator = InputValidator(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name,
                                          save_suffix=save_suffix,
                                          yts=yts, glucose_model=glucose_model, pathology=pathology, exercise=exercise,
                                          seed=seed,
@@ -209,7 +209,7 @@ class ReplayBG:
         input_validator.validate()
 
         # Initialize core variables
-        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, BW=bw,
+        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, bw=bw,
                                                                                                      modality=modality,
                                                                                                      save_name=save_name,
                                                                                                      save_folder=save_folder,
@@ -249,7 +249,7 @@ class ReplayBG:
 
         # ====================================================================
 
-    def __init_core_variables(self, data, BW, modality, save_name, save_folder, save_suffix, scenario,
+    def __init_core_variables(self, data, bw, modality, save_name, save_folder, save_suffix, scenario,
                               yts, glucose_model, pathology, exercise, seed,
                               bolus_source, basal_source, cho_source,
                               cgm_model,
@@ -268,7 +268,7 @@ class ReplayBG:
         ----------
         data : pd.DataFrame
                 Pandas dataframe which contains the data to be used by the tool.
-        BW : double
+        bw : double
             The patient's body weight.
         modality : string
             A string that specifies if the function will be used to identify 
@@ -401,7 +401,7 @@ class ReplayBG:
 
         # Initialize model
         if pathology == 't1d':
-            model = T1DModel(data=data, BW=BW, yts=yts, glucose_model=glucose_model, is_single_meal=(scenario=='single-meal'), exercise=exercise)
+            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, is_single_meal=(scenario=='single-meal'), exercise=exercise)
 
         # Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
@@ -414,7 +414,7 @@ class ReplayBG:
                     callback_ncheck=100)
 
         # Initialize DSS
-        dss = DSS(BW=BW, CR=CR, CF=CF, GT=GT,
+        dss = DSS(bw=bw, CR=CR, CF=CF, GT=GT,
                   meal_generator_handler=meal_generator_handler,
                   meal_generator_handler_params=meal_generator_handler_params,
                   bolus_calculator_handler=bolus_calculator_handler,
@@ -663,7 +663,7 @@ class ReplayBG:
 
         return analysis
 
-    def __save_results(self, data, BW, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho,
+    def __save_results(self, data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho,
                        hypotreatments, meal_announcement, vo2, analysis):
         """
         Save ReplayBG results.
@@ -689,7 +689,7 @@ class ReplayBG:
         results = dict()
 
         results['data'] = data
-        results['BW'] = BW
+        results['bw'] = bw
 
         results['environment'] = self.environment
         results['mcmc'] = self.mcmc

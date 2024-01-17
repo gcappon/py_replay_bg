@@ -7,11 +7,12 @@ import copy
 
 from py_replay_bg.utils.stats import log_lognorm, log_gamma, log_norm
 
-from numba import njit
+from numba import njit, jit
+
 
 class T1DModel:
     """
-    A class that represents the multi meal type 1 diabetes model.
+    A class that represents the type 1 diabetes model.
 
     ...
     Attributes 
@@ -32,11 +33,11 @@ class T1DModel:
         The number of model states.
     model_parameters: ModelParameters
         An object containing the model parameters.
-    unknown_parameters: array
+    unknown_parameters: np.ndarray
         An array that contains the list of unknown parameters to be estimated.
-    start_guess: array
+    start_guess: np.ndarray
         An array that contains the initial starting point to be used by the mcmc procedure.
-    start_guess_sigma: array
+    start_guess_sigma: np.ndarray
         An array that contains the initial starting SD of unknown parameters to be used by the mcmc procedure.
     exercise: bool
         A boolean indicating if the model includes the exercise.
@@ -51,7 +52,7 @@ class T1DModel:
         Function that checks if a copula extraction is valid or not.
     """
 
-    def __init__(self, data, BW, yts=5, glucose_model='IG', is_single_meal=True, exercise=False):
+    def __init__(self, data, bw, yts=5, glucose_model='IG', is_single_meal=True, exercise=False):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -59,16 +60,19 @@ class T1DModel:
         ----------
         data : pandas.DataFrame
             Pandas dataframe which contains the data to be used by the tool.
+        bw: float
+            The body weight of the patient.
         yts: int, optional, default : 5 
             The measurement (cgm) sample time.
-        glucose_model: string, {'IG','BG'}, optional, default : 'IG'
+        glucose_model: str, {'IG','BG'}, optional, default : 'IG'
             The model equation to be used as measured glucose.
-        is_single_meal: bool
+        is_single_meal: bool, optional, default : True
             A flag indicating if the model will be used as single meal or multi meal.
         exercise: bool, optional, default : False
             A boolean indicating if the model includes the exercise.
         """
 
+        # Is the model single meal?
         self.is_single_meal = is_single_meal
 
         # Time constants during simulation
@@ -77,7 +81,7 @@ class T1DModel:
         self.yts = yts
         self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
                 60 * 1000000000) + self.yts)
-        self.tsteps = self.t # / self.ts
+        self.tsteps = self.t  # / self.ts
         self.tysteps = int(self.t / self.yts)
 
         # Glucose equation selection
@@ -87,7 +91,7 @@ class T1DModel:
         self.nx = 9 if self.is_single_meal else 21
 
         # Model parameters
-        self.model_parameters = ModelParameters(data, BW, self.is_single_meal)
+        self.model_parameters = ModelParameters(data, bw, self.is_single_meal)
 
         # Unknown parameters
         self.unknown_parameters = ['Gb', 'SG', 'ka2', 'kd', 'kempt']
@@ -217,7 +221,8 @@ class T1DModel:
 
     def simulate(self, rbg_data, modality, rbg):
         """
-        Function that simulates the model and returns the obtained results. This is the complete version suitable for replay.
+        Function that simulates the model and returns the obtained results. This is the complete version suitable for
+        replay.
 
         Parameters
         ----------
@@ -228,23 +233,23 @@ class T1DModel:
 
         Returns
         -------
-        G: array
+        G: np.ndarray
             An array containing the simulated glucose concentration (mg/dl).
-        CGM: array
+        CGM: np.ndarray
             An array containing the simulated CGM trace (mg/dl).
-        insulin_bolus: array
+        insulin_bolus: np.ndarray
             An array containing the simulated insulin bolus events (U/min). Also includes the correction insulin boluses.
-        correction_bolus: array
+        correction_bolus: np.ndarray
             An array containing the simulated corrective insulin bolus events (U/min).
-        insulin_basal: array
+        insulin_basal: np.ndarray
             An array containing the simulated basal insulin events (U/min).
-        cho: array
+        cho: np.ndarray
             An array containing the simulated CHO events (g/min).
-        hypotreatments: array
+        hypotreatments: np.ndarray
             An array containing the simulated hypotreatments events (g/min).
-        meal_announcement: array
+        meal_announcement: np.ndarray
             An array containing the simulated meal announcements events needed for bolus calculation (g/min).
-        x: matrix
+        x: np.ndarray
             A matrix containing all the simulated states.
 
         Raises
@@ -263,7 +268,7 @@ class T1DModel:
         # Rename parameters for brevity
         mp = self.model_parameters
 
-        # Utility flag for checking the modality
+        # Utility flag for checking the modality (this boosts performance since the check will be done once)
         is_replay = modality == 'replay'
 
         # Make copies of the inputs if replay to avoid to overwrite fields
@@ -368,7 +373,7 @@ class T1DModel:
                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                            mp.ka2 * kie, kie]]
 
-        #Run simulation in two ways depending on the modality to speed-up the identification process
+        # Run simulation in two ways depending on the modality to speed up the identification process
         if is_replay:
 
             # Set the initial cgm value if modality is 'replay' and make copies of meal vectors
@@ -482,7 +487,7 @@ class T1DModel:
                     # Update the correction_bolus event vectors
                     correction_bolus[k - 1] = correction_bolus[k - 1] + cb
 
-                #Integration step
+                # Integration step
                 self.x[:, k] = model_step_equations_single_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1], meal_delayed[k - 1], rbg_data.t_hour[k - 1],
                                                                 self.x[:, k - 1], self.B, mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI,
                                                                 mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal else model_step_equations_multi_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1],
@@ -516,134 +521,6 @@ class T1DModel:
 
             #Return just the glucose vector if modality == 'identification'
             return self.x[self.nx - 1, :] if self.glucose_model == 'IG' else self.x[0, :]
-
-    # TODO: put numba here
-    def __log_prior_single_meal(self, theta):
-        """
-        Internal function that computes the log prior of unknown parameters.
-
-        Parameters
-        ----------
-        theta : array
-            The current guess of unknown model parameters.
-
-        Returns
-        -------
-        log_prior: float
-            The value of the log prior of current unknown model parameters guess.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # unpack the model parameters
-        Gb, SG, ka2, kd, kempt, SI, kabs, beta = theta
-
-        # compute each log prior
-        logprior_SI = log_gamma(SI * self.model_parameters.VG, 3.3, 1 / 5e-4)
-
-        logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
-        logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
-        logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
-        logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
-        logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
-
-        logprior_kabs = log_lognorm(kabs, mu=-5.4591,
-                                    sigma=1.4396) if kempt >= kabs and 0 < kabs < 1 else -np.inf
-
-        logprior_beta = 0 if 0 <= beta <= 60 else -np.inf
-
-        # Sum everything and return the value
-        return logprior_SI + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
-
-    # TODO: put numba here
-    def __log_prior_multi_meal(self, theta):
-        """
-        Internal function that computes the log prior of unknown parameters.
-
-        Parameters
-        ----------
-        theta : array
-            The current guess of unknown model parameters.
-
-        Returns
-        -------
-        log_prior: float
-            The value of the log prior of current unknown model parameters guess.
-        
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # unpack the model parameters
-        # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
-
-        Gb, SG, ka2, kd, kempt = theta[0:5]
-
-        SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
-        SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
-        SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
-
-        kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
-        kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
-        kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
-        kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
-        kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
-
-        beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
-        beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
-        beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
-
-        # compute each log prior
-        # NB: gamma.pdf(0.001 * 1.45, 3.3, scale=5e-4) <=> gampdf(0.001*1.45, 3.3, 5e-4)
-        logprior_SI_B = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
-        logprior_SI_L = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
-        logprior_SI_D = log_gamma(SI_B * self.model_parameters.VG, 3.3, 1 / 5e-4)
-
-        logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
-        logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
-        # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
-        logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
-        logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
-        logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
-
-        logprior_kabs_B = log_lognorm(kabs_B, mu=-5.4591,
-                                      sigma=1.4396) if kempt >= kabs_B and 0 < kabs_B < 1 else -np.inf
-        logprior_kabs_L = log_lognorm(kabs_L, mu=-5.4591,
-                                      sigma=1.4396) if kempt >= kabs_L and 0 < kabs_L < 1 else -np.inf
-        logprior_kabs_D = log_lognorm(kabs_D, mu=-5.4591,
-                                      sigma=1.4396) if kempt >= kabs_D and 0 < kabs_D < 1 else -np.inf
-        logprior_kabs_S = log_lognorm(kabs_S, mu=-5.4591,
-                                      sigma=1.4396) if kempt >= kabs_S and 0 < kabs_S < 1 else -np.inf
-        logprior_kabs_H = log_lognorm(kabs_H, mu=-5.4591,
-                                      sigma=1.4396) if kempt >= kabs_H and 0 < kabs_H < 1 else -np.inf
-
-        logprior_beta_B = 0 if 0 <= beta_B <= 60 else -np.inf
-        logprior_beta_L = 0 if 0 <= beta_L <= 60 else -np.inf
-        logprior_beta_D = 0 if 0 <= beta_D <= 60 else -np.inf
-        logprior_beta_S = 0 if 0 <= beta_S <= 60 else -np.inf
-
-        # Sum everything and return the value
-        return logprior_SI_B + logprior_SI_L + logprior_SI_D + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs_B + logprior_kabs_L + logprior_kabs_D + logprior_kabs_S + logprior_kabs_H + logprior_beta_B + logprior_beta_L + logprior_beta_D + logprior_beta_S
 
     def __log_likelihood_single_meal(self, theta, rbg_data):
         """
@@ -720,8 +597,7 @@ class T1DModel:
         """
 
         # Set model parameters to current guess
-        self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt = theta[
-                                                                                                                                               0:5]
+        self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt = theta[0:5]
 
         self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
         self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
@@ -779,7 +655,7 @@ class T1DModel:
         --------
         None
         """
-        p = self.__log_prior_single_meal(theta)
+        p = log_prior_single_meal(self.model_parameters.VG, theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood_single_meal(theta, rbg_data)
 
     def log_posterior_multi_meal(self, theta, rbg_data):
@@ -810,7 +686,20 @@ class T1DModel:
         --------
         None
         """
-        p = self.__log_prior_multi_meal(theta)
+        p = log_prior_multi_meal(self.model_parameters.VG,
+                            self.pos_SI_B, self.model_parameters.SI_B,
+                            self.pos_SI_L, self.model_parameters.SI_L,
+                            self.pos_SI_D, self.model_parameters.SI_D,
+                            self.pos_kabs_B, self.model_parameters.kabs_B,
+                            self.pos_kabs_L, self.model_parameters.kabs_L,
+                            self.pos_kabs_D, self.model_parameters.kabs_D,
+                            self.pos_kabs_S, self.model_parameters.kabs_S,
+                            self.pos_kabs_H, self.model_parameters.kabs_H,
+                            self.pos_beta_B, self.model_parameters.beta_B,
+                            self.pos_beta_L, self.model_parameters.beta_L,
+                            self.pos_beta_D, self.model_parameters.beta_D,
+                            self.pos_beta_S, self.model_parameters.beta_S,
+                            theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood_multi_meal(theta, rbg_data)
 
     # TODO: put numba here
@@ -840,12 +729,26 @@ class T1DModel:
         --------
         None
         """
-        return self.__log_prior_single_meal(theta) != -np.inf if self.is_single_meal else self.__log_prior_multi_meal(theta) != -np.inf
+        return log_prior_single_meal(self.model_parameters.VG, theta) != -np.inf if self.is_single_meal else (
+                log_prior_multi_meal(self.model_parameters.VG,
+                            self.pos_SI_B, self.model_parameters.SI_B,
+                            self.pos_SI_L, self.model_parameters.SI_L,
+                            self.pos_SI_D, self.model_parameters.SI_D,
+                            self.pos_kabs_B, self.model_parameters.kabs_B,
+                            self.pos_kabs_L, self.model_parameters.kabs_L,
+                            self.pos_kabs_D, self.model_parameters.kabs_D,
+                            self.pos_kabs_S, self.model_parameters.kabs_S,
+                            self.pos_kabs_H, self.model_parameters.kabs_H,
+                            self.pos_beta_B, self.model_parameters.beta_B,
+                            self.pos_beta_L, self.model_parameters.beta_L,
+                            self.pos_beta_D, self.model_parameters.beta_D,
+                            self.pos_beta_S, self.model_parameters.beta_S,
+                            theta) != -np.inf)
 
 
 class ModelParameters:
 
-    def __init__(self, data, BW, is_single_meal):
+    def __init__(self, data, bw, is_single_meal):
 
         """
         Function that returns the default parameters values of the model.
@@ -854,7 +757,7 @@ class ModelParameters:
         ----------
         data : pd.DataFrame
                 Pandas dataframe which contains the data to be used by the tool.
-        BW : double
+        bw : double
             The patient's body weight.
 
         Returns
@@ -892,7 +795,7 @@ class ModelParameters:
             self.SI_L = 10.35e-4 / self.VG  # mL/(uU*min)
             self.SI_D = 10.35e-4 / self.VG  # mL/(uU*min)
         self.p2 = 0.012  # 1/min
-        self.u2ss = np.mean(data.basal) * 1000 / BW  # mU/(kg*min)
+        self.u2ss = np.mean(data.basal) * 1000 / bw  # mU/(kg*min)
 
         # Subcutaneous insulin absorption submodel parameters
         self.VI = 0.126  # L/kg
@@ -929,9 +832,9 @@ class ModelParameters:
         self.e2 = 0.78  # dimensionless
 
         # Patient specific parameters
-        self.BW = BW  # kg
-        self.to_g = self.BW / 1000
-        self.to_mgkg = 1000 / self.BW
+        self.bw = bw  # kg
+        self.to_g = self.bw / 1000
+        self.to_mgkg = 1000 / self.bw
 
         # Measurement noise specifics
         self.SDn = 5
@@ -1012,7 +915,6 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B, r1, r2
             risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
 
         # Compute the model state at time k using backward Euler method
-
         B[:] = [cho / (1 + kgri), 0, 0,
              I / (1 + kd), 0, 0]
         C = np.ascontiguousarray(xkm1[2:8])
@@ -1129,3 +1031,137 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     xk[20] = (xkm1[20] + alpha * xk[0]) / (1 + alpha)
 
     return xk
+
+@njit
+def log_prior_single_meal(VG, theta):
+    """
+    Internal function that computes the log prior of unknown parameters.
+
+    Parameters
+    ----------
+    theta : array
+        The current guess of unknown model parameters.
+
+    Returns
+    -------
+    log_prior: float
+        The value of the log prior of current unknown model parameters guess.
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    None
+
+    Examples
+    --------
+    None
+    """
+
+    # unpack the model parameters
+    Gb, SG, ka2, kd, kempt, SI, kabs, beta = theta
+
+    # compute each log prior
+    logprior_SI = log_gamma(SI * VG, 3.3, 1 / 5e-4)
+
+    logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
+    logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
+    logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
+    logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
+    logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
+
+    logprior_kabs = log_lognorm(kabs, mu=-5.4591,
+                                sigma=1.4396) if kempt >= kabs and 0 < kabs < 1 else -np.inf
+
+    logprior_beta = 0 if 0 <= beta <= 60 else -np.inf
+
+    # Sum everything and return the value
+    return logprior_SI + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
+
+
+@njit
+def log_prior_multi_meal(VG,
+                           pos_SI_B, SI_B, pos_SI_L, SI_L, pos_SI_D, SI_D,
+                           pos_kabs_B, kabs_B, pos_kabs_L, kabs_L, pos_kabs_D, kabs_D, pos_kabs_S, kabs_S,
+                           pos_kabs_H, kabs_H,
+                           pos_beta_B, beta_B, pos_beta_L, beta_L, pos_beta_D, beta_D, pos_beta_S, beta_S,
+                           theta):
+    """
+    Internal function that computes the log prior of unknown parameters.
+
+    Parameters
+    ----------
+    theta : array
+        The current guess of unknown model parameters.
+
+    Returns
+    -------
+    log_prior: float
+        The value of the log prior of current unknown model parameters guess.
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    None
+
+    Examples
+    --------
+    None
+    """
+
+    # unpack the model parameters
+    # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
+
+    Gb, SG, ka2, kd, kempt = theta[0:5]
+
+    SI_B = theta[pos_SI_B] if pos_SI_B else SI_B
+    SI_L = theta[pos_SI_L] if pos_SI_L else SI_L
+    SI_D = theta[pos_SI_D] if pos_SI_D else SI_D
+
+    kabs_B = theta[pos_kabs_B] if pos_kabs_B else kabs_B
+    kabs_L = theta[pos_kabs_L] if pos_kabs_L else kabs_L
+    kabs_D = theta[pos_kabs_D] if pos_kabs_D else kabs_D
+    kabs_S = theta[pos_kabs_S] if pos_kabs_S else kabs_S
+    kabs_H = theta[pos_kabs_H] if pos_kabs_H else kabs_H
+
+    beta_B = theta[pos_beta_B] if pos_beta_B else beta_B
+    beta_L = theta[pos_beta_L] if pos_beta_L else beta_L
+    beta_D = theta[pos_beta_D] if pos_beta_D else beta_D
+    beta_S = theta[pos_beta_S] if pos_beta_S else beta_S
+
+    # compute each log prior
+    # NB: gamma.pdf(0.001 * 1.45, 3.3, scale=5e-4) <=> gampdf(0.001*1.45, 3.3, 5e-4)
+    logprior_SI_B = log_gamma(SI_B * VG, 3.3, 1 / 5e-4)
+    logprior_SI_L = log_gamma(SI_L * VG, 3.3, 1 / 5e-4)
+    logprior_SI_D = log_gamma(SI_D * VG, 3.3, 1 / 5e-4)
+
+    logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
+    logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
+    # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
+    logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
+    logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
+    logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
+
+    logprior_kabs_B = log_lognorm(kabs_B, mu=-5.4591,
+                                  sigma=1.4396) if kempt >= kabs_B and 0 < kabs_B < 1 else -np.inf
+    logprior_kabs_L = log_lognorm(kabs_L, mu=-5.4591,
+                                  sigma=1.4396) if kempt >= kabs_L and 0 < kabs_L < 1 else -np.inf
+    logprior_kabs_D = log_lognorm(kabs_D, mu=-5.4591,
+                                  sigma=1.4396) if kempt >= kabs_D and 0 < kabs_D < 1 else -np.inf
+    logprior_kabs_S = log_lognorm(kabs_S, mu=-5.4591,
+                                  sigma=1.4396) if kempt >= kabs_S and 0 < kabs_S < 1 else -np.inf
+    logprior_kabs_H = log_lognorm(kabs_H, mu=-5.4591,
+                                  sigma=1.4396) if kempt >= kabs_H and 0 < kabs_H < 1 else -np.inf
+
+    logprior_beta_B = 0 if 0 <= beta_B <= 60 else -np.inf
+    logprior_beta_L = 0 if 0 <= beta_L <= 60 else -np.inf
+    logprior_beta_D = 0 if 0 <= beta_D <= 60 else -np.inf
+    logprior_beta_S = 0 if 0 <= beta_S <= 60 else -np.inf
+
+    # Sum everything and return the value
+    return logprior_SI_B + logprior_SI_L + logprior_SI_D + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs_B + logprior_kabs_L + logprior_kabs_D + logprior_kabs_S + logprior_kabs_H + logprior_beta_B + logprior_beta_L + logprior_beta_D + logprior_beta_S

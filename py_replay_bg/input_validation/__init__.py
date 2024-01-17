@@ -16,15 +16,15 @@ class ModalityValidator:
 
 class BWValidator:
     """
-    Class for validating the 'BW' input parameter of ReplayBG.
+    Class for validating the 'bw' input parameter of ReplayBG.
     """
 
-    def __init__(self, BW):
-        self.BW = BW
+    def __init__(self, bw):
+        self.bw = bw
 
     def validate(self):
-        if not (isinstance(self.BW, float) or isinstance(self.BW, int)):
-            raise Exception("'BW' input must be a number.'")
+        if not (isinstance(self.bw, float) or isinstance(self.bw, int)):
+            raise Exception("'bw' input must be a number.'")
 
 
 class ScenarioValidator:
@@ -546,7 +546,7 @@ class InputValidator:
         Run the input validation process.
     """
 
-    def __init__(self, modality, data, BW, scenario, save_name, save_suffix,
+    def __init__(self, modality, data, bw, scenario, save_name, save_suffix,
                  yts, glucose_model, pathology, exercise, seed,
                  bolus_source, basal_source, cho_source,
                  cgm_model,
@@ -560,7 +560,7 @@ class InputValidator:
                  parallelize, plot_mode, verbose):
         self.modality = modality
         self.data = data
-        self.BW = BW
+        self.bw = bw
         self.scenario = scenario
         self.save_name = save_name
         self.save_suffix = save_suffix
@@ -607,8 +607,8 @@ class InputValidator:
         # Validate the 'modality' input
         ModalityValidator(modality=self.modality).validate()
 
-        # Validate the 'BW' input
-        BWValidator(BW=self.BW).validate()
+        # Validate the 'bw' input
+        BWValidator(bw=self.bw).validate()
 
         # Validate the 'scenario' input
         ScenarioValidator(scenario=self.scenario).validate()

@@ -9,7 +9,7 @@ class DSS:
     ...
     Attributes
     ----------
-    BW: double
+    bw: double
         The patient's body weight.
     CR: double
         The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
@@ -50,7 +50,7 @@ class DSS:
     None
     """
 
-    def __init__(self, BW, CR=10, CF=40, GT=120,
+    def __init__(self, bw, CR=10, CF=40, GT=120,
                  meal_generator_handler=default_meal_generator_handler, meal_generator_handler_params={},
                  bolus_calculator_handler=standard_bolus_calculator_handler, bolus_calculator_handler_params={},
                  basal_handler=default_basal_handler, basal_handler_params={},
@@ -59,18 +59,18 @@ class DSS:
                  enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
                  correction_boluses_handler_params={}):
         """
-        Constructs all the necessary attributes for the Model object.
+        Constructs all the necessary attributes for the DSS object.
 
         Parameters
         ----------
-        BW: double
+        bw: double
             The patient's body weight.
         CR: double, optional, default : 10
             The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
         CF: double, optional, default : 40
             The correction factor of the patient in mg/dl/U to be used by the integrated decision support system.
         GT: double, optional, default : 120
-            The target glucose value in mg/dl to be used by the decsion support system modules.
+            The target glucose value in mg/dl to be used by the decision support system modules.
         meal_generator_handler: function, optional, default : default_meal_generator_handler
             A callback function that implements a meal generator to be used during the replay of a given scenario.
         meal_generator_handler_params: dict, optional, default : {}
@@ -101,7 +101,7 @@ class DSS:
         """
 
         # Patient's body weight
-        self.BW = BW
+        self.bw = bw
 
         # Patient therapy parameters
         self.GT = GT

@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import signal
 
 
 class Sensors:
@@ -10,7 +9,7 @@ class Sensors:
     Attributes
     ----------
     cgm: CGM
-        The CGM sensor used to measure the interstitial glucose.
+        The CGM sensor used to measure the interstitial glucose during simulations.
 
     Methods
     -------
@@ -24,7 +23,7 @@ class Sensors:
         Parameters
         ----------
         cgm: CGM
-            The CGM sensor used to measure the interstitial glucose.
+            The CGM sensor used to measure the interstitial glucose during simulations.
         """
         self.cgm = cgm
 
@@ -39,7 +38,7 @@ class CGM:
     ts: int
         The sample time of the cgm sensor (min).
     model: string, {'CGM','IG'}
-        A string that specify the cgm model selection.
+        A string that specifies the cgm model selection.
         If IG is selected, CGM measure will be the noise-free IG state at the current time.
     cgm_error_parameters: array
         An array containing the parameters of the CGM.
@@ -50,7 +49,6 @@ class CGM:
     -------
     connect_new_cgm():
         Connects a new CGM sensor by sampling new error parameters.
-
     measure(IG, t):
         Function that provides a CGM measure using the model of Vettoretti et al., Sensors, 2019.
     """
@@ -134,13 +132,14 @@ class CGM:
                            -0.015721846813032722134373386779771, 0.01552333576829629385729347745837,
                            0.72356838038463477946748980684788]])
 
-        # Modulation factor of the covariance of the parameter vector not to generate too extreme realizations of parameter vector
+        # Modulation factor of the covariance of the parameter vector not to generate too extreme realizations of
+        # parameter vector
         f = 0.90
         # Modulate the covariance matrix
         sigma = sigma * f
         # Maximum allowed output noise SD (mg/dl)
         max_output_noise_SD = 10
-        # Tollerance for model stability check
+        # Tolerance for model stability check
         toll = 0.02
 
         # Flag for stability of the AR(2) model
@@ -180,7 +179,7 @@ class CGM:
 
         Returns
         -------
-        CGM: float
+        cgm: float
             The CGM measurement at current time (mg/dl).
 
         Raises
@@ -207,8 +206,6 @@ class CGM:
         # Generate noise
         z = np.random.normal(0, 1)
         u = self.cgm_error_parameters[6] * z
-        # e, _ = signal.lfilter(np.array([1]), np.array([1, -self.cgm_error_parameters[4], -self.cgm_error_parameters[5]]), np.array([u]))
-        # e = filter(1,[1, -sensors.cgm.errorParameters(5), -sensors.cgm.errorParameters(6)],u);
         e = u + self.cgm_error_parameters[4] * self.ekm1 + self.cgm_error_parameters[5] * self.ekm2
 
         # Update memory terms

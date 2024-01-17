@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 class Visualizer:
     """
-    A class that is to be used by ReplayBG for plotting.
+    A class to be used by ReplayBG for plotting.
 
     ...
     Attributes
@@ -17,6 +17,7 @@ class Visualizer:
     -------
     plot_replaybg_results(cgm, glucose, insulin_bolus, insulin_basal, cho, hypotreatments, correction_bolus, vo2, data, rbg)
     """
+
     def __init__(self):
         """
         Constructs all the necessary attributes for the Visualizer object.
@@ -46,7 +47,7 @@ class Visualizer:
     def plot_replaybg_results(self, cgm, glucose, insulin_bolus, insulin_basal, cho, hypotreatments, correction_bolus,
                               vo2, data, rbg):
         """
-        Function that plots the results of ReaplyBG simulation.
+        Function that plots the results of ReplayBG simulation.
 
         Parameters
         ----------
@@ -137,6 +138,7 @@ class Visualizer:
         ax[1].legend()
 
         # Subplot 3: Insulin
+
         if rbg.environment.modality == 'replay':
             t = np.arange(data.t.iloc[0], data.t.iloc[-1] + timedelta(minutes=rbg.model.yts),
                           timedelta(minutes=1)).astype(datetime)
