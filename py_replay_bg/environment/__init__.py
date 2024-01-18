@@ -19,6 +19,10 @@ class Environment:
         A string to be attached as suffix to the resulting output files' name.
     save_workspace: bool
             A boolean that specifies whether or not to save the results of ReplayBG in the results/workspaces directory.
+    analyze_results : bool
+            A flag that specifies whether to analyze the resulting trace or not. Setting this flag to False will fasten
+            ReplayBG and it is recommended if ReplayBG will be a component of a bigger framework (e.g., to be used in an
+            iterative process).
     scenario: str, {'single-meal', 'multi-meal'}
         A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
     bolus_source : str, {'data', or 'dss'}
@@ -47,7 +51,8 @@ class Environment:
     None
     """
 
-    def __init__(self, modality, save_name, save_folder, save_suffix='', save_workspace=False, scenario='single_meal',
+    def __init__(self, modality, save_name, save_folder, save_suffix='', save_workspace=False, analyze_results=True,
+                 scenario='single_meal',
                  bolus_source='data', basal_source='data', cho_source='data', seed=1,
                  parallelize=False, n_processes=None, plot_mode=True, verbose=True):
         """
@@ -66,6 +71,10 @@ class Environment:
             A string to be attached as suffix to the resulting output files' name.
         save_workspace: bool, optional, default : False
             A boolean that specifies whether or not to save the results of ReplayBG in the results/workspaces directory.
+        analyze_results : bool, optional, default : True
+            A flag that specifies whether to analyze the resulting trace or not. Setting this flag to False will fasten
+            ReplayBG and it is recommended if ReplayBG will be a component of a bigger framework (e.g., to be used in an
+            iterative process).
         scenario: str, {'single-meal', 'multi-meal'}, optional, default : 'single-meal'
             A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
         bolus_source : str, {'data', or 'dss'}, optional, default : 'data'
@@ -119,6 +128,9 @@ class Environment:
 
         # Set the save workspace flag
         self.save_workspace = save_workspace
+
+        # Set the analyze results flag
+        self.analyze_results = analyze_results
 
         # Single-meal or multi-meal scenario?
         self.scenario = scenario

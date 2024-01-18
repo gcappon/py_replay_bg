@@ -54,7 +54,8 @@ class ReplayBG:
                  yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
                  bolus_source='data', basal_source='data', cho_source='data',
                  cgm_model='CGM',
-                 n_steps=10000, to_sample=1000, save_chains=False,
+                 n_steps=10000, save_chains=False,
+                 analyze_results=True,
                  CR=10, CF=40, GT=120,
                  meal_generator_handler=default_meal_generator_handler, meal_generator_handler_params={},
                  bolus_calculator_handler=standard_bolus_calculator_handler, bolus_calculator_handler_params={},
@@ -64,7 +65,7 @@ class ReplayBG:
                  enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
                  correction_boluses_handler_params={},
                  save_suffix='',
-                 save_workspace=True,
+                 save_workspace=False,
                  parallelize=False,
                  n_processes=None,
                  plot_mode=True, verbose=True):
@@ -114,10 +115,12 @@ class ReplayBG:
 
         n_steps: int, optional, default : 10000
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
-        to_sample: int, optional, default : 1000
-            Number of samples to generate via the copula. This is ignored if modality is 'replay'.
         save_chains: bool, optional, default : False
             A flag that specifies whether to save the resulting mcmc chains and copula samplers.
+        analyze_results : bool, optional, default : True
+            A flag that specifies whether to analyze the resulting trace or not. Setting this flag to False will fasten
+            ReplayBG and it is recommended if ReplayBG will be a component of a bigger framework (e.g., to be used in an
+            iterative process).
 
         CR: double, optional, default : 10
             The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
@@ -192,7 +195,7 @@ class ReplayBG:
                                          seed=seed,
                                          bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
                                          cgm_model=cgm_model,
-                                         n_steps=n_steps, to_sample=to_sample, save_chains=save_chains,
+                                         n_steps=n_steps, save_chains=save_chains, analyze_results=analyze_results,
                                          CR=CR, CF=CF, GT=GT,
                                          meal_generator_handler=meal_generator_handler,
                                          meal_generator_handler_params=meal_generator_handler_params,
@@ -226,8 +229,8 @@ class ReplayBG:
                                                                                                      cho_source=cho_source,
                                                                                                      cgm_model=cgm_model,
                                                                                                      n_steps=n_steps,
-                                                                                                     to_sample=to_sample,
                                                                                                      save_chains=save_chains,
+                                                                                                     analyze_results=analyze_results,
                                                                                                      CR=CR, CF=CF,
                                                                                                      GT=GT,
                                                                                                      meal_generator_handler=meal_generator_handler,
@@ -253,7 +256,7 @@ class ReplayBG:
                               yts, glucose_model, pathology, exercise, seed,
                               bolus_source, basal_source, cho_source,
                               cgm_model,
-                              n_steps, to_sample, save_chains, save_workspace,
+                              n_steps, save_chains, save_workspace, analyze_results,
                               CR, CF, GT,
                               meal_generator_handler, meal_generator_handler_params,
                               bolus_calculator_handler, bolus_calculator_handler_params,
@@ -305,10 +308,14 @@ class ReplayBG:
 
         n_steps: int
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
-        to_sample: int
-            Number of samples to generate via the copula. This is ignored if modality is 'replay'.
         save_chains: bool
             A flag that specifies whether to save the resulting mcmc chains and copula samplers.
+        save_workspace: bool
+            A flag that specifies whether to save the resulting workspace.
+        analyze_results : bool
+            A flag that specifies whether to analyze the resulting trace or not. Setting this flag to False will fasten
+            ReplayBG and it is recommended if ReplayBG will be a component of a bigger framework (e.g., to be used in an
+            iterative process).
 
         bolus_source : string, {'data', or 'dss'}
             A string defining whether to use, during replay, the insulin bolus data contained in the 'data' timetable (if 'data'),
@@ -394,7 +401,7 @@ class ReplayBG:
 
         # Initialize the environment parameters
         environment = Environment(modality=modality, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix,
-                                  save_workspace=save_workspace, scenario=scenario,
+                                  save_workspace=save_workspace, analyze_results=analyze_results, scenario=scenario,
                                   bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
                                   seed=seed,
                                   parallelize=parallelize, n_processes=n_processes, plot_mode=plot_mode, verbose=verbose)
@@ -409,7 +416,6 @@ class ReplayBG:
         # Initialize MCMC
         mcmc = MCMC(model,
                     n_steps=n_steps,
-                    to_sample=to_sample,
                     save_chains=save_chains,
                     callback_ncheck=100)
 
@@ -463,7 +469,7 @@ class ReplayBG:
         # return the object
         return Sensors(cgm=cgm)
 
-    def run(self, data, bw):
+    def run(self, data, bw, n_replay=1000):
         """
         Runs ReplayBG according to the chosen modality.
 
@@ -473,7 +479,8 @@ class ReplayBG:
             Pandas dataframe which contains the data to be used by the tool.
         bw: double
             The patient's body weight.
-
+        n_replay: int, optional, default : 1000, {1000, 100, 10}
+            The number of replay to be performed.
         Returns
         -------
         None
@@ -515,12 +522,14 @@ class ReplayBG:
         # Run replay
         if self.environment.verbose:
             print('Replaying scenario...')
-        replayer = Replayer(rbg_data=rbg_data, draws=draws, rbg=self)
+        replayer = Replayer(rbg_data=rbg_data, draws=draws, n_replay=n_replay, rbg=self)
         glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
 
-        if self.environment.verbose:
-            print('Analyzing results...')
-        analysis = self.__analyze_results(glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2, data)
+        analysis = dict()
+        if self.environment.analyze_results:
+            if self.environment.verbose:
+                print('Analyzing results...')
+            analysis = self.__analyze_results(glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2, data)
 
         # Plot results if plot_mode is enabled
         if self.environment.plot_mode:
@@ -536,11 +545,8 @@ class ReplayBG:
 
         # Save results
         results = dict()
-        if self.environment.save_workspace:
-            if self.environment.verbose:
-                print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces', self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
-            results = self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
-                                meal_announcement, vo2, analysis)
+        results = self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
+                            meal_announcement, vo2, analysis, self.environment.save_workspace)
 
         if self.environment.verbose:
             print('Done. Bye!')
@@ -664,7 +670,7 @@ class ReplayBG:
         return analysis
 
     def __save_results(self, data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho,
-                       hypotreatments, meal_announcement, vo2, analysis):
+                       hypotreatments, meal_announcement, vo2, analysis, save_workspace):
         """
         Save ReplayBG results.
 
@@ -710,9 +716,14 @@ class ReplayBG:
 
         results['analysis'] = analysis
 
-        with open(os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',
-                               self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'),
-                  'wb') as file:
-            pickle.dump(results, file)
+        if self.environment.save_workspace:
+            if self.environment.verbose:
+                print('Saving results in ' + os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',
+                                                          self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'))
+
+            with open(os.path.join(self.environment.replay_bg_path, 'results', 'workspaces',
+                                   self.environment.modality + '_' + self.environment.save_name + self.environment.save_suffix + '.pkl'),
+                      'wb') as file:
+                pickle.dump(results, file)
 
         return results

@@ -271,19 +271,6 @@ class NStepsValidator:
             raise Exception("'n_steps' input must be an integer.'")
 
 
-class ToSampleValidator:
-    """
-    Class for validating the 'to_sample' input parameter of ReplayBG.
-    """
-
-    def __init__(self, to_sample):
-        self.to_sample = to_sample
-
-    def validate(self):
-        if not isinstance(self.to_sample, int):
-            raise Exception("'to_sample' input must be an integer.'")
-
-
 class SaveChainsValidator:
     """
     Class for validating the 'save_chains' input parameter of ReplayBG.
@@ -295,6 +282,19 @@ class SaveChainsValidator:
     def validate(self):
         if not isinstance(self.save_chains, bool):
             raise Exception("'save_chains' input must be a boolean.'")
+
+
+class AnalyzeResultsValidator:
+    """
+    Class for validating the 'analyze_results' input parameter of ReplayBG.
+    """
+
+    def __init__(self, analyze_results):
+        self.analyze_results = analyze_results
+
+    def validate(self):
+        if not isinstance(self.analyze_results, bool):
+            raise Exception("'analyze_results' input must be a boolean.'")
 
 
 class CRValidator:
@@ -550,7 +550,7 @@ class InputValidator:
                  yts, glucose_model, pathology, exercise, seed,
                  bolus_source, basal_source, cho_source,
                  cgm_model,
-                 n_steps, to_sample, save_chains,
+                 n_steps, save_chains, analyze_results,
                  CR, CF, GT,
                  meal_generator_handler, meal_generator_handler_params,
                  bolus_calculator_handler, bolus_calculator_handler_params,
@@ -578,8 +578,8 @@ class InputValidator:
         self.cgm_model = cgm_model
 
         self.n_steps = n_steps
-        self.to_sample = to_sample
         self.save_chains = save_chains
+        self.analyze_results = analyze_results
 
         self.CR = CR
         self.CF = CF
@@ -654,11 +654,11 @@ class InputValidator:
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()
 
-        # Validate the 'to_sample' input
-        ToSampleValidator(to_sample=self.to_sample).validate()
-
         # Validate the 'save_chains' input
         SaveChainsValidator(save_chains=self.save_chains).validate()
+
+        # Validate the 'analyze_results' input
+        AnalyzeResultsValidator(analyze_results=self.analyze_results).validate()
 
         # Validate the 'CR' input
         CRValidator(CR=self.CR).validate()

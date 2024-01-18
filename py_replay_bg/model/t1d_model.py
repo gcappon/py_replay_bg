@@ -702,7 +702,6 @@ class T1DModel:
                             theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood_multi_meal(theta, rbg_data)
 
-    # TODO: put numba here
     def check_copula_extraction(self, theta):
         """
         Function that checks if a copula extraction is valid or not depending on the prior constraints.
@@ -861,29 +860,53 @@ def identify_single_meal(tsteps, x, A, B,
                                                                VG, Ipb, SG, Gb, f, kabs, alpha)
     return x
 
-@njit(fastmath = True)
+@njit
 def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B, r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb, f, kabs, alpha):
         """
         Internal function that simulates a step of the model using backward-euler method.
 
         Parameters
         ----------
+        A : np.ndarray
+        The state parameter matrix.
         I : float
             The (basal + bolus) insulin given as input.
-        cho_b : float
-            The meal breakfast cho given as input.
-        cho_l : float
-            The meal lunch cho given as input.
-        cho_d : float
-            The meal dinner cho given as input.
-        cho_s : float
-            The meal snack cho given as input.
-        cho_h : float
-            The meal hypotreatment cho given as input.
+        cho : float
+            The meal cho given as input.
         hour_of_the_day : float
             The hour of the day given as input.
         xkm1 : array
             The model state values at the previous step (k-1).
+        B : np.ndarray
+            The (pre-allocated) input vector.
+        r1 : float
+            The value of the r1 parameter.
+        r2 : float
+            The value of the r2 parameter.
+        kgri : float
+            The value of the kgri parameter.
+        kd : float
+            The value of the kd parameter.
+        p2 : float
+            The value of the p2 parameter.
+        SI : float
+            The value of the SI parameter.
+        VI : float
+            The value of the VI parameter.
+        VG : float
+            The value of the VG parameter.
+        Ipb : float
+            The value of the Ipb parameter.
+        SG : float
+            The value of the SG parameter.
+        Gb : float
+            The value of the Gb parameter.
+        f : float
+            The value of the f parameter.
+        kabs : float
+            The value of the kabs parameter.
+        alpha : float
+            The value of the alpha parameter.
 
         Returns
         -------
@@ -948,7 +971,7 @@ def identify_multi_meal(tsteps, x, A, B, bolus_delayed, basal_delayed,
                                                        kabs_D,
                                                        kabs_S, kabs_H, alpha)
     return x
-@njit(fastmath = True)
+@njit
 def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1, B, r1, r2, kgri,
                                       kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb, f, kabs_B, kabs_L, kabs_D, kabs_S,
                                       kabs_H, alpha):
@@ -957,6 +980,8 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
 
     Parameters
     ----------
+    A : np.ndarray
+        The state parameter matrix.
     I : float
         The (basal + bolus) insulin given as input.
     cho_b : float
@@ -973,6 +998,48 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
         The hour of the day given as input.
     xkm1 : array
         The model state values at the previous step (k-1).
+    B : np.ndarray
+        The (pre-allocated) input vector.
+    r1 : float
+        The value of the r1 parameter.
+    r2 : float
+        The value of the r2 parameter.
+    kgri : float
+        The value of the kgri parameter.
+    kd : float
+        The value of the kd parameter.
+    p2 : float
+        The value of the p2 parameter.
+    SI_B : float
+        The value of the SI_B parameter.
+    SI_L : float
+        The value of the SI_L parameter.
+    SI_D : float
+        The value of the SI_D parameter.
+    VI : float
+        The value of the VI parameter.
+    VG : float
+        The value of the VG parameter.
+    Ipb : float
+        The value of the Ipb parameter.
+    SG : float
+        The value of the SG parameter.
+    Gb : float
+        The value of the Gb parameter.
+    f : float
+        The value of the f parameter.
+    kabs_B : float
+        The value of the kabs_B parameter.
+    kabs_L : float
+        The value of the kabs_L parameter.
+    kabs_D : float
+        The value of the kabs_D parameter.
+    kabs_S : float
+        The value of the kabs_S parameter.
+    kabs_H : float
+        The value of the kabs_H parameter.
+    alpha : float
+        The value of the alpha parameter.
 
     Returns
     -------
@@ -1039,6 +1106,8 @@ def log_prior_single_meal(VG, theta):
 
     Parameters
     ----------
+    VG : float
+        The value of the VG parameter
     theta : array
         The current guess of unknown model parameters.
 
@@ -1093,6 +1162,56 @@ def log_prior_multi_meal(VG,
 
     Parameters
     ----------
+    VG : float
+        The value of the VG parameter
+    pos_SI_B : int
+        The value of the position of the SI_B parameter.
+    SI_B : float
+        The value of the SI_B parameter.
+    pos_SI_L : int
+        The value of the position of the SI_L parameter.
+    SI_L : float
+        The value of the SI_L parameter.
+    pos_SI_D : int
+        The value of the position of the SI_D parameter.
+    SI_D : float
+        The value of the SI_D parameter.
+    pos_kabs_B : int
+        The value of the position of the kabs_B parameter.
+    kabs_B : float
+        The value of the kabs_B parameter.
+    pos_kabs_L : int
+        The value of the position of the kabs_L parameter.
+    kabs_L : float
+        The value of the kabs_L parameter.
+    pos_kabs_D : int
+        The value of the position of the kabs_D parameter.
+    kabs_D : float
+        The value of the kabs_D parameter.
+    pos_kabs_S : int
+        The value of the position of the kabs_S parameter.
+    kabs_S : float
+        The value of the kabs_S parameter.
+    pos_kabs_H : int
+        The value of the position of the kabs_H parameter.
+    kabs_H : float
+        The value of the kabs_H parameter.
+    pos_beta_B : int
+        The value of the position of the beta_B parameter.
+    beta_B : float
+        The value of the beta_B parameter.
+    pos_beta_L : int
+        The value of the position of the beta_L parameter.
+    beta_L : float
+        The value of the beta_L parameter.
+    pos_beta_D : int
+        The value of the position of the beta_D parameter.
+    beta_D : float
+        The value of the beta_D parameter.
+    pos_beta_S : int
+        The value of the position of the beta_S parameter.
+    beta_S : float
+        The value of the beta_S parameter.
     theta : array
         The current guess of unknown model parameters.
 

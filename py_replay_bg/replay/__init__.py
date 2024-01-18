@@ -21,7 +21,7 @@ class Replayer:
     replay_scenario():
         Replays the given scenario.
     """
-    def __init__(self, rbg_data, draws, rbg):
+    def __init__(self, rbg_data, draws, n_replay, rbg):
         """
         Constructs all the necessary attributes for the Replayer object.
 
@@ -31,6 +31,8 @@ class Replayer:
             The data to be used by ReplayBG during simulation.
         draws: array
             An array containing the model parameter realizations to be used for simulating the model.
+        n_replay: int, {1000, 100, 10}
+            The number of replay to be performed.
         rbg: ReplayBG
             The instance of ReplayBG.
 
@@ -53,6 +55,7 @@ class Replayer:
         self.rbg_data = rbg_data
         self.draws = draws
         self.rbg = rbg
+        self.n_replay = n_replay
 
     def replay_scenario(self):
         """
@@ -100,7 +103,7 @@ class Replayer:
         None
         """
 
-        n = self.draws[self.rbg.model.unknown_parameters[0]]['samples'].shape[0]
+        n = self.draws[self.rbg.model.unknown_parameters[0]]['samples_'+str(self.n_replay)].shape[0]
 
         cgm = dict()
         cgm['realizations'] = np.zeros(shape=(n, self.rbg.model.tysteps))
@@ -138,7 +141,7 @@ class Replayer:
 
             # set the model parameters
             for p in self.rbg.model.unknown_parameters:
-                setattr(self.rbg.model.model_parameters,p, self.draws[p]['samples'][r])
+                setattr(self.rbg.model.model_parameters,p, self.draws[p]['samples_'+str(self.n_replay)][r])
 
             # connect a new CGM sensor
             if self.rbg.sensors.cgm.model == 'CGM':

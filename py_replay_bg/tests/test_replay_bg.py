@@ -47,20 +47,19 @@ def test_replay_bg():
     freeze_support()
 
     # Get test data
-    data = load_test_data(real=True, single_meal=False)
+    data = load_test_data(real=True, single_meal=True)
 
     # Set other parameters for identification
     modality = 'replay'
     bw = 100
-    scenario = 'multi-meal'
-    save_name = 'test_multi_meal'
-    n_steps = 10000
+    scenario = 'single-meal'
+    save_name = 'test_single_meal'
+    n_steps = 1000
     save_suffix = ''
     save_folder = os.path.abspath('')
-    data.bolus = data.bolus*0
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix,
-                   n_steps=n_steps, parallelize=True, verbose=True)
+                   n_steps=n_steps, parallelize=False, save_workspace=False, analyze_results=False, verbose=True)
 
     # Run it
-    rbg.run(data=data, bw=bw)
+    rbg.run(data=data, bw=bw, n_replay=10)

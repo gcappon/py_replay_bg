@@ -37,8 +37,6 @@ class MCMC:
         Number of steps to use for the main chain.
     thin_factor: int
         Chain thin factor to use.
-    to_sample: int
-        Number of samples to generate via the copula.
     save_chains: bool
         A flag that specifies whether to save the resulting mcmc chains and copula samplers.
     callback_ncheck: int
@@ -52,7 +50,6 @@ class MCMC:
 
     def __init__(self, model,
                  n_steps=10000,
-                 to_sample=1000,
                  save_chains=False,
                  callback_ncheck=100):
         """
@@ -64,8 +61,6 @@ class MCMC:
             An object that represents the physiological model hyperparameters to be used by ReplayBG.
         n_steps: int, optional, default : 10000
             Number of steps to use for the main chain.
-        to_sample: int, optional, default : 1000
-            Number of samples to generate via the copula.
         save_chains: bool, optional, default : False
             A flag that specifies whether to save the resulting mcmc chains and copula samplers.
         callback_ncheck: int, optional, default : 100
@@ -102,9 +97,6 @@ class MCMC:
 
         # Chain thin factor to use
         self.thin_factor = int(np.ceil(n_steps / 1000))
-
-        # Number of samples to generate via the copula
-        self.to_sample = to_sample
 
         # Save the chains?
         self.save_chains = save_chains
@@ -159,7 +151,7 @@ class MCMC:
 
         posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
         sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
-                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=10)
+                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=1000)
         sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
         sampler.summary  # Print summary diagnostics
 
@@ -175,32 +167,35 @@ class MCMC:
         draws = dict()
         for up in range(len(rbg.model.unknown_parameters)):
             draws[rbg.model.unknown_parameters[up]] = dict()
-            draws[rbg.model.unknown_parameters[up]]['samples'] = np.empty(self.to_sample)
+            draws[rbg.model.unknown_parameters[up]]['samples_1000'] = np.empty(1000)
+            draws[rbg.model.unknown_parameters[up]]['samples_100'] = np.empty(100)
+            draws[rbg.model.unknown_parameters[up]]['samples_10'] = np.empty(10)
             draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
-        if rbg.environment.verbose:
-            print('Extracting samples from copula')
+        to_sample = [1000, 100, 10]
+        for nr in to_sample:
+            if rbg.environment.verbose:
+                print('Extracting samples from copula - ' + str(nr) + ' realizations')
 
-        to_be_sampled = [True] * self.to_sample
-        while any(to_be_sampled):
+            to_be_sampled = [True] * nr
+            while any(to_be_sampled):
 
-            #Get the idxs of the missing samples
-            tbs = np.where(to_be_sampled)[0]
+                #Get the idxs of the missing samples
+                tbs = np.where(to_be_sampled)[0]
 
-            #Get the new samples
-            samples = distributions.sample(len(tbs)).to_numpy()
+                #Get the new samples
+                samples = distributions.sample(len(tbs)).to_numpy()
 
-            #For each sample...
-            for i in range(0, len(tbs)):
+                #For each sample...
+                for i in range(0, len(tbs)):
 
-                #...check if it is ok. If so...
-                if self.model.check_copula_extraction(samples[i]):
+                    #...check if it is ok. If so...
+                    if self.model.check_copula_extraction(samples[i]):
 
-                    # ...flag it and fill the final vector
-                    to_be_sampled[tbs[i]] = False
-                    for up in range(len(rbg.model.unknown_parameters)):
-                        draws[rbg.model.unknown_parameters[up]]['samples'][tbs[i]] = samples[i,up]
-
+                        # ...flag it and fill the final vector
+                        to_be_sampled[tbs[i]] = False
+                        for up in range(len(rbg.model.unknown_parameters)):
+                            draws[rbg.model.unknown_parameters[up]]['samples_'+str(nr)][tbs[i]] = samples[i,up]
 
         # Check physiological plausibility
         draws['physiological_plausibility'] = self.__check_physiological_plausibility(draws, data, rbg)
@@ -253,15 +248,15 @@ class MCMC:
         """
 
         if rbg.environment.verbose:
-            print('Running physiological plausibility checks...')
+            print('Running physiological plausibility checks (only on the 1000 samples)...')
 
         # Initialize the return vector
         physiological_plausibility = dict()
 
-        physiological_plausibility['test_1'] = np.full((self.to_sample,), True)
-        physiological_plausibility['test_2'] = np.full((self.to_sample,), True)
-        physiological_plausibility['test_3'] = np.full((self.to_sample,), True)
-        physiological_plausibility['test_4'] = np.full((self.to_sample,), True)
+        physiological_plausibility['test_1'] = np.full((1000,), True)
+        physiological_plausibility['test_2'] = np.full((1000,), True)
+        physiological_plausibility['test_3'] = np.full((1000,), True)
+        physiological_plausibility['test_4'] = np.full((1000,), True)
 
         rbg_fake = copy.copy(rbg)
         rbg_fake.model = copy.copy(rbg.model)
@@ -299,9 +294,9 @@ class MCMC:
 
         # Test 1: "if no insulin is injected, BG must go above 300 mg/dl in 1000 min"
         if rbg.environment.verbose:
-            iterations = tqdm(range(self.to_sample), desc='Test 1 of 4')
+            iterations = tqdm(range(1000), desc='Test 1 of 4')
         else:
-            iterations = range(0, self.to_sample)
+            iterations = range(0, 1000)
 
         # Set simulation data
         data_fake_test_1 = copy.copy(data_fake)
@@ -312,7 +307,7 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples'][r])
+                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
@@ -326,9 +321,9 @@ class MCMC:
 
         # Test 2: "if a bolus of 15 U is injected, BG should drop below 100 mg/dl"
         if rbg.environment.verbose:
-            iterations = tqdm(range(self.to_sample), desc='Test 2 of 4')
+            iterations = tqdm(range(1000), desc='Test 2 of 4')
         else:
-            iterations = range(0, self.to_sample)
+            iterations = range(0, 1000)
 
         # Set simulation data
         data_fake_test_2 = copy.copy(data_fake)
@@ -351,7 +346,7 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples'][r])
+                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
@@ -365,9 +360,9 @@ class MCMC:
 
         # Test 3: "it exists a basal insulin value such that glucose stays between 90 and 160 mg/dl", 
         if rbg.environment.verbose:
-            iterations = tqdm(range(self.to_sample), desc='Test 3 of 4')
+            iterations = tqdm(range(1000), desc='Test 3 of 4')
         else:
-            iterations = range(0, self.to_sample)
+            iterations = range(0, 1000)
 
         # Set simulation data
         data_fake_test_3 = copy.copy(data_fake)
@@ -384,7 +379,7 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples'][r])
+                setattr(rbg_fake.model.model_parameters, p, draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
@@ -418,9 +413,9 @@ class MCMC:
 
         # Test 4: "a variation of basal insulin of 0.01 U/h does not vary basal glucose more than 20 mg/dl"
         if rbg.environment.verbose:
-            iterations = tqdm(range(self.to_sample), desc='Test 4 of 4')
+            iterations = tqdm(range(1000), desc='Test 4 of 4')
         else:
-            iterations = range(0, self.to_sample)
+            iterations = range(0, 1000)
 
         # Set simulation data
         data_fake_test_4 = copy.copy(data_fake)
@@ -433,7 +428,7 @@ class MCMC:
 
             # set the model parameters
             for p in rbg_fake.model.unknown_parameters:
-                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples'][r])
+                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
             if (rbg_fake.sensors.cgm.model == 'CGM'):
