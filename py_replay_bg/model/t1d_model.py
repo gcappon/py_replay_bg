@@ -501,7 +501,7 @@ class T1DModel:
                 # Get the cgm
                 if np.mod(k, rbg.sensors.cgm.ts) == 0:
                     if rbg.sensors.cgm.model == 'IG':
-                        self.CGM[int(k / rbg.sensors.cgm.ts)] = self.x[self.nx, k]  # y(k) = IG(k)
+                        self.CGM[int(k / rbg.sensors.cgm.ts)] = self.x[self.nx-1, k]  # y(k) = IG(k)
                     if rbg.sensors.cgm.model == 'CGM':
                         self.CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(self.x[self.nx - 1, k], k / (24 * 60))
 

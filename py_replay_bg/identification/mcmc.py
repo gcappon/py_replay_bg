@@ -51,7 +51,7 @@ class MCMC:
     def __init__(self, model,
                  n_steps=10000,
                  save_chains=False,
-                 callback_ncheck=100):
+                 callback_ncheck=1000):
         """
         Constructs all the necessary attributes for the MCMC object.
 
@@ -63,7 +63,7 @@ class MCMC:
             Number of steps to use for the main chain.
         save_chains: bool, optional, default : False
             A flag that specifies whether to save the resulting mcmc chains and copula samplers.
-        callback_ncheck: int, optional, default : 100
+        callback_ncheck: int, optional, default : 1000
             Number of steps to be awaited before checking the callback functions.
 
         Returns
@@ -170,9 +170,10 @@ class MCMC:
             draws[rbg.model.unknown_parameters[up]]['samples_1000'] = np.empty(1000)
             draws[rbg.model.unknown_parameters[up]]['samples_100'] = np.empty(100)
             draws[rbg.model.unknown_parameters[up]]['samples_10'] = np.empty(10)
+            draws[rbg.model.unknown_parameters[up]]['samples_1'] = np.empty(1)
             draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
-        to_sample = [1000, 100, 10]
+        to_sample = [1000, 100, 10, 1]
         for nr in to_sample:
             if rbg.environment.verbose:
                 print('Extracting samples from copula - ' + str(nr) + ' realizations')
