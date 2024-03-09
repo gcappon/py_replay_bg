@@ -1,12 +1,6 @@
 import os
-import numpy as np
 import pandas as pd
 from py_replay_bg.py_replay_bg import ReplayBG
-from datetime import datetime, timedelta
-
-from multiprocessing import freeze_support
-
-from tqdm import tqdm
 
 def load_test_data(real=True, single_meal=True):
     if real:
@@ -28,17 +22,16 @@ def load_test_data(real=True, single_meal=True):
     return df
 
 def test_replay_bg():
-    freeze_support()
 
     # Get test data
     data = load_test_data(real=False, single_meal=False)
 
     # Set other parameters for identification
-    modality = 'replay'
+    modality = 'identification'
     bw = 100
     scenario = 'multi-meal'
     save_name = 'multi_meal_fake'
-    n_steps = 10000
+    n_steps = 1000
     save_suffix = ''
     save_folder = os.path.abspath('')
     # Instantiate ReplayBG
@@ -46,4 +39,4 @@ def test_replay_bg():
                    cgm_model='CGM', n_steps=n_steps, parallelize=False, save_workspace=False, analyze_results=False, verbose=True, plot_mode=True)
 
     # Run it
-    rbg.run(data=data, bw=bw, n_replay=100)
+    rbg.run(data=data, bw=bw, n_replay=1000)

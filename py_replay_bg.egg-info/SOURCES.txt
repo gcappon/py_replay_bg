@@ -13,6 +13,7 @@ py_replay_bg/data/__init__.py
 py_replay_bg/dss/__init__.py
 py_replay_bg/dss/default_dss_handlers.py
 py_replay_bg/environment/__init__.py
+py_replay_bg/example/code/quick-start.py
 py_replay_bg/identification/__init__.py
 py_replay_bg/identification/mcmc.py
 py_replay_bg/input_validation/__init__.py

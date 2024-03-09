@@ -168,35 +168,37 @@ class MCMC:
         for up in range(len(rbg.model.unknown_parameters)):
             draws[rbg.model.unknown_parameters[up]] = dict()
             draws[rbg.model.unknown_parameters[up]]['samples_1000'] = np.empty(1000)
-            draws[rbg.model.unknown_parameters[up]]['samples_100'] = np.empty(100)
-            draws[rbg.model.unknown_parameters[up]]['samples_10'] = np.empty(10)
-            draws[rbg.model.unknown_parameters[up]]['samples_1'] = np.empty(1)
             draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
-        to_sample = [1000, 100, 10, 1]
-        for nr in to_sample:
-            if rbg.environment.verbose:
-                print('Extracting samples from copula - ' + str(nr) + ' realizations')
+        to_sample = 1000
+        if rbg.environment.verbose:
+            print('Extracting samples from copula - ' + str(to_sample) + ' realizations')
 
-            to_be_sampled = [True] * nr
-            while any(to_be_sampled):
+        to_be_sampled = [True] * to_sample
+        while any(to_be_sampled):
 
-                #Get the idxs of the missing samples
-                tbs = np.where(to_be_sampled)[0]
+            #Get the idxs of the missing samples
+            tbs = np.where(to_be_sampled)[0]
 
-                #Get the new samples
-                samples = distributions.sample(len(tbs)).to_numpy()
+            #Get the new samples
+            samples = distributions.sample(len(tbs)).to_numpy()
 
-                #For each sample...
-                for i in range(0, len(tbs)):
+            #For each sample...
+            for i in range(0, len(tbs)):
 
-                    #...check if it is ok. If so...
-                    if self.model.check_copula_extraction(samples[i]):
+                #...check if it is ok. If so...
+                if self.model.check_copula_extraction(samples[i]):
 
-                        # ...flag it and fill the final vector
-                        to_be_sampled[tbs[i]] = False
-                        for up in range(len(rbg.model.unknown_parameters)):
-                            draws[rbg.model.unknown_parameters[up]]['samples_'+str(nr)][tbs[i]] = samples[i,up]
+                    # ...flag it and fill the final vector
+                    to_be_sampled[tbs[i]] = False
+                    for up in range(len(rbg.model.unknown_parameters)):
+                        draws[rbg.model.unknown_parameters[up]]['samples_'+str(to_sample)][tbs[i]] = samples[i,up]
+
+        # Sample 100 realizations
+        draws = self.__subsample(draws=draws, data=data, rbg=rbg)
+        # Sample 10 realizations
+        # Sample 1 realization
+
 
         # Check physiological plausibility
         draws['physiological_plausibility'] = self.__check_physiological_plausibility(draws, data, rbg)
@@ -214,6 +216,104 @@ class MCMC:
         with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws',
                                'draws_' + rbg.environment.save_name + '.pkl'), 'wb') as file:
             pickle.dump(identification_results, file)
+
+        return draws
+
+    def __subsample(self, draws, data, rbg):
+        """
+        Subsamples n parameters realizations starting from the original 1000 draws.
+
+        Parameters
+        ----------
+        draws: dict
+            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling, respectively.
+        data: pd.DataFrame
+            Pandas dataframe which contains the data to be used by the tool.
+        rbg: ReplayBG
+            The instance of ReplayBG.
+        n: int
+            The number of subsamples.
+
+        Returns
+        -------
+        physiological_plausibility: dict
+            A dictionary containing the results of the "plausibility" tests.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        if rbg.environment.verbose:
+            print('Subsampling realizations...')
+
+        for up in range(len(rbg.model.unknown_parameters)):
+            draws[rbg.model.unknown_parameters[up]]['samples_'+str(100)] = np.empty(100)
+            draws[rbg.model.unknown_parameters[up]]['samples_' + str(10)] = np.empty(10)
+            draws[rbg.model.unknown_parameters[up]]['samples_' + str(1)] = np.empty(1)
+
+        rbg_fake = copy.copy(rbg)
+        rbg_fake.model = copy.copy(rbg.model)
+        rbg_fake.environment = copy.copy(rbg.environment)
+
+        # Set "fake" model core variable for simulation
+        rbg_fake.model.glucose_model = 'IG'
+
+        # Set "fake" environment core variable for simulation
+        rbg_fake.environment.modality = 'replay'
+
+        # Test 1: "if no insulin is injected, BG must go above 300 mg/dl in 1000 min"
+        iterations = range(0, 1000)
+
+        # Set simulation data
+        rbg_data = ReplayBGData(data=data, rbg=rbg_fake)
+
+        glucose = dict()
+        glucose['realizations'] = np.zeros(shape=(1000, rbg_fake.model.tsteps))
+
+        # For each parameter set...
+        for r in iterations:
+
+            # set the model parameters
+            for p in rbg_fake.model.unknown_parameters:
+                setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
+
+            if rbg_fake.sensors.cgm.model == 'CGM':
+                rbg_fake.sensors.cgm.connect_new_cgm()
+
+            glucose['realizations'][r] = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification', rbg=None)
+
+        glucose_prc = dict()
+        for p in range(0,100):
+            glucose_prc[p] = np.percentile(glucose['realizations'], p+1, axis=0)
+
+        distances = np.empty(1000)
+        for p in range(0,100):
+            for r in range(0,1000):
+                distances[r] = np.sqrt(np.mean((glucose_prc[p] - glucose['realizations'][r]) ** 2))
+            idx = np.argmin(distances)
+
+            # 100 realizations
+            for up in range(len(rbg_fake.model.unknown_parameters)):
+                draws[rbg.model.unknown_parameters[up]]['samples_100'][p] = draws[rbg.model.unknown_parameters[up]]['samples_1000'][idx]
+            # 10 realizations
+            if (p+1) % 10 == 0:
+                for up in range(len(rbg_fake.model.unknown_parameters)):
+                    draws[rbg.model.unknown_parameters[up]]['samples_10'][p//10-1] = \
+                    draws[rbg.model.unknown_parameters[up]]['samples_1000'][idx]
+            # 1 realization
+            if (p + 1) == 50:
+                for up in range(len(rbg_fake.model.unknown_parameters)):
+                    draws[rbg.model.unknown_parameters[up]]['samples_1'][0] = \
+                        draws[rbg.model.unknown_parameters[up]]['samples_1000'][idx]
 
         return draws
 
