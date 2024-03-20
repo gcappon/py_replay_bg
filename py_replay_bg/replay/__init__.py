@@ -111,6 +111,9 @@ class Replayer:
         glucose = dict()
         glucose['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
 
+        x_end = dict()
+        x_end['realizations'] = np.zeros(shape=(n, self.rbg.model.nx))
+        
         insulin_bolus = dict()
         insulin_bolus['realizations'] = np.zeros(shape=(n, self.rbg.model.tsteps))
 
@@ -148,7 +151,7 @@ class Replayer:
                 self.rbg.sensors.cgm.connect_new_cgm()
 
             # TODO: add vo2
-            glucose['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus['realizations'][r], \
+            glucose['realizations'][r], x_end['realizations'][r], cgm['realizations'][r], insulin_bolus['realizations'][r], correction_bolus['realizations'][r], \
             insulin_basal['realizations'][r], cho['realizations'][r], hypotreatments['realizations'][r], \
             meal_announcement['realizations'][r], x = self.rbg.model.simulate(rbg_data=self.rbg_data,
                                                                               modality='replay',
@@ -167,4 +170,4 @@ class Replayer:
         glucose['ci5th'] = np.percentile(glucose['realizations'], 5, axis=0)
         glucose['ci95th'] = np.percentile(glucose['realizations'], 95, axis=0)
 
-        return glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2
+        return glucose, x_end, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2

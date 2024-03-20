@@ -39,6 +39,10 @@ class T1DModel:
         An array that contains the initial starting point to be used by the mcmc procedure.
     start_guess_sigma: np.ndarray
         An array that contains the initial starting SD of unknown parameters to be used by the mcmc procedure.
+    X0: list
+        The initial conditions for the model state. If None cold_boot will be set to True.
+    cold_boot: bool
+        A flag indicating if the model will start from the default initial conditions.
     exercise: bool
         A boolean indicating if the model includes the exercise.
     
@@ -52,7 +56,7 @@ class T1DModel:
         Function that checks if a copula extraction is valid or not.
     """
 
-    def __init__(self, data, bw, yts=5, glucose_model='IG', is_single_meal=True, exercise=False):
+    def __init__(self, data, bw, yts=5, glucose_model='IG', u2ss=None, is_single_meal=True, X0=None, exercise=False):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -68,6 +72,8 @@ class T1DModel:
             The model equation to be used as measured glucose.
         is_single_meal: bool, optional, default : True
             A flag indicating if the model will be used as single meal or multi meal.
+        X0: list, optional, default : None
+            The initial conditions for the model state. If None cold_boot will be set to True.
         exercise: bool, optional, default : False
             A boolean indicating if the model includes the exercise.
         """
@@ -91,7 +97,7 @@ class T1DModel:
         self.nx = 9 if self.is_single_meal else 21
 
         # Model parameters
-        self.model_parameters = ModelParameters(data, bw, self.is_single_meal)
+        self.model_parameters = ModelParameters(data, bw, u2ss, self.is_single_meal)
 
         # Unknown parameters
         self.unknown_parameters = ['Gb', 'SG', 'ka2', 'kd', 'kempt']
@@ -219,6 +225,9 @@ class T1DModel:
         self.A = np.empty([self.nx - 3, self.nx - 3])
         self.B = np.empty([self.nx - 3, ])
 
+        self.X0 = X0
+        self.cold_boot = True if self.X0 is None else False
+
     def simulate(self, rbg_data, modality, rbg):
         """
         Function that simulates the model and returns the obtained results. This is the complete version suitable for
@@ -294,7 +303,7 @@ class T1DModel:
             k1 = mp.u2ss / mp.kd
             k2 = mp.kd / mp.ka2 * k1
             mp.Ipb = mp.ka2 / mp.ke * k2
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
 
             # Set the initial glucose value
             self.G[0] = self.x[self.nx - 1, 0] if self.glucose_model == 'IG' else self.x[0, 0]
@@ -327,7 +336,7 @@ class T1DModel:
             k1 = mp.u2ss / mp.kd
             k2 = mp.kd / mp.ka2 * k1
             mp.Ipb = mp.ka2 / mp.ke * k2
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
 
             # Set the initial glucose value
             self.G[0] = self.x[self.nx - 1, 0] if self.glucose_model == 'IG' else self.x[0, 0]
@@ -506,7 +515,7 @@ class T1DModel:
                         self.CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(self.x[self.nx - 1, k], k / (24 * 60))
 
             # TODO: add vo2
-            return self.x[0, :].copy(), self.CGM.copy(), bolus * mp.to_g, correction_bolus, basal * mp.to_g, meal * mp.to_g, hypotreatments, meal_announcement, self.x.copy()
+            return self.x[0, :].copy(), self.x[:, -1].copy(), self.CGM.copy(), bolus * mp.to_g, correction_bolus, basal * mp.to_g, meal * mp.to_g, hypotreatments, meal_announcement, self.x.copy()
 
         else:
 
@@ -747,7 +756,7 @@ class T1DModel:
 
 class ModelParameters:
 
-    def __init__(self, data, bw, is_single_meal):
+    def __init__(self, data, bw, u2ss, is_single_meal):
 
         """
         Function that returns the default parameters values of the model.
@@ -758,6 +767,10 @@ class ModelParameters:
                 Pandas dataframe which contains the data to be used by the tool.
         bw : double
             The patient's body weight.
+        u2ss : double
+            The steady state of the basal insulin infusion
+        is_single_meal : bool
+            Whether the model is single-meal or multi-meal
 
         Returns
         -------
@@ -794,7 +807,10 @@ class ModelParameters:
             self.SI_L = 10.35e-4 / self.VG  # mL/(uU*min)
             self.SI_D = 10.35e-4 / self.VG  # mL/(uU*min)
         self.p2 = 0.012  # 1/min
-        self.u2ss = np.mean(data.basal) * 1000 / bw  # mU/(kg*min)
+        if u2ss is None:
+            self.u2ss = np.mean(data.basal) * 1000 / bw  # mU/(kg*min)
+        else:
+            self.u2ss = u2ss
 
         # Subcutaneous insulin absorption submodel parameters
         self.VI = 0.126  # L/kg

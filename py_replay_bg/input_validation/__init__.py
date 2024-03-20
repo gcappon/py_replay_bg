@@ -27,6 +27,20 @@ class BWValidator:
             raise Exception("'bw' input must be a number.'")
 
 
+class U2SSValidator:
+    """
+    Class for validating the 'u2ss' input parameter of ReplayBG.
+    """
+
+    def __init__(self, u2ss):
+        self.u2ss = u2ss
+
+    def validate(self):
+        if self.u2ss is not None:
+            if not (isinstance(self.u2ss, float) or isinstance(self.u2ss, int)):
+                raise Exception("'bw' input must be a number.'")
+
+
 class ScenarioValidator:
     """
     Class for validating the 'scenario' input parameter of ReplayBG.
@@ -256,6 +270,20 @@ class CGMModelValidator:
     def validate(self):
         if not (self.cgm_model == 'CGM' or self.cgm_model == 'IG'):
             raise Exception("'cgm_model' input must be 'CGM' or 'IG'.")
+
+
+class X0Validator:
+    """
+    Class for validating the 'X0' input parameter of ReplayBG.
+    """
+
+    def __init__(self, X0):
+        self.X0 = X0
+
+    def validate(self):
+        if self.X0 is not None:
+            if not isinstance(self.X0, list):
+                raise Exception("'X0' input must be None or a list.'")
 
 
 class NStepsValidator:
@@ -546,10 +574,11 @@ class InputValidator:
         Run the input validation process.
     """
 
-    def __init__(self, modality, data, bw, scenario, save_name, save_suffix,
+    def __init__(self, modality, data, bw, u2ss, scenario, save_name, save_suffix,
                  yts, glucose_model, pathology, exercise, seed,
                  bolus_source, basal_source, cho_source,
                  cgm_model,
+                 X0,
                  n_steps, save_chains, analyze_results,
                  CR, CF, GT,
                  meal_generator_handler, meal_generator_handler_params,
@@ -561,6 +590,7 @@ class InputValidator:
         self.modality = modality
         self.data = data
         self.bw = bw
+        self.u2ss = u2ss
         self.scenario = scenario
         self.save_name = save_name
         self.save_suffix = save_suffix
@@ -576,6 +606,8 @@ class InputValidator:
         self.cho_source = cho_source
 
         self.cgm_model = cgm_model
+
+        self.X0 = X0
 
         self.n_steps = n_steps
         self.save_chains = save_chains
@@ -609,6 +641,9 @@ class InputValidator:
 
         # Validate the 'bw' input
         BWValidator(bw=self.bw).validate()
+
+        # Validate the 'u2ss' input
+        U2SSValidator(u2ss=self.u2ss).validate()
 
         # Validate the 'scenario' input
         ScenarioValidator(scenario=self.scenario).validate()
@@ -650,6 +685,9 @@ class InputValidator:
 
         # Validate the 'cgm_model' input
         CGMModelValidator(cgm_model=self.cgm_model).validate()
+
+        # Validate the 'X0' input
+        X0Validator(X0=self.X0).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()

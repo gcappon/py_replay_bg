@@ -51,9 +51,11 @@ class ReplayBG:
     """
 
     def __init__(self, modality, data, bw, scenario, save_name, save_folder,
+                 u2ss=None,
                  yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
                  bolus_source='data', basal_source='data', cho_source='data',
                  cgm_model='CGM',
+                 X0=None,
                  n_steps=10000, save_chains=False,
                  analyze_results=True,
                  CR=10, CF=40, GT=120,
@@ -82,10 +84,14 @@ class ReplayBG:
             Pandas dataframe which contains the data to be used by the tool.
         bw: double
             The patient's body weight.
+
         scenario: string, {'single-meal', 'multi-meal'}
             A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
         save_name : string
             A string used to label, thus identify, each output file and result.
+
+        u2ss : double, optional, default : None
+            The steady state of the basal insulin infusion.
 
         yts: int, optional, default : 5
             An integer that specifies the data sample time (in minutes).
@@ -112,6 +118,9 @@ class ReplayBG:
         cgm_model: string, {'CGM','IG'}, optional, default : 'CGM'
             A string that specify the cgm model selection.
             If IG is selected, CGM measure will be the noise-free IG state at the current time.
+
+        X0: list, optional, default : None
+            The initial state of the model.
 
         n_steps: int, optional, default : 10000
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
@@ -189,12 +198,13 @@ class ReplayBG:
         """
 
         # Input validation
-        input_validator = InputValidator(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name,
+        input_validator = InputValidator(modality=modality, data=data, bw=bw, u2ss=u2ss, scenario=scenario, save_name=save_name,
                                          save_suffix=save_suffix,
                                          yts=yts, glucose_model=glucose_model, pathology=pathology, exercise=exercise,
                                          seed=seed,
                                          bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
                                          cgm_model=cgm_model,
+                                         X0=X0,
                                          n_steps=n_steps, save_chains=save_chains, analyze_results=analyze_results,
                                          CR=CR, CF=CF, GT=GT,
                                          meal_generator_handler=meal_generator_handler,
@@ -212,7 +222,7 @@ class ReplayBG:
         input_validator.validate()
 
         # Initialize core variables
-        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, bw=bw,
+        self.environment, self.model, self.sensors, self.mcmc, self.dss = self.__init_core_variables(data=data, bw=bw, u2ss=u2ss,
                                                                                                      modality=modality,
                                                                                                      save_name=save_name,
                                                                                                      save_folder=save_folder,
@@ -228,6 +238,7 @@ class ReplayBG:
                                                                                                      basal_source=basal_source,
                                                                                                      cho_source=cho_source,
                                                                                                      cgm_model=cgm_model,
+                                                                                                     X0=X0,
                                                                                                      n_steps=n_steps,
                                                                                                      save_chains=save_chains,
                                                                                                      analyze_results=analyze_results,
@@ -252,10 +263,11 @@ class ReplayBG:
 
         # ====================================================================
 
-    def __init_core_variables(self, data, bw, modality, save_name, save_folder, save_suffix, scenario,
+    def __init_core_variables(self, data, bw, u2ss, modality, save_name, save_folder, save_suffix, scenario,
                               yts, glucose_model, pathology, exercise, seed,
                               bolus_source, basal_source, cho_source,
                               cgm_model,
+                              X0,
                               n_steps, save_chains, save_workspace, analyze_results,
                               CR, CF, GT,
                               meal_generator_handler, meal_generator_handler_params,
@@ -273,6 +285,8 @@ class ReplayBG:
                 Pandas dataframe which contains the data to be used by the tool.
         bw : double
             The patient's body weight.
+        u2ss : double
+            The steady state of the basal insulin infusion.
         modality : string
             A string that specifies if the function will be used to identify 
             the ReplayBG model on the given data or to replay the scenario specified by the given data
@@ -305,6 +319,9 @@ class ReplayBG:
         cgm_model: string, {'CGM','IG'}
             A string that specify the cgm model selection.
             If IG is selected, CGM measure will be the noise-free IG state at the current time.
+
+        X0: list
+            The initial model state.
 
         n_steps: int
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
@@ -408,7 +425,7 @@ class ReplayBG:
 
         # Initialize model
         if pathology == 't1d':
-            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, is_single_meal=(scenario=='single-meal'), exercise=exercise)
+            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, is_single_meal=(scenario=='single-meal'), X0=X0, exercise=exercise)
 
         # Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
@@ -523,7 +540,7 @@ class ReplayBG:
         if self.environment.verbose:
             print('Replaying scenario...')
         replayer = Replayer(rbg_data=rbg_data, draws=draws, n_replay=n_replay, rbg=self)
-        glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
+        glucose, x_end, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments, meal_announcement, vo2 = replayer.replay_scenario()
 
         analysis = dict()
         if self.environment.analyze_results:
@@ -545,7 +562,7 @@ class ReplayBG:
 
         # Save results
         results = dict()
-        results = self.__save_results(data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
+        results = self.__save_results(data, bw, glucose, x_end, cgm, insulin_bolus, correction_bolus, insulin_basal, cho, hypotreatments,
                             meal_announcement, vo2, analysis, self.environment.save_workspace)
 
         if self.environment.verbose:
@@ -669,7 +686,7 @@ class ReplayBG:
 
         return analysis
 
-    def __save_results(self, data, bw, glucose, cgm, insulin_bolus, correction_bolus, insulin_basal, cho,
+    def __save_results(self, data, bw, glucose, x_end, cgm, insulin_bolus, correction_bolus, insulin_basal, cho,
                        hypotreatments, meal_announcement, vo2, analysis, save_workspace):
         """
         Save ReplayBG results.
@@ -704,6 +721,7 @@ class ReplayBG:
         results['dss'] = self.dss
 
         results['glucose'] = glucose
+        results['x_end'] = x_end
         results['cgm'] = cgm
         results['insulin_bolus'] = insulin_bolus
         results['correction_bolus'] = correction_bolus

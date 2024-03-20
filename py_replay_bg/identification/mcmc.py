@@ -1,5 +1,9 @@
 import os
 
+import matplotlib.pyplot as plt
+from matplotlib import pylab
+
+
 import numpy as np
 import zeus
 
@@ -144,6 +148,7 @@ class MCMC:
         cb1 = zeus.callbacks.SplitRCallback(ncheck=self.callback_ncheck)
         cb2 = zeus.callbacks.MinIterCallback(nmin=100)
 
+
         # Initialize and run the sampler
         pool = None
         if rbg.environment.parallelize:
@@ -152,7 +157,12 @@ class MCMC:
         posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
         sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
                                        verbose=rbg.environment.verbose, pool=pool, maxsteps=1000)
-        sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
+        if rbg.environment.plot_mode:
+            plot_callback = PlotCallBack(ncheck=self.callback_ncheck, ndim=self.n_dim, rbg=rbg, data=data)
+            sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2, plot_callback])
+            pylab.close()
+        else:
+            sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
         sampler.summary  # Print summary diagnostics
 
         # Get the chain
@@ -194,11 +204,8 @@ class MCMC:
                     for up in range(len(rbg.model.unknown_parameters)):
                         draws[rbg.model.unknown_parameters[up]]['samples_'+str(to_sample)][tbs[i]] = samples[i,up]
 
-        # Sample 100 realizations
+        # Subsample realizations
         draws = self.__subsample(draws=draws, data=data, rbg=rbg)
-        # Sample 10 realizations
-        # Sample 1 realization
-
 
         # Check physiological plausibility
         draws['physiological_plausibility'] = self.__check_physiological_plausibility(draws, data, rbg)
@@ -552,3 +559,78 @@ class MCMC:
                 physiological_plausibility['test_4'][r] = False
 
         return physiological_plausibility
+
+
+class PlotCallBack:
+    def __init__(self, ncheck=100, ndim=None, rbg=None, data=None):
+        self.ncheck = ncheck
+        self.ndim = ndim
+        self.rbg = rbg
+        self.data = data
+
+    def __call__(self, iteration, chain, log_prob):
+
+        if iteration % self.ncheck == 0:
+            #flat_chain = chain.reshape((-1, self.ndim), order='F')
+            #last_sample=flat_chain[-1]
+            last_sample = chain[-1][-1]
+
+            rbg_fake = copy.copy(self.rbg)
+            rbg_fake.model = copy.copy(self.rbg.model)
+            rbg_fake.environment = copy.copy(self.rbg.environment)
+
+            # Set "fake" model core variable for simulation
+            rbg_fake.model.glucose_model = 'IG'
+
+            # Set "fake" environment core variable for simulation
+            rbg_fake.environment.modality = 'replay'
+
+            # Set simulation data
+            rbg_data = ReplayBGData(data=self.data, rbg=rbg_fake)
+
+            # set the model parameters
+            for p in range(len(rbg_fake.model.unknown_parameters)):
+                setattr(rbg_fake.model.model_parameters, rbg_fake.model.unknown_parameters[p], last_sample[p])
+            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
+
+            if rbg_fake.sensors.cgm.model == 'CGM':
+                rbg_fake.sensors.cgm.connect_new_cgm()
+
+            g = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification',
+                                                                 rbg=None)
+            pylab.close()
+
+            pylab.ion()  # Force interactive
+
+            fig, ax = pylab.subplots(3, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
+
+            # Subplot 1: Glucose
+            ax[0].plot(self.data.t, self.data.glucose, marker='o', color='red', linewidth=2, label='Glucose (data) [mg/dl]')
+            ax[0].plot(self.data.t, g[0::rbg_fake.model.yts], marker='o', color='black', linewidth=2, label='Glucose (fit) [mg/dl]')
+
+            ax[0].fill_between(np.array([self.data.t.values[0], self.data.t.values[-1]]), np.array([70, 70]), np.array([180, 180]), color='green',
+                               alpha=0.2,
+                               label='Target range')
+
+            ax[0].grid()
+            ax[0].legend()
+
+            # Subplot 2: Meals
+            markerline, stemlines, baseline = ax[1].stem(self.data.t, self.data.cho * 5, basefmt='k:', label='CHO [g]')
+            plt.setp(stemlines, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
+            plt.setp(markerline, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
+            ax[1].grid()
+            ax[1].legend()
+
+            # Subplot 3: Insulin
+            markerline, stemlines, baseline = ax[2].stem(self.data.t, self.data.bolus * 5, basefmt='k:', label='Bolus insulin [U]')
+            plt.setp(stemlines, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
+            plt.setp(markerline, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
+
+            ax[2].plot(self.data.t, self.data.basal * 60, color='black', linewidth=2, label='Basal insulin [U/h]')
+
+            ax[2].grid()
+            ax[2].legend()
+            pylab.show()  # This does not bloc
+            pylab.pause(1)
+
