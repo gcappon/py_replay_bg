@@ -434,7 +434,7 @@ class ReplayBG:
         mcmc = MCMC(model,
                     n_steps=n_steps,
                     save_chains=save_chains,
-                    callback_ncheck=100)
+                    callback_ncheck=1000)
 
         # Initialize DSS
         dss = DSS(bw=bw, CR=CR, CF=CF, GT=GT,

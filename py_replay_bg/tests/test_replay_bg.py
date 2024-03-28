@@ -24,7 +24,7 @@ def load_test_data(real=True, single_meal=True):
 def test_replay_bg():
 
     # Get test data
-    data = load_test_data(real=False, single_meal=False)
+    data = load_test_data(real=True, single_meal=False)
 
     # Set other parameters for identification
     modality = 'identification'
@@ -37,7 +37,7 @@ def test_replay_bg():
 
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix,
-                   cgm_model='CGM', n_steps=n_steps, parallelize=False, save_workspace=False, analyze_results=False, verbose=True, plot_mode=True)
+                   cgm_model='CGM', n_steps=n_steps, parallelize=False, save_workspace=False, analyze_results=False, verbose=False, plot_mode=False)
 
     # Run it
     results = rbg.run(data=data, bw=bw, n_replay=1)

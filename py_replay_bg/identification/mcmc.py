@@ -156,7 +156,7 @@ class MCMC:
 
         posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
         sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
-                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=1000)
+                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=1000, moves=zeus.moves.GlobalMove())
         if rbg.environment.plot_mode:
             plot_callback = PlotCallBack(ncheck=self.callback_ncheck, ndim=self.n_dim, rbg=rbg, data=data)
             sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2, plot_callback])
