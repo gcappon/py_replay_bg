@@ -6,6 +6,7 @@ copulas==0.10.1
 coverage==7.4.4
 cycler==0.12.1
 docutils==0.20.1
+emcee==3.1.4
 et-xmlfile==1.1.0
 fonttools==4.50.0
 idna==3.6
@@ -58,5 +59,4 @@ tqdm==4.66.2
 twine==5.0.0
 tzdata==2024.1
 urllib3==2.2.1
-zeus-mcmc==2.5.4
 zipp==3.18.1

@@ -31,13 +31,13 @@ def test_replay_bg():
     bw = 100
     scenario = 'multi-meal'
     save_name = 'multi-meal_fake'
-    n_steps = 10000
+    n_steps = 500000
     save_suffix = ''
     save_folder = os.path.abspath('')
 
     # Instantiate ReplayBG
     rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder, save_suffix=save_suffix,
-                   cgm_model='CGM', n_steps=n_steps, parallelize=False, save_workspace=False, analyze_results=False, verbose=False, plot_mode=False)
+                   cgm_model='CGM', n_steps=n_steps, parallelize=True, save_workspace=False, analyze_results=False, verbose=True, plot_mode=True)
 
     # Run it
     results = rbg.run(data=data, bw=bw, n_replay=1)

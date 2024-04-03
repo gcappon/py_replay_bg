@@ -5,7 +5,7 @@ from matplotlib import pylab
 
 
 import numpy as np
-import zeus
+import emcee
 
 from multiprocessing import Pool
 
@@ -143,30 +143,51 @@ class MCMC:
         start = self.model.start_guess + self.model.start_guess_sigma * np.random.randn(self.n_walkers, self.n_dim)
         start[start < 0] = 0
 
-        # Create the callbacks
-        cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=self.callback_ncheck)
-        cb1 = zeus.callbacks.SplitRCallback(ncheck=self.callback_ncheck)
-        cb2 = zeus.callbacks.MinIterCallback(nmin=100)
-
-
         # Initialize and run the sampler
         pool = None
         if rbg.environment.parallelize:
             pool = Pool(processes=rbg.environment.n_processes)
 
-        posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
-        sampler = zeus.EnsembleSampler(self.n_walkers, self.n_dim, posterior_func, args=[rbg_data],
-                                       verbose=rbg.environment.verbose, pool=pool, maxsteps=1000, moves=zeus.moves.GlobalMove())
-        if rbg.environment.plot_mode:
-            plot_callback = PlotCallBack(ncheck=self.callback_ncheck, ndim=self.n_dim, rbg=rbg, data=data)
-            sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2, plot_callback])
-            pylab.close()
-        else:
-            sampler.run_mcmc(start, self.n_steps, callbacks=[cb0, cb1, cb2])
-        sampler.summary  # Print summary diagnostics
+        log_posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
+        sampler = emcee.EnsembleSampler(self.n_walkers, self.n_dim, log_posterior_func, pool=pool, args=[rbg_data])
 
+        if rbg.environment.plot_mode:
+
+            first = True
+
+            if rbg.environment.verbose:
+                pbar = tqdm(total=self.n_steps)
+            for _ in range(int(np.ceil(self.n_steps/self.callback_ncheck))):
+                if first:
+                    sampler.run_mcmc(initial_state=start, nsteps=self.callback_ncheck)
+                    first = False
+                else:
+                    sampler.run_mcmc(initial_state=None, nsteps=self.callback_ncheck)
+                plot_progress(sampler, rbg, data)
+                pbar.update(self.callback_ncheck)
+            if rbg.environment.verbose:
+                pbar.close()
+            pylab.close()
+
+        else:
+            sampler.run_mcmc(start, self.n_steps, progress=rbg.environment.verbose)
+        #sampler.summary  # Print summary diagnostics
+
+        print(
+            "Mean acceptance fraction: {0:.3f}".format(
+                np.mean(sampler.acceptance_fraction)
+            )
+        )
+        print(
+            "Mean autocorrelation time: {0:.3f} steps".format(
+                np.mean(sampler.get_autocorr_time(quiet=True))
+            )
+        )
         # Get the chain
-        chain = sampler.get_chain(flat=True, thin=self.thin_factor, discard=0.5)
+        tau = sampler.get_autocorr_time(quiet=True)
+        burnin = int(2 * np.max(tau))
+        thin = int(0.5 * np.min(tau))
+        chain = sampler.get_chain(discard=burnin, flat=True, thin=thin)
 
         # Fit the copula
         univariate = Univariate(parametric=ParametricType.NON_PARAMETRIC)
@@ -218,7 +239,9 @@ class MCMC:
         if self.save_chains:
             identification_results['sampler'] = sampler
             identification_results['distributions'] = distributions
-            identification_results['R'] = cb1.estimates
+            identification_results['tau'] = tau
+            identification_results['thin'] = thin
+            identification_results['burnin'] = burnin
 
         with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'draws',
                                'draws_' + rbg.environment.save_name + '.pkl'), 'wb') as file:
@@ -561,76 +584,65 @@ class MCMC:
         return physiological_plausibility
 
 
-class PlotCallBack:
-    def __init__(self, ncheck=100, ndim=None, rbg=None, data=None):
-        self.ncheck = ncheck
-        self.ndim = ndim
-        self.rbg = rbg
-        self.data = data
+def plot_progress(sampler, rbg, data):
+    last_sample = sampler.get_chain(flat=True)[-1]
 
-    def __call__(self, iteration, chain, log_prob):
+    rbg_fake = copy.copy(rbg)
+    rbg_fake.model = copy.copy(rbg.model)
+    rbg_fake.environment = copy.copy(rbg.environment)
 
-        if iteration % self.ncheck == 0:
-            #flat_chain = chain.reshape((-1, self.ndim), order='F')
-            #last_sample=flat_chain[-1]
-            last_sample = chain[-1][-1]
+    # Set "fake" model core variable for simulation
+    rbg_fake.model.glucose_model = 'IG'
 
-            rbg_fake = copy.copy(self.rbg)
-            rbg_fake.model = copy.copy(self.rbg.model)
-            rbg_fake.environment = copy.copy(self.rbg.environment)
+    # Set "fake" environment core variable for simulation
+    rbg_fake.environment.modality = 'replay'
 
-            # Set "fake" model core variable for simulation
-            rbg_fake.model.glucose_model = 'IG'
+    # Set simulation data
+    rbg_data = ReplayBGData(data=data, rbg=rbg_fake)
 
-            # Set "fake" environment core variable for simulation
-            rbg_fake.environment.modality = 'replay'
+    # set the model parameters
+    for p in range(len(rbg_fake.model.unknown_parameters)):
+        setattr(rbg_fake.model.model_parameters, rbg_fake.model.unknown_parameters[p], last_sample[p])
+    rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            # Set simulation data
-            rbg_data = ReplayBGData(data=self.data, rbg=rbg_fake)
+    if rbg_fake.sensors.cgm.model == 'CGM':
+        rbg_fake.sensors.cgm.connect_new_cgm()
 
-            # set the model parameters
-            for p in range(len(rbg_fake.model.unknown_parameters)):
-                setattr(rbg_fake.model.model_parameters, rbg_fake.model.unknown_parameters[p], last_sample[p])
-            rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
+    g = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification',
+                                                         rbg=None)
+    pylab.close()
 
-            if rbg_fake.sensors.cgm.model == 'CGM':
-                rbg_fake.sensors.cgm.connect_new_cgm()
+    pylab.ion()  # Force interactive
 
-            g = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification',
-                                                                 rbg=None)
-            pylab.close()
+    fig, ax = pylab.subplots(3, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
 
-            pylab.ion()  # Force interactive
+    # Subplot 1: Glucose
+    ax[0].plot(data.t, data.glucose, marker='o', color='red', linewidth=2, label='Glucose (data) [mg/dl]')
+    ax[0].plot(data.t, g[0::rbg_fake.model.yts], marker='o', color='black', linewidth=2, label='Glucose (fit) [mg/dl]')
 
-            fig, ax = pylab.subplots(3, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1, 1]})
+    ax[0].fill_between(np.array([data.t.values[0], data.t.values[-1]]), np.array([70, 70]), np.array([180, 180]), color='green',
+                       alpha=0.2,
+                       label='Target range')
 
-            # Subplot 1: Glucose
-            ax[0].plot(self.data.t, self.data.glucose, marker='o', color='red', linewidth=2, label='Glucose (data) [mg/dl]')
-            ax[0].plot(self.data.t, g[0::rbg_fake.model.yts], marker='o', color='black', linewidth=2, label='Glucose (fit) [mg/dl]')
+    ax[0].grid()
+    ax[0].legend()
 
-            ax[0].fill_between(np.array([self.data.t.values[0], self.data.t.values[-1]]), np.array([70, 70]), np.array([180, 180]), color='green',
-                               alpha=0.2,
-                               label='Target range')
+    # Subplot 2: Meals
+    markerline, stemlines, baseline = ax[1].stem(data.t, data.cho * 5, basefmt='k:', label='CHO [g]')
+    plt.setp(stemlines, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
+    plt.setp(markerline, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
+    ax[1].grid()
+    ax[1].legend()
 
-            ax[0].grid()
-            ax[0].legend()
+    # Subplot 3: Insulin
+    markerline, stemlines, baseline = ax[2].stem(data.t, data.bolus * 5, basefmt='k:', label='Bolus insulin [U]')
+    plt.setp(stemlines, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
+    plt.setp(markerline, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
 
-            # Subplot 2: Meals
-            markerline, stemlines, baseline = ax[1].stem(self.data.t, self.data.cho * 5, basefmt='k:', label='CHO [g]')
-            plt.setp(stemlines, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
-            plt.setp(markerline, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
-            ax[1].grid()
-            ax[1].legend()
+    ax[2].plot(data.t, data.basal * 60, color='black', linewidth=2, label='Basal insulin [U/h]')
 
-            # Subplot 3: Insulin
-            markerline, stemlines, baseline = ax[2].stem(self.data.t, self.data.bolus * 5, basefmt='k:', label='Bolus insulin [U]')
-            plt.setp(stemlines, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
-            plt.setp(markerline, 'color', (50.0 / 255, 205.0 / 255, 50.0 / 255))
-
-            ax[2].plot(self.data.t, self.data.basal * 60, color='black', linewidth=2, label='Basal insulin [U/h]')
-
-            ax[2].grid()
-            ax[2].legend()
-            pylab.show()  # This does not bloc
-            pylab.pause(1)
+    ax[2].grid()
+    ax[2].legend()
+    pylab.show()  # This does not bloc
+    pylab.pause(1)
 
