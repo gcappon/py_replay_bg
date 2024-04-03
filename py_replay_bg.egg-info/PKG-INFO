@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: py_replay_bg
-Version: 0.0.10
+Version: 0.0.11
 Summary: ReplayBG is a digital twin-based methodology to assess new strategies for type 1 diabetes management.
 Author-email: Giacomo Cappon <cappongiacomo@gmail.com>
 Project-URL: Homepage, https://github.com/gcappon/py_replay_bg
@@ -21,6 +21,7 @@ Requires-Dist: copulas==0.10.1
 Requires-Dist: coverage==7.4.4
 Requires-Dist: cycler==0.12.1
 Requires-Dist: docutils==0.20.1
+Requires-Dist: emcee==3.1.4
 Requires-Dist: et-xmlfile==1.1.0
 Requires-Dist: fonttools==4.50.0
 Requires-Dist: idna==3.6
@@ -73,7 +74,6 @@ Requires-Dist: tqdm==4.66.2
 Requires-Dist: twine==5.0.0
 Requires-Dist: tzdata==2024.1
 Requires-Dist: urllib3==2.2.1
-Requires-Dist: zeus-mcmc==2.5.4
 Requires-Dist: zipp==3.18.1
 
 # PyReplayBG
