@@ -52,6 +52,18 @@ class ScenarioValidator:
     def validate(self):
         if not (self.scenario == 'single-meal' or self.scenario == 'multi-meal'):
             raise Exception("'scenario' input must be 'single-meal' or 'multi-meal'.")
+            
+class ScenarioBasalInsulinValidator:
+    """
+    Class for validating the 'basal_scenario' input parameter of ReplayBG.
+    """
+
+    def __init__(self, basal_scenario):
+        self.basal_scenario = basal_scenario
+
+    def validate(self):
+        if not (self.basal_scenario == 'over_basal' or self.scenario == 'with_basal'):
+            raise Exception("'basal_scenario' input must be 'over_basal' or 'with_basal'.")
 
 
 class ExerciseValidator:

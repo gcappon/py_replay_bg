@@ -56,7 +56,7 @@ class T1DModel:
         Function that checks if a copula extraction is valid or not.
     """
 
-    def __init__(self, data, bw, yts=5, glucose_model='IG', u2ss=None, is_single_meal=True, X0=None, exercise=False):
+    def __init__(self, data, bw, yts=5, glucose_model='IG', u2ss=None, is_single_meal=True, is_over_basal = True, X0=None, exercise=False):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -78,6 +78,9 @@ class T1DModel:
             A boolean indicating if the model includes the exercise.
         """
 
+        # Is the identification over insulin basal? (standard one)
+        self.is_over_basal = is_over_basal
+        
         # Is the model single meal?
         self.is_single_meal = is_single_meal
 
@@ -298,12 +301,19 @@ class T1DModel:
 
             # Shift the meal vector according to the delays
             meal_delayed = np.append(np.zeros(shape=(mp.beta.__trunc__(),)), meal)
+            
+            if self.is_over_basal:
+                # Get the initial conditions over_basal
+                k1 = mp.u2ss / mp.kd
+                k2 = mp.kd / mp.ka2 * k1
+                mp.Ipb = mp.ka2 / mp.ke * k2
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
+            
+            else:
+                # Get the initial conditions no insulin
+                mp.Ipb = 0
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, 0, mp.G0] if self.cold_boot else self.X0
 
-            # Get the initial conditions
-            k1 = mp.u2ss / mp.kd
-            k2 = mp.kd / mp.ka2 * k1
-            mp.Ipb = mp.ka2 / mp.ke * k2
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
 
             # Set the initial glucose value
             self.G[0] = self.x[self.nx - 1, 0] if self.glucose_model == 'IG' else self.x[0, 0]

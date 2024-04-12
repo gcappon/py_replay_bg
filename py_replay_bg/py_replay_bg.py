@@ -52,6 +52,7 @@ class ReplayBG:
 
     def __init__(self, modality, data, bw, scenario, save_name, save_folder,
                  u2ss=None,
+                 basal_scenario='over_basal',
                  yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
                  bolus_source='data', basal_source='data', cho_source='data',
                  cgm_model='CGM',
@@ -229,6 +230,7 @@ class ReplayBG:
                                                                                                      save_suffix=save_suffix,
                                                                                                      save_workspace=save_workspace,
                                                                                                      scenario=scenario,
+                                                                                                     basal_scenario=basal_scenario,
                                                                                                      yts=yts,
                                                                                                      glucose_model=glucose_model,
                                                                                                      pathology=pathology,
@@ -263,7 +265,7 @@ class ReplayBG:
 
         # ====================================================================
 
-    def __init_core_variables(self, data, bw, u2ss, modality, save_name, save_folder, save_suffix, scenario,
+    def __init_core_variables(self, data, bw, u2ss, modality, save_name, save_folder, save_suffix, scenario, basal_scenario,
                               yts, glucose_model, pathology, exercise, seed,
                               bolus_source, basal_source, cho_source,
                               cgm_model,
@@ -425,7 +427,7 @@ class ReplayBG:
 
         # Initialize model
         if pathology == 't1d':
-            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, is_single_meal=(scenario=='single-meal'), X0=X0, exercise=exercise)
+            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, is_single_meal=(scenario=='single-meal'), is_over_basal=(basal_scenario=='over_basal'), X0=X0, exercise=exercise)
 
         # Initialize sensors
         sensors = self.__init_sensors(cgm_model, model)
