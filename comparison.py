@@ -24,6 +24,7 @@ SGDistribution = identification_results['draws']['SG']['chain']
 SIDistribution = identification_results['draws']['SI']['chain']
 
 
+
 with open(os.path.join('results', 'draws','draws_test_single_meal_with_insulin' + '.pkl'), 'rb') as file:
     identification_results_with_basal = pickle.load(file)
     
@@ -37,28 +38,41 @@ SGDistribution_with_basal = identification_results_with_basal['draws']['SG']['ch
 SIDistribution_with_basal = identification_results_with_basal['draws']['SI']['chain']
 
 # Create subplots
-fig, axs = plt.subplots(4, 2, sharex = True, figsize=(12, 10))
+fig, axes = plt.subplots(4, 2,figsize=(15, 10))
 
-# Plot data on each subplot with legends
-sns.displot(betaDistribution, label='over_basal', ax=axs[0])
-sns.displot(betaDistribution_with_basal, label='with_basal', ax=axs[0])
-axs[0].legend()
+# beta
+sns.distplot(betaDistribution,ax = axes[0,0])
+sns.distplot(betaDistribution_with_basal,ax = axes[0,0]).set(xlabel='Beta')
 
-sns.displot(GbDistribution, label='over_basal', ax=axs[0, 1])
-sns.displot(GbDistribution_with_basal, label='with_basal', ax=axs[0, 1])
-axs[0, 1].legend()
+# Gb
+sns.distplot(GbDistribution,ax = axes[0,1])
+sns.distplot(GbDistribution_with_basal,ax = axes[0,1]).set(xlabel='Gb')
 
-sns.displot(kabsDistribution, label='over_basal', ax=axs[1, 0])
-sns.displot(kabsDistribution_with_basal, label='with_basal', ax=axs[1, 0])
-axs[1, 0].legend()
+# ka2
+sns.distplot(ka2Distribution,ax = axes[1,0])
+sns.distplot(ka2Distribution_with_basal,ax = axes[1,0]).set(xlabel='ka2')
 
-sns.displot(SIDistribution, label='over_basal', ax=axs[1, 1])
-sns.displot(SIDistribution_with_basal, label='with_basal', ax=axs[1, 1])
-axs[1, 1].legend()
+# kabs
+sns.distplot(kabsDistribution,ax = axes[1,1])
+sns.distplot(kabsDistribution_with_basal,ax = axes[1,1]).set(xlabel='kabs')
+
+# kempt
+sns.distplot(kemptDistribution,ax = axes[2,0])
+sns.distplot(kemptDistribution_with_basal,ax = axes[2,0]).set(xlabel='kempt')
+
+# kd
+sns.distplot(kdDistribution,ax = axes[2,1])
+sns.distplot(kdDistribution_with_basal,ax = axes[2,1]).set(xlabel='kd')
+
+# SG
+sns.distplot(SGDistribution,ax = axes[3,0])
+sns.distplot(GbDistribution_with_basal,ax = axes[3,0]).set(xlabel='SG')
+
+# SI
+sns.distplot(SIDistribution,ax = axes[3,1])
+sns.distplot(SIDistribution_with_basal,ax = axes[3,1]).set(xlabel='SI')
 
 
-# Adjust layout
+fig.legend(labels=['over basal','basal'])
 plt.tight_layout()
-
-# Show plot
 plt.show()
