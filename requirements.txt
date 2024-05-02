@@ -1,8 +1,9 @@
 build==1.2.1
+celerite==0.4.2
 certifi==2024.2.2
 charset-normalizer==3.3.2
 contourpy==1.2.0
-copulas==0.10.1
+corner==2.2.2
 coverage==7.4.4
 cycler==0.12.1
 docutils==0.20.1

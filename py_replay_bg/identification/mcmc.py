@@ -9,9 +9,6 @@ import emcee
 
 from multiprocessing import Pool
 
-from copulas.multivariate import GaussianMultivariate
-from copulas.univariate import ParametricType, Univariate
-
 import pickle
 
 import copy
@@ -23,6 +20,7 @@ from datetime import datetime, timedelta
 
 from tqdm import tqdm
 
+import corner
 
 class MCMC:
     """
@@ -39,8 +37,6 @@ class MCMC:
         Number of walkers to use.
     n_steps: int
         Number of steps to use for the main chain.
-    thin_factor: int
-        Chain thin factor to use.
     save_chains: bool
         A flag that specifies whether to save the resulting mcmc chains and copula samplers.
     callback_ncheck: int
@@ -53,9 +49,10 @@ class MCMC:
     """
 
     def __init__(self, model,
-                 n_steps=10000,
+                 n_steps=50000,
                  save_chains=False,
-                 callback_ncheck=1000):
+                 callback_ncheck=1000,
+                 n_burn_in=2000):
         """
         Constructs all the necessary attributes for the MCMC object.
 
@@ -93,20 +90,20 @@ class MCMC:
         # Number of unknown parameters to identify
         self.n_dim = len(self.model.unknown_parameters)
 
-        # Number of walkers to use. It should be at least twice the number of dimensions.
-        self.n_walkers = 2 * self.n_dim
+        # Number of walkers to use. It should be at least twice the number of dimensions (here 50 times).
+        self.n_walkers = 50 * self.n_dim
 
         # Number of steps to use for the main chain
         self.n_steps = n_steps
-
-        # Chain thin factor to use
-        self.thin_factor = int(np.ceil(n_steps / 1000))
 
         # Save the chains?
         self.save_chains = save_chains
 
         # Number of steps to be awaited before checking the callback functions
         self.callback_ncheck = callback_ncheck
+
+        # Number of burn_in steps
+        self.n_burn_in = n_burn_in
 
     def identify(self, data, rbg_data, rbg):
         """
@@ -143,56 +140,25 @@ class MCMC:
         start = self.model.start_guess + self.model.start_guess_sigma * np.random.randn(self.n_walkers, self.n_dim)
         start[start < 0] = 0
 
-        # Initialize and run the sampler
+        # Initialize the sampler
         pool = None
         if rbg.environment.parallelize:
             pool = Pool(processes=rbg.environment.n_processes)
 
         log_posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
-        sampler = emcee.EnsembleSampler(self.n_walkers, self.n_dim, log_posterior_func, pool=pool, args=[rbg_data])
+        sampler = emcee.EnsembleSampler(self.n_walkers, self.n_dim, log_posterior_func, moves=[(emcee.moves.DEMove(sigma=1.0e-3), 0.2), (emcee.moves.DESnookerMove(gammas=0.1), 0.8)], pool=pool, args=[rbg_data])
 
-        if rbg.environment.plot_mode:
+        # Run the burn-in chain
+        sampler, state = self.__run_chain(sampler=sampler, is_burn_in=True, state=start, data=data, rbg=rbg)
 
-            first = True
+        # Run production chain
+        sampler, state = self.__run_chain(sampler=sampler, is_burn_in=False, state=state, data=data, rbg=rbg)
 
-            if rbg.environment.verbose:
-                pbar = tqdm(total=self.n_steps)
-            for _ in range(int(np.ceil(self.n_steps/self.callback_ncheck))):
-                if first:
-                    sampler.run_mcmc(initial_state=start, nsteps=self.callback_ncheck)
-                    first = False
-                else:
-                    sampler.run_mcmc(initial_state=None, nsteps=self.callback_ncheck)
-                plot_progress(sampler, rbg, data)
-                pbar.update(self.callback_ncheck)
-            if rbg.environment.verbose:
-                pbar.close()
-            pylab.close()
-
-        else:
-            sampler.run_mcmc(start, self.n_steps, progress=rbg.environment.verbose)
-        #sampler.summary  # Print summary diagnostics
-
-        print(
-            "Mean acceptance fraction: {0:.3f}".format(
-                np.mean(sampler.acceptance_fraction)
-            )
-        )
-        print(
-            "Mean autocorrelation time: {0:.3f} steps".format(
-                np.mean(sampler.get_autocorr_time(quiet=True))
-            )
-        )
-        # Get the chain
+        # Extract the chain
         tau = sampler.get_autocorr_time(quiet=True)
-        burnin = int(2 * np.max(tau))
+        burnin = int(self.n_steps * 0.5)
         thin = int(0.5 * np.min(tau))
         chain = sampler.get_chain(discard=burnin, flat=True, thin=thin)
-
-        # Fit the copula
-        univariate = Univariate(parametric=ParametricType.NON_PARAMETRIC)
-        distributions = GaussianMultivariate(distribution=univariate)
-        distributions.fit(chain)
 
         # Get the draws to be used during replay
         draws = dict()
@@ -201,20 +167,24 @@ class MCMC:
             draws[rbg.model.unknown_parameters[up]]['samples_1000'] = np.empty(1000)
             draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
+        # Set the number of desired samples
         to_sample = 1000
+
+        # Extract samples from the chain (i.e., the posterior distribution)
         if rbg.environment.verbose:
-            print('Extracting samples from copula - ' + str(to_sample) + ' realizations')
+            print('Extracting samples from posterior - ' + str(to_sample) + ' realizations')
 
         to_be_sampled = [True] * to_sample
         while any(to_be_sampled):
 
-            #Get the idxs of the missing samples
+            # Get the idxs of the missing samples
             tbs = np.where(to_be_sampled)[0]
 
-            #Get the new samples
-            samples = distributions.sample(len(tbs)).to_numpy()
+            # Get the new samples
+            draw = np.floor(np.random.uniform(0, len(chain), size=len(tbs))).astype(int)
+            samples = chain[draw]
 
-            #For each sample...
+            # For each sample...
             for i in range(0, len(tbs)):
 
                 #...check if it is ok. If so...
@@ -231,14 +201,13 @@ class MCMC:
         # Check physiological plausibility
         draws['physiological_plausibility'] = self.__check_physiological_plausibility(draws, data, rbg)
 
-        # save results
+        # Save results
         identification_results = dict()
         identification_results['draws'] = draws
 
-        # Attach also chains and copula sampler if needed
+        # Attach also chain if needed
         if self.save_chains:
             identification_results['sampler'] = sampler
-            identification_results['distributions'] = distributions
             identification_results['tau'] = tau
             identification_results['thin'] = thin
             identification_results['burnin'] = burnin
@@ -248,6 +217,74 @@ class MCMC:
             pickle.dump(identification_results, file)
 
         return draws
+
+    def __run_chain(self, sampler, is_burn_in, state, data, rbg):
+        """
+        Utility function to run MCMC sampling
+        """
+
+        # If is the burn-in run...
+        if is_burn_in:
+            message =  " - Running burn-in chain..."
+            n = self.n_burn_in
+
+        # If is the production run...
+        else:
+            message = " - Running production chain..."
+            n = self.n_steps
+
+            # Also remember to reset the sampler
+            sampler.reset()
+
+        if rbg.environment.plot_mode:
+            first = True
+
+            if rbg.environment.verbose:
+                print(message)
+                pbar = tqdm(total=n)
+
+            for _ in range(int(np.ceil(n / self.callback_ncheck))):
+
+                if first:
+                    state = sampler.run_mcmc(initial_state=state, nsteps=self.callback_ncheck, skip_initial_state_check=True)
+                    first = False
+
+                else:
+                    state = sampler.run_mcmc(initial_state=None, nsteps=self.callback_ncheck, skip_initial_state_check=True)
+
+                plot_progress(sampler, rbg, data)
+
+                if rbg.environment.verbose:
+                    pbar.update(self.callback_ncheck)
+
+            pylab.close()
+
+            if rbg.environment.verbose:
+                pbar.close()
+
+        else:
+
+            if rbg.environment.verbose:
+                print(message)
+
+            state = sampler.run_mcmc(state, n, progress=rbg.environment.verbose, skip_initial_state_check=True)
+
+        if rbg.environment.verbose:
+
+            acceptance_rate = np.mean(sampler.acceptance_fraction)
+            print(
+                "    - Mean acceptance fraction: {0:.3f}".format(
+                    acceptance_rate
+                )
+            )
+            print(
+                "    - Mean autocorrelation time: {0:.3f} steps".format(
+                    np.mean(sampler.get_autocorr_time(quiet=True))
+                )
+            )
+
+        # Return results
+        return sampler, state
 
     def __subsample(self, draws, data, rbg):
         """

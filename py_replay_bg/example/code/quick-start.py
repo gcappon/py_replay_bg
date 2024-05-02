@@ -11,7 +11,7 @@ modality = 'identification' # set modality as 'identification'
 bw = 100 # set the patient body weight
 scenario = 'multi-meal' # set the type of scenario corresponding to the data at hand (can be single-meal or multi-meal)
 save_name = 'test_multi_meal' # set a save name
-n_steps = 2500 # set the number of steps that will be used for identification (for multi-meal it should be at least 100k)
+n_steps = 2500 # set the number of steps that will be used for identification (for multi-meal it should be at least 50k)
 save_folder = os.path.abspath('') # set the results folder to the current folder
 
 # Instantiate ReplayBG

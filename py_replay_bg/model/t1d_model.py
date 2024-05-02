@@ -499,7 +499,8 @@ class T1DModel:
                 # Integration step
                 self.x[:, k] = model_step_equations_single_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1], meal_delayed[k - 1], rbg_data.t_hour[k - 1],
                                                                 self.x[:, k - 1], self.B, mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI,
-                                                                mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal else model_step_equations_multi_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1],
+                                                                mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal \
+                    else model_step_equations_multi_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1],
                                                                 meal_B_delayed[k - 1], meal_L_delayed[k - 1], meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1], rbg_data.t_hour[k - 1], self.x[:, k - 1], self.B,
                                                                 mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI_B, mp.SI_L, mp.SI_D, mp.VI,
                                                                 mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs_B, mp.kabs_L, mp.kabs_D,
@@ -521,7 +522,8 @@ class T1DModel:
 
             # Run simulation
             self.x = identify_single_meal(self.tsteps, self.x, self.A, self.B, bolus_delayed, basal_delayed,meal_delayed, rbg_data.t_hour,
-                        mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI, mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal else identify_multi_meal(self.tsteps, self.x, self.A, self.B, bolus_delayed, basal_delayed,
+                        mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI, mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal \
+                else identify_multi_meal(self.tsteps, self.x, self.A, self.B, bolus_delayed, basal_delayed,
                                                            meal_B_delayed, meal_L_delayed,
                                                            meal_D_delayed, meal_S_delayed, meal_H,
                                                            rbg_data.t_hour, mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI_B, mp.SI_L,
