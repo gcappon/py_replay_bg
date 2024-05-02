@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py_replay_bg"
-version = "0.0.12"
+version = "0.0.13"
 authors = [
   { name="Giacomo Cappon", email="cappongiacomo@gmail.com" },
 ]

@@ -52,7 +52,7 @@ class MCMC:
                  n_steps=50000,
                  save_chains=False,
                  callback_ncheck=1000,
-                 n_burn_in=2000):
+                 n_burn_in=10000):
         """
         Constructs all the necessary attributes for the MCMC object.
 
