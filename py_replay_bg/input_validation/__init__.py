@@ -1,5 +1,6 @@
 import pandas as pd
 
+from py_replay_bg.sensors import CGM
 
 class ModalityValidator:
     """
@@ -284,6 +285,20 @@ class X0Validator:
         if self.X0 is not None:
             if not isinstance(self.X0, list):
                 raise Exception("'X0' input must be None or a list.'")
+
+
+class PreviousDataNameValidator:
+    """
+    Class for validating the 'previous_data_name' input parameter of ReplayBG.
+    """
+
+    def __init__(self, previous_data_name):
+        self.previous_data_name = previous_data_name
+
+    def validate(self):
+        if self.previous_data_name is not None:
+            if not isinstance(self.previous_data_name, str):
+                raise Exception("'previous_data_name' input must be a string.'")
 
 
 class NStepsValidator:
@@ -579,6 +594,7 @@ class InputValidator:
                  bolus_source, basal_source, cho_source,
                  cgm_model,
                  X0,
+                 previous_data_name,
                  n_steps, save_chains, analyze_results,
                  CR, CF, GT,
                  meal_generator_handler, meal_generator_handler_params,
@@ -608,6 +624,7 @@ class InputValidator:
         self.cgm_model = cgm_model
 
         self.X0 = X0
+        self.previous_data_name = previous_data_name
 
         self.n_steps = n_steps
         self.save_chains = save_chains
@@ -688,6 +705,9 @@ class InputValidator:
 
         # Validate the 'X0' input
         X0Validator(X0=self.X0).validate()
+
+        # Validate the 'previous_data_name' input
+        PreviousDataNameValidator(previous_data_name=self.previous_data_name).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()

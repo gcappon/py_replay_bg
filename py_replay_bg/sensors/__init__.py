@@ -40,6 +40,9 @@ class CGM:
     model: string, {'CGM','IG'}
         A string that specifies the cgm model selection.
         If IG is selected, CGM measure will be the noise-free IG state at the current time.
+    t_offset: double
+        The time offset of the cgm sensor (when new this is 0). This is used if a cgm sensor is shared between more
+        replay runs.
     cgm_error_parameters: array
         An array containing the parameters of the CGM.
     output_noise_SD: float
@@ -67,6 +70,7 @@ class CGM:
         """
         self.ts = ts
         self.model = model
+        self.t_offset = 0
 
         if self.model == 'CGM':
             self.connect_new_cgm()
@@ -166,6 +170,9 @@ class CGM:
         self.ekm1 = 0
         self.ekm2 = 0
 
+        # Set the offset
+        self.t_offset = 0
+
     def measure(self, IG, t):
         """
         Function that provides a CGM measure using the model of Vettoretti et al., Sensors, 2019.
@@ -200,8 +207,8 @@ class CGM:
             return IG
 
         # Apply calibration error
-        IGs = (self.cgm_error_parameters[0] + self.cgm_error_parameters[1] * t + self.cgm_error_parameters[
-            2] * (t ** 2)) * IG + self.cgm_error_parameters[3]
+        IGs = (self.cgm_error_parameters[0] + self.cgm_error_parameters[1] * (t + self.t_offset) + self.cgm_error_parameters[
+            2] * ((t + self.t_offset) ** 2)) * IG + self.cgm_error_parameters[3]
 
         # Generate noise
         z = np.random.normal(0, 1)
@@ -214,3 +221,6 @@ class CGM:
 
         # Get final CGM
         return IGs + e
+
+    def add_offset(self, to_add):
+        self.t_offset += to_add

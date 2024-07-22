@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+import os
+import pickle
+
 from datetime import datetime
 
 import copy
@@ -56,7 +59,7 @@ class T1DModel:
         Function that checks if a copula extraction is valid or not.
     """
 
-    def __init__(self, data, bw, yts=5, glucose_model='IG', u2ss=None, is_single_meal=True, X0=None, exercise=False):
+    def __init__(self, data, bw, yts=5, glucose_model='IG', u2ss=None, is_single_meal=True, X0=None, previous_data_name=None, exercise=False, environment=None):
         """
         Constructs all the necessary attributes for the Model object.
 
@@ -225,10 +228,105 @@ class T1DModel:
         self.A = np.empty([self.nx - 3, self.nx - 3])
         self.B = np.empty([self.nx - 3, ])
 
-        self.X0 = X0
-        self.cold_boot = True if self.X0 is None else False
+        # If previous_data_name is not None load previous_day_draws otherwise set it to None
+        self.previous_data_name = previous_data_name
+        self.previous_day_draws = None
+        if not self.previous_data_name is None:
+            with open(os.path.join(environment.replay_bg_path, 'results', 'draws',
+                                   'draws_' + previous_data_name + '.pkl'), 'rb') as file:
+                previous_day_identification_results = pickle.load(file)
+            self.previous_day_draws = previous_day_identification_results['draws']
 
-    def simulate(self, rbg_data, modality, rbg):
+        # Set initial conditions
+        self.X0 = X0
+
+        # IMPORTANT: manage the "remaining" rate of appearance due to meals in the previous portion of data.
+        #   The rationale is to compute the Ra signal according to the "free" evolution of the meal system using X0 as
+        #   starting point. The such Ra will represent a forcing input to the plasma glucose compartment during the
+        #   simulation.
+
+        # Create the "remaining" rate of appearance input of the previous day
+        self.previous_Ra = np.zeros([self.tsteps, ])
+        if not self.previous_data_name is None:
+            if self.is_single_meal:
+                # Get the initial values of the meal submodel
+                xk = self.X0[2:5]
+                # Set model parameter values
+                kgri = self.previous_day_draws['kempt']['samples_1'][0]
+                kempt = self.previous_day_draws['kempt']['samples_1'][0]
+                kabs = self.previous_day_draws['kabs']['samples_1'][0]
+                # Compute the Ra forcing input
+                for k in range(self.tsteps):
+                    xk[0] = xk[0] / (1 + self.ts * kgri)
+                    xk[1] = (xk[1] + self.ts * kgri * xk[0]) / (1 + self.ts * kempt)
+                    xk[2] = (xk[2] + self.ts * kempt * xk[1]) / (1 + self.ts * kabs)
+                    self.previous_Ra[k] = self.model_parameters.f * kabs * xk[2]
+
+            else:
+                # Get the initial values of the meal submodel
+                xk = self.X0[2:17]
+
+                # Set model parameter values (if some parameters were not identified, set them to the population value.
+                kgri = self.previous_day_draws['kempt']['samples_1'][0]
+                kempt = self.previous_day_draws['kempt']['samples_1'][0]
+                if "kabs_B" in self.previous_day_draws:
+                    kabs_B = self.previous_day_draws['kabs_B']['samples_1'][0]
+                else:
+                    kabs_B = self.model_parameters.kabs_B
+                kabs_L = self.previous_day_draws['kabs_L']['samples_1'][0]
+                if "kabs_L" in self.previous_day_draws:
+                    kabs_L = self.previous_day_draws['kabs_L']['samples_1'][0]
+                else:
+                    kabs_L = self.model_parameters.kabs_L
+                kabs_D = self.previous_day_draws['kabs_D']['samples_1'][0]
+                if "kabs_D" in self.previous_day_draws:
+                    kabs_D = self.previous_day_draws['kabs_D']['samples_1'][0]
+                else:
+                    kabs_D = self.model_parameters.kabs_D
+                kabs_S = self.previous_day_draws['kabs_S']['samples_1'][0]
+                if "kabs_S" in self.previous_day_draws:
+                    kabs_S = self.previous_day_draws['kabs_S']['samples_1'][0]
+                else:
+                    kabs_S = self.model_parameters.kabs_S
+                if "kabs_H" in self.previous_day_draws:
+                    kabs_H = self.previous_day_draws['kabs_H']['samples_1'][0]
+                else:
+                    kabs_H = self.model_parameters.kabs_H
+
+                # Compute the Ra forcing input
+                for k in range(self.tsteps):
+                    xk[0] = xk[0] / (1 + self.ts * kgri)
+                    xk[1] = (xk[1] + self.ts * kgri * xk[0]) / (1 + self.ts * kempt)
+                    xk[2] = (xk[2] + self.ts * kempt * xk[1]) / (1 + self.ts * kabs_B)
+
+                    xk[3] = xk[3] / (1 + self.ts * kgri)
+                    xk[4] = (xk[4] + self.ts * kgri * xk[3]) / (1 + self.ts * kempt)
+                    xk[5] = (xk[5] + self.ts * kempt * xk[4]) / (1 + self.ts * kabs_L)
+
+                    xk[6] = xk[6] / (1 + self.ts * kgri)
+                    xk[7] = (xk[7] + self.ts * kgri * xk[6]) / (1 + self.ts * kempt)
+                    xk[8] = (xk[8] + self.ts * kempt * xk[7]) / (1 + self.ts * kabs_D)
+
+                    xk[9] = xk[9] / (1 + self.ts * kgri)
+                    xk[10] = (xk[10] + self.ts * kgri * xk[9]) / (1 + self.ts * kempt)
+                    xk[11] = (xk[11] + self.ts * kempt * xk[10]) / (1 + self.ts * kabs_S)
+
+                    xk[12] = xk[12] / (1 + self.ts * kgri)
+                    xk[13] = (xk[13] + self.ts * kgri * xk[12]) / (1 + self.ts * kempt)
+                    xk[14] = (xk[14] + self.ts * kempt * xk[13]) / (1 + self.ts * kabs_H)
+
+                    self.previous_Ra[k] = self.model_parameters.f * (
+                            kabs_B * xk[2] + kabs_L * xk[5] + kabs_D * xk[8] + kabs_S * xk[11] + kabs_H * xk[
+                        14])
+
+        # Set to 0 the initial conditions of meal-related compartments
+        if self.X0 is not None:
+            if self.is_single_meal:
+                self.X0[2:5] = [0, 0, 0]
+            else:
+                self.X0[2:17] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    def simulate(self, rbg_data, modality, rbg, sensors=None):
         """
         Function that simulates the model and returns the obtained results. This is the complete version suitable for
         replay.
@@ -303,7 +401,7 @@ class T1DModel:
             k1 = mp.u2ss / mp.kd
             k2 = mp.kd / mp.ka2 * k1
             mp.Ipb = mp.ka2 / mp.ke * k2
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
+            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.X0 is None else self.X0
 
             # Set the initial glucose value
             self.G[0] = self.x[self.nx - 1, 0] if self.glucose_model == 'IG' else self.x[0, 0]
@@ -336,7 +434,30 @@ class T1DModel:
             k1 = mp.u2ss / mp.kd
             k2 = mp.kd / mp.ka2 * k1
             mp.Ipb = mp.ka2 / mp.ke * k2
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0] if self.cold_boot else self.X0
+
+            # If initial model conditions are None, set the default initial conditions, i.e., steady-state
+            if self.X0 is None:
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+            # otherwise, set the initial model condition appropriately.
+            else:
+                # IMPORTANT: Scale the initial conditions of the insulin compartment to avoid "fake meal/bolus" effects
+
+                # First, compute the k1, k2, and Ipb, macro parameters, using the model parameters associated to the current portion of data
+                k1 = mp.u2ss / mp.kd
+                k2 = mp.kd / mp.ka2 * k1
+                mp.Ipb = mp.ka2 / mp.ke * k2
+
+                # Second, do the same thing, but using the model parameters of the previous portion of data (i.e., the one that "generated" the provided X0)
+                k1_old = mp.u2ss / self.previous_day_draws['kd']['samples_1'][0]
+                k2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][0] * k1_old
+                Ipb_old = self.previous_day_draws['ka2']['samples_1'][0] / mp.ke * k2_old
+
+                # Scale as --> initial_old:initial_new = k1old:k1new
+                self.x[:, 0] = self.X0
+                self.x[17,0] = k1 * self.x[17,0] / k1_old
+                self.x[18, 0] = k2 * self.x[18, 0] / k2_old
+                self.x[19, 0] = mp.Ipb * self.x[19, 0] / Ipb_old # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
+
 
             # Set the initial glucose value
             self.G[0] = self.x[self.nx - 1, 0] if self.glucose_model == 'IG' else self.x[0, 0]
@@ -386,10 +507,10 @@ class T1DModel:
         if is_replay:
 
             # Set the initial cgm value if modality is 'replay' and make copies of meal vectors
-            if rbg.sensors.cgm.model == 'IG':
+            if sensors.cgm.model == 'IG':
                 self.CGM[0] = self.x[self.nx - 1, 0]  # y(k) = IG(k)
-            elif rbg.sensors.cgm.model == 'CGM':
-                self.CGM[0] = rbg.sensors.cgm.measure(self.x[self.nx - 1, 0], 0)
+            elif sensors.cgm.model == 'CGM':
+                self.CGM[0] = sensors.cgm.measure(self.x[self.nx - 1, 0], 0)
 
             if not self.is_single_meal:
                 meal_B = rbg_data.meal_B * 1
@@ -499,21 +620,21 @@ class T1DModel:
                 # Integration step
                 self.x[:, k] = model_step_equations_single_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1], meal_delayed[k - 1], rbg_data.t_hour[k - 1],
                                                                 self.x[:, k - 1], self.B, mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI,
-                                                                mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal \
+                                                                mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha, self.previous_Ra[k-1]) if self.is_single_meal \
                     else model_step_equations_multi_meal(self.A, bolus_delayed[k - 1] + basal_delayed[k - 1],
                                                                 meal_B_delayed[k - 1], meal_L_delayed[k - 1], meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1], rbg_data.t_hour[k - 1], self.x[:, k - 1], self.B,
                                                                 mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI_B, mp.SI_L, mp.SI_D, mp.VI,
                                                                 mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs_B, mp.kabs_L, mp.kabs_D,
-                                                                mp.kabs_S, mp.kabs_H, mp.alpha)
+                                                                mp.kabs_S, mp.kabs_H, mp.alpha, self.previous_Ra[k-1])
 
                 self.G[k] = self.x[self.nx - 1, k] if self.glucose_model == 'IG' else self.x[0, k]
 
                 # Get the cgm
-                if np.mod(k, rbg.sensors.cgm.ts) == 0:
-                    if rbg.sensors.cgm.model == 'IG':
-                        self.CGM[int(k / rbg.sensors.cgm.ts)] = self.x[self.nx-1, k]  # y(k) = IG(k)
-                    if rbg.sensors.cgm.model == 'CGM':
-                        self.CGM[int(k / rbg.sensors.cgm.ts)] = rbg.sensors.cgm.measure(self.x[self.nx - 1, k], k / (24 * 60))
+                if np.mod(k, sensors.cgm.ts) == 0:
+                    if sensors.cgm.model == 'IG':
+                        self.CGM[int(k / sensors.cgm.ts)] = self.x[self.nx-1, k]  # y(k) = IG(k)
+                    if sensors.cgm.model == 'CGM':
+                        self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k], k / (24 * 60))
 
             # TODO: add vo2
             return self.x[0, :].copy(), self.x[:, -1].copy(), self.CGM.copy(), bolus * mp.to_g, correction_bolus, basal * mp.to_g, meal * mp.to_g, hypotreatments, meal_announcement, self.x.copy()
@@ -522,13 +643,13 @@ class T1DModel:
 
             # Run simulation
             self.x = identify_single_meal(self.tsteps, self.x, self.A, self.B, bolus_delayed, basal_delayed,meal_delayed, rbg_data.t_hour,
-                        mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI, mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha) if self.is_single_meal \
+                        mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI, mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs, mp.alpha, self.previous_Ra) if self.is_single_meal \
                 else identify_multi_meal(self.tsteps, self.x, self.A, self.B, bolus_delayed, basal_delayed,
                                                            meal_B_delayed, meal_L_delayed,
                                                            meal_D_delayed, meal_S_delayed, meal_H,
                                                            rbg_data.t_hour, mp.r1, mp.r2, mp.kgri, mp.kd, mp.p2, mp.SI_B, mp.SI_L,
                                                            mp.SI_D, mp.VI, mp.VG, mp.Ipb, mp.SG, mp.Gb, mp.f, mp.kabs_B, mp.kabs_L,
-                                                           mp.kabs_D, mp.kabs_S, mp.kabs_H, mp.alpha)
+                                                           mp.kabs_D, mp.kabs_S, mp.kabs_H, mp.alpha, self.previous_Ra)
 
             #Return just the glucose vector if modality == 'identification'
             return self.x[self.nx - 1, :] if self.glucose_model == 'IG' else self.x[0, :]
@@ -856,7 +977,7 @@ class ModelParameters:
         # Measurement noise specifics
         self.SDn = 5
 
-        # Initial conditions
+        # Glucose starting point
         if 'glucose' in data:
             idx = np.where(data.glucose.isnull().values == False)[0][0]
             self.G0 = data.glucose[idx]
@@ -866,8 +987,10 @@ class ModelParameters:
 
 @njit
 def identify_single_meal(tsteps, x, A, B,
-                       bolus_delayed, basal_delayed, meal_delayed, t_hour,
-                       r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb, f, kabs, alpha):
+                        bolus_delayed, basal_delayed,
+                        meal_delayed, t_hour,
+                        r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
+                        f, kabs, alpha, previous_Ra):
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -875,11 +998,13 @@ def identify_single_meal(tsteps, x, A, B,
                                                                meal_delayed[k - 1], t_hour[k - 1],
                                                                x[:, k - 1], B,
                                                                r1, r2, kgri, kd, p2, SI, VI,
-                                                               VG, Ipb, SG, Gb, f, kabs, alpha)
+                                                               VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k-1])
     return x
 
 @njit
-def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B, r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb, f, kabs, alpha):
+def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
+                                     r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
+                                     f, kabs, alpha, previous_Ra):
         """
         Internal function that simulates a step of the model using backward-euler method.
 
@@ -962,20 +1087,17 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B, r1, r2
         xk[2:8] = A @ C + B
 
         xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-        xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
         xk[8] = (xkm1[8] + alpha * xk[0]) / (1 + alpha)
 
         return xk
 
 @njit
-def identify_multi_meal(tsteps, x, A, B, bolus_delayed, basal_delayed,
-                                                       meal_B_delayed, meal_L_delayed,
-                                                       meal_D_delayed, meal_S_delayed, meal_H,
-                                                       t_hour, r1, r2, kgri, kd, p2, SI_B, SI_L,
-                                                       SI_D, VI,
-                                                       VG, Ipb, SG, Gb, f, kabs_B, kabs_L,
-                                                       kabs_D,
-                                                       kabs_S, kabs_H, alpha):
+def identify_multi_meal(tsteps, x, A, B,
+                        bolus_delayed, basal_delayed,
+                        meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
+                        r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
+                        f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -987,12 +1109,12 @@ def identify_multi_meal(tsteps, x, A, B, bolus_delayed, basal_delayed,
                                                        SI_D, VI,
                                                        VG, Ipb, SG, Gb, f, kabs_B, kabs_L,
                                                        kabs_D,
-                                                       kabs_S, kabs_H, alpha)
+                                                       kabs_S, kabs_H, alpha, previous_Ra[k-1])
     return x
 @njit
-def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1, B, r1, r2, kgri,
-                                      kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb, f, kabs_B, kabs_L, kabs_D, kabs_S,
-                                      kabs_H, alpha):
+def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1, B,
+                                    r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
+                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
     """
     Internal function that simulates a step of the model using backward-euler method.
 
@@ -1112,7 +1234,7 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        17]) / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        17]) / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
     xk[20] = (xkm1[20] + alpha * xk[0]) / (1 + alpha)
 
     return xk

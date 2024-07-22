@@ -165,7 +165,8 @@ class MCMC:
         for up in range(len(rbg.model.unknown_parameters)):
             draws[rbg.model.unknown_parameters[up]] = dict()
             draws[rbg.model.unknown_parameters[up]]['samples_1000'] = np.empty(1000)
-            draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
+            if self.save_chains:
+                draws[rbg.model.unknown_parameters[up]]['chain'] = chain[:, up]
 
         # Set the number of desired samples
         to_sample = 1000
