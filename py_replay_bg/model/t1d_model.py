@@ -273,17 +273,14 @@ class T1DModel:
                     kabs_B = self.previous_day_draws['kabs_B']['samples_1'][0]
                 else:
                     kabs_B = self.model_parameters.kabs_B
-                kabs_L = self.previous_day_draws['kabs_L']['samples_1'][0]
                 if "kabs_L" in self.previous_day_draws:
                     kabs_L = self.previous_day_draws['kabs_L']['samples_1'][0]
                 else:
                     kabs_L = self.model_parameters.kabs_L
-                kabs_D = self.previous_day_draws['kabs_D']['samples_1'][0]
                 if "kabs_D" in self.previous_day_draws:
                     kabs_D = self.previous_day_draws['kabs_D']['samples_1'][0]
                 else:
                     kabs_D = self.model_parameters.kabs_D
-                kabs_S = self.previous_day_draws['kabs_S']['samples_1'][0]
                 if "kabs_S" in self.previous_day_draws:
                     kabs_S = self.previous_day_draws['kabs_S']['samples_1'][0]
                 else:
