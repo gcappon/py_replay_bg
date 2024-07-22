@@ -354,8 +354,8 @@ class MCMC:
                 setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            if rbg_fake.sensors.cgm.model == 'CGM':
-                rbg_fake.sensors.cgm.connect_new_cgm()
+            # if rbg_fake.environment.cgm_model == 'CGM':
+            #     rbg_fake.sensors.cgm.connect_new_cgm()
 
             glucose['realizations'][r] = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification', rbg=None)
 
@@ -479,8 +479,8 @@ class MCMC:
                 setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            if (rbg_fake.sensors.cgm.model == 'CGM'):
-                rbg_fake.sensors.cgm.connect_new_cgm()
+            # if rbg_fake.environment.cgm_model == 'CGM':
+            #     rbg_fake.sensors.cgm.connect_new_cgm()
 
             g = rbg_fake.model.simulate(rbg_data=rbg_data_fake, modality='identification', rbg=None)
 
@@ -518,8 +518,8 @@ class MCMC:
                 setattr(rbg_fake.model.model_parameters, p, draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            if (rbg_fake.sensors.cgm.model == 'CGM'):
-                rbg_fake.sensors.cgm.connect_new_cgm()
+            # if rbg_fake.environment.cgm_model == 'CGM':
+            #     rbg_fake.sensors.cgm.connect_new_cgm()
 
             g = rbg_fake.model.simulate(rbg_data=rbg_data_fake, modality='identification', rbg=None)
 
@@ -551,8 +551,8 @@ class MCMC:
                 setattr(rbg_fake.model.model_parameters, p, draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            if (rbg_fake.sensors.cgm.model == 'CGM'):
-                rbg_fake.sensors.cgm.connect_new_cgm()
+            # if rbg_fake.environment.cgm_model == 'CGM':
+            #     rbg_fake.sensors.cgm.connect_new_cgm()
 
             converged = False
             check = 0
@@ -600,8 +600,8 @@ class MCMC:
                 setattr(rbg_fake.model.model_parameters,p,draws[p]['samples_1000'][r])
             rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-            if (rbg_fake.sensors.cgm.model == 'CGM'):
-                rbg_fake.sensors.cgm.connect_new_cgm()
+            # if rbg_fake.environment.cgm_model == 'CGM':
+            #     rbg_fake.sensors.cgm.connect_new_cgm()
 
             g = rbg_fake.model.simulate(rbg_data=rbg_data_fake, modality='identification', rbg=None)
 
@@ -643,8 +643,8 @@ def plot_progress(sampler, rbg, data):
         setattr(rbg_fake.model.model_parameters, rbg_fake.model.unknown_parameters[p], last_sample[p])
     rbg_fake.model.model_parameters.kgri = rbg_fake.model.model_parameters.kempt
 
-    if rbg_fake.sensors.cgm.model == 'CGM':
-        rbg_fake.sensors.cgm.connect_new_cgm()
+    # if rbg_fake.environment.cgm_model == 'CGM':
+    #     rbg_fake.sensors.cgm.connect_new_cgm()
 
     g = rbg_fake.model.simulate(rbg_data=rbg_data, modality='identification',
                                                          rbg=None)

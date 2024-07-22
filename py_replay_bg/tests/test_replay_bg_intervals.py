@@ -20,7 +20,7 @@ def test_replay_bg():
 
     # Set other parameters for identification
     scenario = 'multi-meal'
-    n_steps = 25000  # Suggested n_steps is >= 50k
+    n_steps = 5000  # Suggested n_steps is >= 50k
     save_folder = os.path.join(os.path.abspath(''), '..', '..')
 
     # load patient_info

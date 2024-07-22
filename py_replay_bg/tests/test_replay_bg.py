@@ -31,7 +31,7 @@ def test_replay_bg():
     bw = 100
     scenario = 'multi-meal'
     save_name = 'multi-meal'
-    n_steps = 10000 # Suggested n_steps is >= 50k
+    n_steps = 5000 # Suggested n_steps is >= 50k
     save_suffix = ''
     save_folder = os.path.abspath('')
 

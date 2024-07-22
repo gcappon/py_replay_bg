@@ -22,8 +22,8 @@ py_replay_bg/model/t1d_model.py
 py_replay_bg/replay/__init__.py
 py_replay_bg/sensors/__init__.py
 py_replay_bg/tests/__init__.py
-py_replay_bg/tests/asd_test_replay_bg.py
 py_replay_bg/tests/test_plot_replay_bg_intervals.py
+py_replay_bg/tests/test_replay_bg.py
 py_replay_bg/tests/test_replay_bg_intervals.py
 py_replay_bg/utils/__init__.py
 py_replay_bg/utils/stats.py
