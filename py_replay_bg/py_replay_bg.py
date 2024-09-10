@@ -47,7 +47,7 @@ class ReplayBG:
         Runs ReplayBG.
     """
 
-    def __init__(self, modality, data, bw, scenario, save_name, save_folder,
+    def __init__(self, modality: str, data: pd.DataFrame, bw: float, scenario: str, save_name: str, save_folder: str,
 
                  u2ss=None, X0=None, previous_data_name=None,
 
@@ -82,14 +82,14 @@ class ReplayBG:
             the given data.
         data: pd.DataFrame
             Pandas dataframe which contains the data to be used by the tool.
-        bw: double
+        bw: float
             The patient's body weight.
-
         scenario: str, {'single-meal', 'multi-meal'}
             A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
         save_name : str
             A string used to label, thus identify, each output file and result.
         save_folder : str
+            A string defining the folder that will contain the results.
 
         u2ss : double, optional, default : None
             The steady state of the basal insulin infusion.
