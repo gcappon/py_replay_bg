@@ -301,6 +301,19 @@ class PreviousDataNameValidator:
                 raise Exception("'previous_data_name' input must be a string.'")
 
 
+class IdentificationMethodValidator:
+    """
+    Class for validating the 'identification_method' input parameter of ReplayBG.
+    """
+
+    def __init__(self, identification_method):
+        self.identification_method = identification_method
+
+    def validate(self):
+        if not (self.identification_method == 'mcmc' or self.identification_method == 'map'):
+            raise Exception("'cgm_model' input must be 'mcmc' or 'map'.")
+
+
 class NStepsValidator:
     """
     Class for validating the 'n_steps' input parameter of ReplayBG.
@@ -595,6 +608,7 @@ class InputValidator:
                  cgm_model,
                  X0,
                  previous_data_name,
+                 identification_method,
                  n_steps, save_chains, analyze_results,
                  CR, CF, GT,
                  meal_generator_handler, meal_generator_handler_params,
@@ -625,6 +639,8 @@ class InputValidator:
 
         self.X0 = X0
         self.previous_data_name = previous_data_name
+
+        self.identification_method = identification_method
 
         self.n_steps = n_steps
         self.save_chains = save_chains
@@ -708,6 +724,9 @@ class InputValidator:
 
         # Validate the 'previous_data_name' input
         PreviousDataNameValidator(previous_data_name=self.previous_data_name).validate()
+
+        # Validate the 'identification_method' input
+        IdentificationMethodValidator(identification_method=self.identification_method).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()

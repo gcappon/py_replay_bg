@@ -15,6 +15,7 @@ py_replay_bg/dss/default_dss_handlers.py
 py_replay_bg/environment/__init__.py
 py_replay_bg/example/code/quick-start.py
 py_replay_bg/identification/__init__.py
+py_replay_bg/identification/map.py
 py_replay_bg/identification/mcmc.py
 py_replay_bg/input_validation/__init__.py
 py_replay_bg/model/__init__.py
@@ -25,6 +26,7 @@ py_replay_bg/tests/__init__.py
 py_replay_bg/tests/test_plot_replay_bg_intervals.py
 py_replay_bg/tests/test_replay_bg.py
 py_replay_bg/tests/test_replay_bg_intervals.py
+py_replay_bg/tests/test_replay_bg_intervals_map.py
 py_replay_bg/utils/__init__.py
 py_replay_bg/utils/stats.py
 py_replay_bg/visualizer/__init__.py

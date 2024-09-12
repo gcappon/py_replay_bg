@@ -1,4 +1,5 @@
-import numpy as np
+from typing import Callable, Dict
+
 import pandas as pd
 
 from py_replay_bg.environment import Environment
@@ -11,6 +12,7 @@ from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler
 from py_replay_bg.data import ReplayBGData
 
 from py_replay_bg.identification.mcmc import MCMC
+from py_replay_bg.identification.map import MAP
 from py_replay_bg.replay import Replayer
 from py_replay_bg.visualizer import Visualizer
 
@@ -36,8 +38,8 @@ class ReplayBG:
         An object that represents the hyperparameters to be used by ReplayBG environment.
     model: Model
         An object that represents the physiological model to be used by ReplayBG.
-    mcmc: MCMC
-        An object that represents the hyperparameters of the MCMC identification procedure.
+    identifier: MCMC | MAP
+        An object that represents the hyperparameters of the object that orchestrates the identification procedure.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
 
@@ -48,29 +50,28 @@ class ReplayBG:
     """
 
     def __init__(self, modality: str, data: pd.DataFrame, bw: float, scenario: str, save_name: str, save_folder: str,
+                 u2ss: float | None = None, X0: np.ndarray | None = None, previous_data_name: str | None  = None,
 
-                 u2ss=None, X0=None, previous_data_name=None,
+                 identification_method: str = 'mcmc',
 
-                 yts=5, glucose_model='IG', pathology='t1d', exercise=False, seed=1,
-                 bolus_source='data', basal_source='data', cho_source='data',
-                 cgm_model='CGM',
+                 yts: int = 5, glucose_model: str = 'IG', pathology: str = 't1d', exercise: bool = False, seed: int = 1,
 
-                 n_steps=10000, save_chains=False,
-                 analyze_results=True,
+                 bolus_source: str = 'data', basal_source: str = 'data', cho_source: str = 'data', cgm_model: str = 'CGM',
 
-                 CR=10, CF=40, GT=120,
-                 meal_generator_handler=default_meal_generator_handler, meal_generator_handler_params={},
-                 bolus_calculator_handler=standard_bolus_calculator_handler, bolus_calculator_handler_params={},
-                 basal_handler=default_basal_handler, basal_handler_params={},
-                 enable_hypotreatments=False, hypotreatments_handler=ada_hypotreatments_handler,
-                 hypotreatments_handler_params={},
-                 enable_correction_boluses=False, correction_boluses_handler=corrects_above_250_handler,
-                 correction_boluses_handler_params={},
-                 save_suffix='',
-                 save_workspace=False,
-                 parallelize=False,
-                 n_processes=None,
-                 plot_mode=True, verbose=True):
+                 n_steps: int = 10000, save_chains: bool = False, analyze_results: bool = True,
+
+                 CR: float = 10, CF: float = 40, GT: float = 120,
+                 meal_generator_handler: Callable = default_meal_generator_handler, meal_generator_handler_params: Dict = {},
+                 bolus_calculator_handler: Callable = standard_bolus_calculator_handler, bolus_calculator_handler_params: Dict = {},
+                 basal_handler: Callable = default_basal_handler, basal_handler_params: Dict = {},
+                 enable_hypotreatments: bool = False, hypotreatments_handler: Callable = ada_hypotreatments_handler, hypotreatments_handler_params: Dict = {},
+                 enable_correction_boluses: bool = False, correction_boluses_handler: Callable = corrects_above_250_handler, correction_boluses_handler_params: Dict = {},
+
+                 save_suffix: str = '',
+                 save_workspace: bool = False,
+                 parallelize: bool = False, n_processes: int | None = None,
+
+                 plot_mode: bool = True, verbose: bool = True):
         """
         Constructs all the necessary attributes for the ReplayBG object.
 
@@ -91,13 +92,16 @@ class ReplayBG:
         save_folder : str
             A string defining the folder that will contain the results.
 
-        u2ss : double, optional, default : None
+        u2ss : float, optional, default : None
             The steady state of the basal insulin infusion.
-        X0 : list, optional, default : None
+        X0 : np.ndarray, optional, default : None
             The initial model conditions.
         previous_data_name : str, optional, default : None
             The name of the previous data portion. This is used to correcly "trasfer" the initial model conditions to
             the current portion of data.
+
+        identification_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
+            The method to be used to identify the model.
 
         yts: int, optional, default : 5
             An integer that specifies the data sample time (in minutes).
@@ -120,7 +124,6 @@ class ReplayBG:
         cho_source : str, {'data', 'generated'}, optional, default : 'data'
             A string defining whether to use, during replay, the CHO data contained in the 'data' timetable (if 'data'),
             or the CHO generated by the meal generator implemented via the provided 'mealGeneratorHandler' function.
-
         cgm_model: str, {'CGM','IG'}, optional, default : 'CGM'
             A string that specify the cgm model selection.
             If IG is selected, CGM measure will be the noise-free IG state at the current time.
@@ -134,11 +137,11 @@ class ReplayBG:
             ReplayBG and it is recommended if ReplayBG will be a component of a bigger framework (e.g., to be used in an
             iterative process).
 
-        CR: double, optional, default : 10
+        CR: float, optional, default : 10
             The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
-        CF: double, optional, default : 40
+        CF: float, optional, default : 40
             The correction factor of the patient in mg/dl/U to be used by the integrated decision support system.
-        GT: double, optional, default : 120
+        GT: float, optional, default : 120
             The target glucose value in mg/dl to be used by the decsion support system modules.
         meal_generator_handler: function, optional, default : default_meal_generator_handler
             A callback function that implements a meal generator to be used during the replay of a given scenario.
@@ -170,9 +173,13 @@ class ReplayBG:
 
         save_suffix : str, optional, default : ''
             A string to be attached as suffix to the resulting output files' name.
-
+        save_workspace : bool, optional, default : False
+            A flag that specifies whether to save the workspace in the `results/workspace` folder.
         parallelize : boolean, optional, default : False
             A boolean that specifies whether to parallelize the identification process.
+        n_processes : int, optional, default : None
+            The number of processes to be spawn if `parallelize` is `True`.
+
         plot_mode : boolean, optional, default : True
             A boolean that specifies whether to show the plot of the results or not.
         verbose : boolean, optional, default : True
@@ -209,6 +216,7 @@ class ReplayBG:
                                          cgm_model=cgm_model,
                                          X0=X0,
                                          previous_data_name=previous_data_name,
+                                         identification_method=identification_method,
                                          n_steps=n_steps, save_chains=save_chains, analyze_results=analyze_results,
                                          CR=CR, CF=CF, GT=GT,
                                          meal_generator_handler=meal_generator_handler,
@@ -226,7 +234,7 @@ class ReplayBG:
         input_validator.validate()
 
         # Initialize core variables
-        self.environment, self.model, self.mcmc, self.dss = self.__init_core_variables(data=data, bw=bw, u2ss=u2ss,
+        self.environment, self.model, self.identifier, self.dss = self.__init_core_variables(data=data, bw=bw, u2ss=u2ss,
                                                                                                      modality=modality,
                                                                                                      save_name=save_name,
                                                                                                      save_folder=save_folder,
@@ -244,6 +252,7 @@ class ReplayBG:
                                                                                                      cgm_model=cgm_model,
                                                                                                      X0=X0,
                                                                                                      previous_data_name=previous_data_name,
+                                                                                                     identification_method=identification_method,
                                                                                                      n_steps=n_steps,
                                                                                                      save_chains=save_chains,
                                                                                                      analyze_results=analyze_results,
@@ -274,6 +283,7 @@ class ReplayBG:
                               cgm_model,
                               X0,
                               previous_data_name,
+                              identification_method,
                               n_steps, save_chains, save_workspace, analyze_results,
                               CR, CF, GT,
                               meal_generator_handler, meal_generator_handler_params,
@@ -432,11 +442,16 @@ class ReplayBG:
         if pathology == 't1d':
             model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, is_single_meal=(scenario=='single-meal'), X0=X0, previous_data_name=previous_data_name, environment=environment, exercise=exercise)
 
-        # Initialize MCMC
-        mcmc = MCMC(model,
+        # Initialize identifier
+        if identification_method == 'mcmc':
+            identifier = MCMC(model,
                     n_steps=n_steps,
                     save_chains=save_chains,
                     callback_ncheck=1000)
+        elif identification_method == 'map':
+            identifier = MAP(model,
+                              max_iter=1500)
+
 
         # Initialize DSS
         dss = DSS(bw=bw, CR=CR, CF=CF, GT=GT,
@@ -451,7 +466,7 @@ class ReplayBG:
                   correction_boluses_handler=correction_boluses_handler,
                   correction_boluses_handler_params=correction_boluses_handler_params)
 
-        return environment, model, mcmc, dss
+        return environment, model, identifier, dss
 
     def run(self, data, bw, n_replay=1000, sensors=None):
         """
@@ -497,14 +512,20 @@ class ReplayBG:
             # ...run identification
             if self.environment.verbose:
                 print('Running model identification...')
-            self.mcmc.identify(data=data, rbg_data=rbg_data, rbg=self)
+            self.identifier.identify(data=data, rbg_data=rbg_data, rbg=self)
 
         # Load model parameters
         if self.environment.verbose:
             print('Loading identified model parameter realizations...')
-        with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws',
-                               'draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
-            identification_results = pickle.load(file)
+
+        if type(self.identifier) is MCMC:
+            with open(os.path.join(self.environment.replay_bg_path, 'results', 'draws',
+                                   'draws_' + self.environment.save_name + '.pkl'), 'rb') as file:
+                identification_results = pickle.load(file)
+        else:
+            with open(os.path.join(self.environment.replay_bg_path, 'results', 'map',
+                                   'map_' + self.environment.save_name + '.pkl'), 'rb') as file:
+                identification_results = pickle.load(file)
         draws = identification_results['draws']
 
         # Run replay
@@ -686,7 +707,7 @@ class ReplayBG:
         results['bw'] = bw
 
         results['environment'] = self.environment
-        results['mcmc'] = self.mcmc
+        results['identifier'] = self.identifier
         results['model'] = self.model
         results['dss'] = self.dss
 

@@ -7,7 +7,7 @@ from datetime import timedelta,datetime
 
 
 def load_test_data(day):
-    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day' + str(day) + '.csv'))
+    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day_' + str(day) + '.csv'))
     df.t = pd.to_datetime(df['t'])
     return df
 
@@ -64,7 +64,7 @@ def test_replay_bg():
 
     # Set other parameters for identification
     scenario = 'multi-meal'
-    save_folder = os.path.join(os.path.abspath(''), '..', '..')
+    save_folder = os.path.join(os.path.abspath(''))
 
     # load patient_info
     patient_info = load_patient_info()
@@ -114,13 +114,14 @@ def test_replay_bg():
 
         # Create ReplayBG
         rbg = ReplayBG(modality='replay', data=data, bw=bw, scenario=scenario, save_name=save_name,
+                       identification_method='map',
                        save_folder=save_folder,
                        parallelize=True, save_workspace=False, analyze_results=False,
                        verbose=verbose, plot_mode=plot_mode,
                        X0=X0, u2ss=u2ss,
                        previous_data_name=previous_data_name)
         # Run it
-        results = rbg.run(data=data, bw=bw, n_replay=1, sensors=sensors)
+        results = rbg.run(data=data, bw=bw, n_replay=10, sensors=sensors)
 
         # Set the cgm sensors
         sensors = results['sensors']

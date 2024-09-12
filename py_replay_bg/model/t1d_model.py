@@ -756,6 +756,9 @@ class T1DModel:
         return -0.5 * np.sum(
             ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
 
+    def neg_log_posterior_single_meal(self, theta, rbg_data):
+        return - self.log_posterior_single_meal(theta, rbg_data)
+
     def log_posterior_single_meal(self, theta, rbg_data):
         """
         Function that computes the log posterior of unknown parameters.
@@ -786,6 +789,9 @@ class T1DModel:
         """
         p = log_prior_single_meal(self.model_parameters.VG, theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood_single_meal(theta, rbg_data)
+
+    def neg_log_posterior_multi_meal(self, theta, rbg_data):
+        return - self.log_posterior_multi_meal(theta, rbg_data)
 
     def log_posterior_multi_meal(self, theta, rbg_data):
         """

@@ -1,6 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 
+from py_replay_bg.identification.mcmc import MCMC
+from py_replay_bg.identification.map import MAP
 from py_replay_bg.sensors import CGM, Sensors
 
 
@@ -102,7 +104,10 @@ class Replayer:
         None
         """
 
-        n = self.draws[self.rbg.model.unknown_parameters[0]]['samples_'+str(self.n_replay)].shape[0]
+        if type(self.rbg.identifier) is MCMC:
+            n = self.draws[self.rbg.model.unknown_parameters[0]]['samples_'+str(self.n_replay)].shape[0]
+        else:
+            n = 1
 
         cgm = dict()
         cgm['realizations'] = np.zeros(shape=(n, self.rbg.model.tysteps))
@@ -139,8 +144,12 @@ class Replayer:
             self.sensors = []
 
         if not new_sensors:
-            if not len(self.sensors) == self.n_replay:
-                raise Exception("The number of provided sensors must be the same as the number of replays.")
+            if type(self.rbg.identifier) is MAP:
+                if not len(self.sensors) == 1:
+                    raise Exception("The number of provided sensors must be the same as the number of replays.")
+            else:
+                if not len(self.sensors) == self.n_replay:
+                    raise Exception("The number of provided sensors must be the same as the number of replays.")
 
         if self.rbg.environment.verbose:
             iterations = tqdm(range(n))
@@ -149,9 +158,14 @@ class Replayer:
 
         for r in iterations:
 
-            # set the model parameters
-            for p in self.rbg.model.unknown_parameters:
-                setattr(self.rbg.model.model_parameters,p, self.draws[p]['samples_'+str(self.n_replay)][r])
+            if type(self.rbg.identifier) is MCMC:
+                # set the model parameters
+                for p in self.rbg.model.unknown_parameters:
+                    setattr(self.rbg.model.model_parameters,p, self.draws[p]['samples_'+str(self.n_replay)][r])
+            else:
+                # set the model parameters
+                for p in self.rbg.model.unknown_parameters:
+                    setattr(self.rbg.model.model_parameters, p, self.draws[p])
 
             if new_sensors:
                 # connect a new set of sensors

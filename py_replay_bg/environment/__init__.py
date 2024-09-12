@@ -123,6 +123,8 @@ class Environment:
             os.mkdir(os.path.join(self.replay_bg_path, 'results'))
         if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'draws'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'draws'))
+        if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'map'))):
+            os.mkdir(os.path.join(self.replay_bg_path, 'results', 'map'))
         if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'logs'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'logs'))
         if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'mcmc_chains'))):

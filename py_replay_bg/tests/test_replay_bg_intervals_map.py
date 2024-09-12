@@ -4,7 +4,7 @@ import numpy as np
 from py_replay_bg.py_replay_bg import ReplayBG
 
 def load_test_data(day):
-    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day' + str(day) + '.csv'))
+    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day_' + str(day) + '.csv'))
     df.t = pd.to_datetime(df['t'])
     return df
 
@@ -39,6 +39,7 @@ def test_replay_bg():
 
     # Instantiate ReplayBG for identification
     rbg = ReplayBG(modality='identification', data=data, bw=bw, scenario=scenario, save_name=save_name,
+                   identification_method='map',
                    save_folder=save_folder, n_steps=n_steps,
                    parallelize=True, save_workspace=False, analyze_results=False,
                    verbose=verbose, plot_mode=plot_mode,
@@ -48,6 +49,7 @@ def test_replay_bg():
 
     # Run again for obtaining X0
     rbg = ReplayBG(modality='replay', data=data, bw=bw, scenario=scenario, save_name=save_name,
+                   identification_method='map',
                    save_folder=save_folder, n_steps=n_steps,
                    parallelize=True, save_workspace=False, analyze_results=False,
                    verbose=verbose, plot_mode=plot_mode,
@@ -69,6 +71,7 @@ def test_replay_bg():
 
     # Instantiate ReplayBG for identification
     rbg = ReplayBG(modality='identification', data=data, bw=bw, scenario=scenario, save_name=save_name,
+                   identification_method='map',
                    save_folder=save_folder, n_steps=n_steps,
                    parallelize=True, save_workspace=False, analyze_results=False,
                    verbose=verbose, plot_mode=plot_mode,
