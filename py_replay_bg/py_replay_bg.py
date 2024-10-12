@@ -3,7 +3,8 @@ from typing import Callable, Dict
 import pandas as pd
 
 from py_replay_bg.environment import Environment
-from py_replay_bg.model.t1d_model import T1DModel
+from py_replay_bg.model.t1d_model_single_meal import T1DModelSingleMeal
+from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
 from py_replay_bg.dss import DSS
 from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
@@ -440,7 +441,10 @@ class ReplayBG:
 
         # Initialize model
         if pathology == 't1d':
-            model = T1DModel(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, is_single_meal=(scenario=='single-meal'), X0=X0, previous_data_name=previous_data_name, environment=environment, exercise=exercise)
+            if environment.scenario == 'single-meal':
+                model = T1DModelSingleMeal(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, X0=X0, previous_data_name=previous_data_name, environment=environment, exercise=exercise, identification_method=identification_method)
+            else:
+                model = T1DModelMultiMeal(data=data, bw=bw, yts=yts, glucose_model=glucose_model, u2ss=u2ss, X0=X0, previous_data_name=previous_data_name, environment=environment, exercise=exercise, identification_method=identification_method)
 
         # Initialize identifier
         if identification_method == 'mcmc':
@@ -448,7 +452,7 @@ class ReplayBG:
                     n_steps=n_steps,
                     save_chains=save_chains,
                     callback_ncheck=1000)
-        elif identification_method == 'map':
+        else:
             identifier = MAP(model,
                               max_iter=1500)
 

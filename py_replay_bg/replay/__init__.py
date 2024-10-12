@@ -182,7 +182,8 @@ class Replayer:
                                                                                          rbg=self.rbg, sensors=self.sensors[r])
 
             # Update the t_offset of the cgm sensors
-            self.sensors[r].cgm.add_offset(self.rbg.model.t / (24 * 60))
+            self.sensors[r].cgm.add_offset((self.rbg.model.t - self.sensors[r].cgm.connected_at)/ (24 * 60))
+            self.sensors[r].cgm.connected_at = 0
 
 
         # Compute median CGM and glucose profiles + CI

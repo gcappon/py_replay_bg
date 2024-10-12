@@ -11,7 +11,6 @@ def load_test_data(day):
     df.t = pd.to_datetime(df['t'])
     return df
 
-
 def load_patient_info():
     df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'patient_info.csv'))
     return df
@@ -62,6 +61,8 @@ def test_replay_bg():
     verbose = True
     plot_mode = False
 
+    # Set identification method
+    identification_method = 'map'
     # Set other parameters for identification
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
@@ -98,7 +99,7 @@ def test_replay_bg():
         data = load_test_data(day=day)
 
         # This is to allow "playing" with the original inputs and see what happens
-        data.cho = data.cho*1
+        data.cho = data.cho*1.4
         data.basal = data.basal*1
         data.bolus = data.bolus * 1
 
@@ -114,7 +115,7 @@ def test_replay_bg():
 
         # Create ReplayBG
         rbg = ReplayBG(modality='replay', data=data, bw=bw, scenario=scenario, save_name=save_name,
-                       identification_method='map',
+                       identification_method=identification_method,
                        save_folder=save_folder,
                        parallelize=True, save_workspace=False, analyze_results=False,
                        verbose=verbose, plot_mode=plot_mode,

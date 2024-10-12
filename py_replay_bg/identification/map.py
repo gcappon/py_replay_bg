@@ -1,30 +1,18 @@
 import os
-
-import matplotlib.pyplot as plt
-from matplotlib import pylab
-
-
+import warnings
+import pickle
 import numpy as np
+import pandas as pd
 
 from multiprocessing import Pool
-
-import pickle
-
-import copy
-import pandas as pd
+from tqdm import tqdm
+from scipy.optimize import minimize
 
 from py_replay_bg.data import ReplayBGData
 
-from datetime import datetime, timedelta
-
-from tqdm import tqdm
-
-from scipy.optimize import minimize
-
-import warnings
-
 # Suppress all RuntimeWarnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 
 class MAP:
     """
@@ -40,7 +28,7 @@ class MAP:
         ----------
         model: Model
             An object that represents the physiological model hyperparameters to be used by ReplayBG.
-        max_iter: int, optional, default : 1000
+        max_iter: int, optional, default : 100000
             Maximum number of iterations.
 
         Returns
@@ -122,7 +110,7 @@ class MAP:
         options['disp'] = False
 
         # Select the function to minimize
-        neg_log_posterior_func = self.model.neg_log_posterior_single_meal if self.model.is_single_meal else self.model.neg_log_posterior_multi_meal
+        neg_log_posterior_func = self.model.neg_log_posterior
 
         # Initialize results
         results = []
@@ -174,6 +162,7 @@ class MAP:
             pickle.dump(identification_results, file)
 
         return draws
+
 
 def run_map(start, func, rbg_data, options):
     result = minimize(func, start, method='Powell', args=(rbg_data,), options=options)

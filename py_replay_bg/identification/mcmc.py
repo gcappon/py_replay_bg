@@ -145,7 +145,7 @@ class MCMC:
         if rbg.environment.parallelize:
             pool = Pool(processes=rbg.environment.n_processes)
 
-        log_posterior_func = self.model.log_posterior_single_meal if self.model.is_single_meal else self.model.log_posterior_multi_meal
+        log_posterior_func = self.model.log_posterior
         sampler = emcee.EnsembleSampler(self.n_walkers, self.n_dim, log_posterior_func, moves=[(emcee.moves.DEMove(sigma=1.0e-3), 0.2), (emcee.moves.DESnookerMove(gammas=0.1), 0.8)], pool=pool, args=[rbg_data])
 
         # Run the burn-in chain
@@ -189,7 +189,7 @@ class MCMC:
             for i in range(0, len(tbs)):
 
                 #...check if it is ok. If so...
-                if self.model.check_copula_extraction(samples[i]):
+                if self.model.check_extraction(samples[i]):
 
                     # ...flag it and fill the final vector
                     to_be_sampled[tbs[i]] = False

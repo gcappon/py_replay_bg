@@ -4,7 +4,7 @@ import numpy as np
 from py_replay_bg.py_replay_bg import ReplayBG
 
 def load_test_data(day):
-    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day' + str(day) + '.csv'))
+    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day_' + str(day) + '.csv'))
     df.t = pd.to_datetime(df['t'])
     return df
 

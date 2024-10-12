@@ -77,7 +77,12 @@ class CGM:
         else:
             self.cgm_error_parameters, self.output_noise_SD = [], []
 
-    def connect_new_cgm(self):
+        # Set max lifetime (minutes)
+        self.max_lifetime = 10 * 1440  # 10 days
+        self.connected_at = 0
+
+
+    def connect_new_cgm(self, connected_at=0):
         """
         Connects a new CGM sensor by sampling new error parameters.
 
@@ -170,8 +175,10 @@ class CGM:
         self.ekm1 = 0
         self.ekm2 = 0
 
-        # Set the offset
+        # Set the offset (minutes)
         self.t_offset = 0
+
+        self.connected_at = connected_at
 
     def measure(self, IG, t):
         """
