@@ -576,7 +576,7 @@ class T1DModelMultiMeal:
                     if sensors.cgm.model == 'CGM':
                         if k+sensors.cgm.t_offset >= sensors.cgm.max_lifetime:
                             # connect new sensor
-                            sensors.cgm = sensors.cgm.connect_new_cgm(connected_at=k)
+                            sensors.cgm.connect_new_cgm(connected_at=k)
                             # manage offset
                         self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k], (k - sensors.cgm.connected_at) / (24 * 60))
 

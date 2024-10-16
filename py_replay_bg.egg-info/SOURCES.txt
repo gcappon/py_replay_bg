@@ -19,7 +19,11 @@ py_replay_bg/identification/map.py
 py_replay_bg/identification/mcmc.py
 py_replay_bg/input_validation/__init__.py
 py_replay_bg/model/__init__.py
-py_replay_bg/model/t1d_model.py
+py_replay_bg/model/logpriors_t1d.py
+py_replay_bg/model/model_parameters_t1d.py
+py_replay_bg/model/model_step_equations_t1d.py
+py_replay_bg/model/t1d_model_multi_meal.py
+py_replay_bg/model/t1d_model_single_meal.py
 py_replay_bg/replay/__init__.py
 py_replay_bg/sensors/__init__.py
 py_replay_bg/tests/__init__.py
