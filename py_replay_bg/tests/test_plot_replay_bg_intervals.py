@@ -99,7 +99,7 @@ def test_replay_bg():
         data = load_test_data(day=day)
 
         # This is to allow "playing" with the original inputs and see what happens
-        data.cho = data.cho*1.4
+        data.cho = data.cho*1
         data.basal = data.basal*1
         data.bolus = data.bolus * 1
 
