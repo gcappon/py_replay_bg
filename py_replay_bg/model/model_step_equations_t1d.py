@@ -149,7 +149,7 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
         None
         """
 
-        xk = xkm1
+        xk = np.copy(xkm1)
 
         # Compute glucose risk
         risk = 1
@@ -243,7 +243,7 @@ def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, x
         None
         """
 
-        xk = xkm1
+        xk = np.copy(xkm1)
 
         # Compute glucose risk
         risk = 1
