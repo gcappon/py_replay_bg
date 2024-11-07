@@ -12,7 +12,6 @@ def test_replay_bg():
     # Set verbosity
     verbose = True
     plot_mode = False
-    parallelize = True
 
     # Set the number of steps for MCMC
     n_steps = 5000  # In production, this should be >= 50k
@@ -20,6 +19,7 @@ def test_replay_bg():
     # Set other parameters for identification
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
+    parallelize = True
 
     # load patient_info
     patient_info = load_patient_info()

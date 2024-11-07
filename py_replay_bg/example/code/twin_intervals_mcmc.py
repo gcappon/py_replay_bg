@@ -1,13 +1,17 @@
 import os
 import numpy as np
 
-from py_replay_bg.tests import load_test_data, load_patient_info
+from multiprocessing import freeze_support
+
+from utils import load_test_data, load_patient_info
 
 from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 from py_replay_bg.analyzer import Analyzer
 
-def test_replay_bg():
+
+if __name__ == '__main__':
+    freeze_support()
 
     # Set verbosity
     verbose = True
@@ -15,8 +19,7 @@ def test_replay_bg():
 
     # Set other parameters for identification
     scenario = 'multi-meal'
-    save_folder = os.path.join(os.path.abspath(''))
-    parallelize = True
+    save_folder = os.path.join(os.path.abspath(''),'..','..','..')
 
     # load patient_info
     patient_info = load_patient_info()
@@ -48,18 +51,18 @@ def test_replay_bg():
 
         # Run twinning procedure
         rbg.twin(data=data, bw=bw, save_name=save_name,
-                 identification_method='map',
+                 identification_method='mcmc',
                  parallelize=parallelize,
+                 n_steps=n_steps,
                  x0=x0, u2ss=u2ss, previous_data_name=previous_data_name)
 
         # Replay the twin with the same input data to get the initial conditions for the subsequent day
         replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
-                                    identification_method='map',
+                                    identification_method='mcmc',
                                     save_workspace=True,
                                     x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
-                                    save_suffix='_twin_intervals_map')
+                                    save_suffix='_twin_intervals_mcmc')
 
-        # Visualize and analyze results
         Visualizer.plot_replay_results(replay_results, data=data)
         analysis = Analyzer.analyze_replay_results(replay_results, data=data)
         print('Fit MARD: %.2f %%' % analysis['median']['twin']['mard'])

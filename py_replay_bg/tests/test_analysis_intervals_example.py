@@ -10,14 +10,14 @@ def test_replay_bg():
     start_day = 1
     end_day = 2
 
-    # Set other parameters for identification
-    workspace_folder = os.path.join(os.path.abspath(''))
+    # Set the location of the 'results' folder
+    results_folder_location = os.path.join(os.path.abspath(''))
 
     # Initialize results list
     replay_results_interval = []
 
     for day in range(start_day, end_day+1):
-        with open(os.path.join(workspace_folder, 'results', 'workspaces', 'data_day_' + str(day) + '_replay_intervals_map.pkl'), 'rb') as file:
+        with open(os.path.join(results_folder_location, 'results', 'workspaces', 'data_day_' + str(day) + '_replay_intervals_map.pkl'), 'rb') as file:
             replay_results = pickle.load(file)
         replay_results_interval.append(replay_results)
 
@@ -33,7 +33,7 @@ def test_replay_bg():
     replay_results_interval = []
 
     for day in range(start_day, end_day + 1):
-        with open(os.path.join(workspace_folder, 'results', 'workspaces', 'data_day_' + str(day) + '_replay_intervals_mcmc.pkl'), 'rb') as file:
+        with open(os.path.join(results_folder_location, 'results', 'workspaces', 'data_day_' + str(day) + '_replay_intervals_mcmc.pkl'), 'rb') as file:
             replay_results = pickle.load(file)
         replay_results_interval.append(replay_results)
 

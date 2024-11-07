@@ -25,6 +25,7 @@ def test_replay_bg():
     u2ss = float(patient_info.u2ss.values[p])
     x0 = None
     previous_data_name = None
+    sensors = None
 
     # Initialize the list of results
     replay_results_interval = []
@@ -54,7 +55,7 @@ def test_replay_bg():
                                     identification_method='mcmc',
                                     n_replay=10,
                                     save_workspace=True,
-                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
+                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name, sensors=sensors,
                                     save_suffix='_replay_intervals_mcmc')
 
         # Append results

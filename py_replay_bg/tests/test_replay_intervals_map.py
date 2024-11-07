@@ -25,7 +25,7 @@ def test_replay_bg():
     u2ss = float(patient_info.u2ss.values[p])
     x0 = None
     previous_data_name = None
-    sensors=None
+    sensors = None
 
     # Initialize the list of results
     replay_results_interval = []

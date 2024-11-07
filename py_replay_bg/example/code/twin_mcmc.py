@@ -1,25 +1,28 @@
 import os
 import numpy as np
 
-from py_replay_bg.tests import load_test_data, load_patient_info
+from multiprocessing import freeze_support
+
+from utils import load_test_data, load_patient_info
 
 from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 from py_replay_bg.analyzer import Analyzer
 
 
-def test_replay_bg():
+if __name__ == '__main__':
+    freeze_support()
 
     # Set verbosity
     verbose = True
     plot_mode = False
 
     # Set the number of steps for MCMC
-    n_steps = 5000  # In production, this should be >= 50k
+    n_steps = 5000  # 5k is for testing. In production, this should be >= 50k
 
     # Set other parameters for identification
     scenario = 'multi-meal'
-    save_folder = os.path.join(os.path.abspath(''))
+    save_folder = os.path.join(os.path.abspath(''),'..','..','..')
     parallelize = True
 
     # load patient_info

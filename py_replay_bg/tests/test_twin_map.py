@@ -12,11 +12,11 @@ def test_replay_bg():
     # Set verbosity
     verbose = True
     plot_mode = False
-    parallelize = True
 
     # Set other parameters for identification
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
+    parallelize = True
 
     # load patient_info
     patient_info = load_patient_info()

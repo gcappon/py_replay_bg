@@ -1,7 +1,7 @@
 {
   "name": "py_replay_bg",
   "version": "1.0.0",
-  "description": "Python porting of ReplayBG: a digital twin-based methodology to assess new strategies for type 1 diabetes management.",
+  "description": "Python porting of ReplayBG: a digital twin-based methodology to develop and assess new strategies for type 1 diabetes management.",
   "main": "index.js",
   "authors": {
     "name": "Giacomo Cappon",
