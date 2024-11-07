@@ -13,7 +13,7 @@ def test_replay_bg():
     verbose = True
     plot_mode = False
 
-    # Set other parameters for identification
+    # Set other parameters for twinning
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
 
@@ -39,7 +39,7 @@ def test_replay_bg():
     # Replay the twin with the same input data to get the initial conditions for the subsequent day
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 n_replay=10,
-                                identification_method='mcmc',
+                                twinning_method='mcmc',
                                 save_workspace=True,
                                 u2ss=u2ss,
                                 save_suffix='_replay_mcmc')

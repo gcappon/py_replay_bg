@@ -34,8 +34,8 @@ class Replayer:
         An object that represents the physiological model to be used by ReplayBG.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
-    identification_method: str, {'mcmc', 'map'}
-        The identification method used to estimate the parameters.
+    twinning_method: str, {'mcmc', 'map'}
+        The twinning method used to estimate the parameters.
 
     Methods
     -------
@@ -50,7 +50,7 @@ class Replayer:
                  environment: Environment,
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  dss: DSS,
-                 identification_method: str
+                 twinning_method: str
                  ):
         """
         Constructs all the necessary attributes for the Replayer object.
@@ -62,7 +62,7 @@ class Replayer:
         draws: dict
             An array containing the model parameter realizations to be used for simulating the model.
         n_replay: int, {1000, 100, 10}
-            The number of Monte Carlo replays to be performed. Ignored if identification_method is 'map'.
+            The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors] | None
             The sensors to be used in each of the replay simulations.
         environment: Environment
@@ -71,8 +71,8 @@ class Replayer:
             An object that represents the physiological model to be used by ReplayBG.
         dss: DSS
             An object that represents the hyperparameters of the integrated decision support system.
-        identification_method: str, {'mcmc', 'map'}
-            The identification method used to estimate the parameters.
+        twinning_method: str, {'mcmc', 'map'}
+            The twinning method used to estimate the parameters.
 
         Returns
         -------
@@ -95,10 +95,10 @@ class Replayer:
         self.rbg_data = rbg_data
         self.draws = draws
 
-        # The identification method used to estimate the parameters
-        self.identification_method = identification_method
+        # The twinning method used to estimate the parameters
+        self.twinning_method = twinning_method
 
-        # The number of replays (if identification_method is 'map', it will be ignored)
+        # The number of replays (if twinning_method is 'map', it will be ignored)
         self.n_replay = n_replay
 
         # The list of Sensors objects
@@ -158,8 +158,8 @@ class Replayer:
         --------
         None
         """
-        # if identification_method is 'map' force n to 1
-        if self.identification_method == 'map':
+        # if twinning_method is 'map' force n to 1
+        if self.twinning_method == 'map':
             n = 1
         else:
             n = self.draws[self.model.unknown_parameters[0]]['samples_'+str(self.n_replay)].shape[0]
@@ -200,7 +200,7 @@ class Replayer:
             self.sensors = []
 
         if not new_sensors:
-            if self.identification_method == 'map':
+            if self.twinning_method == 'map':
                 if not len(self.sensors) == 1:
                     raise Exception("The number of provided sensors must be the same as the number of replays.")
             else:
@@ -214,7 +214,7 @@ class Replayer:
 
         for r in iterations:
 
-            if self.identification_method == 'mcmc':
+            if self.twinning_method == 'mcmc':
                 # set the model parameters
                 for p in self.model.unknown_parameters:
                     setattr(self.model.model_parameters, p, self.draws[p]['samples_'+str(self.n_replay)][r])

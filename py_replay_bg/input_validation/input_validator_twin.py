@@ -27,8 +27,8 @@ class InputValidatorTwin:
         The name of the previous data portion. This is used to correctly "transfer" the initial model conditions to
         the current portion of data.
 
-    identification_method : str
-        The method to be used to identify the model.
+    twinning_method : str
+        The method to be used to twin the model.
 
     n_steps: int
         Number of steps to use for the main chain. This is ignored if modality is 'replay'.
@@ -36,7 +36,7 @@ class InputValidatorTwin:
         A flag that specifies whether to save the resulting mcmc chains and copula samplers.
 
     parallelize : boolean
-        A boolean that specifies whether to parallelize the identification process.
+        A boolean that specifies whether to parallelize the twinning process.
     n_processes : int, optional, default : None
         The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
@@ -56,7 +56,7 @@ class InputValidatorTwin:
                  data: pd.DataFrame,
                  bw: float,
                  save_name: str,
-                 identification_method: str,
+                 twinning_method: str,
                  n_steps: int,
                  save_chains: bool,
                  u2ss: float | None,
@@ -70,7 +70,7 @@ class InputValidatorTwin:
         self.data = data
         self.bw = bw
         self.save_name = save_name
-        self.identification_method = identification_method
+        self.twinning_method = twinning_method
         self.n_steps = n_steps
         self.save_chains = save_chains
         self.u2ss = u2ss
@@ -96,8 +96,8 @@ class InputValidatorTwin:
         # Validate the 'save_name' input
         SaveNameValidator(save_name=self.save_name).validate()
 
-        # Validate the 'identification_method' input
-        IdentificationMethodValidator(identification_method=self.identification_method).validate()
+        # Validate the 'twinning_method' input
+        TwinningMethodValidator(twinning_method=self.twinning_method).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()

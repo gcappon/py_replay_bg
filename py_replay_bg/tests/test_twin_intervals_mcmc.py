@@ -16,7 +16,7 @@ def test_replay_bg():
     # Set the number of steps for MCMC
     n_steps = 5000  # In production, this should be >= 50k
 
-    # Set other parameters for identification
+    # Set other parameters for twinning
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
     parallelize = True
@@ -47,18 +47,18 @@ def test_replay_bg():
         data = load_test_data(day=day)
         save_name = 'data_day_' + str(day)
 
-        print("Identifying " + save_name)
+        print("Twinning " + save_name)
 
         # Run twinning procedure
         rbg.twin(data=data, bw=bw, save_name=save_name,
-                 identification_method='mcmc',
+                 twinning_method='mcmc',
                  parallelize=parallelize,
                  n_steps=n_steps,
                  x0=x0, u2ss=u2ss, previous_data_name=previous_data_name)
 
         # Replay the twin with the same input data to get the initial conditions for the subsequent day
         replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
-                                    identification_method='mcmc',
+                                    twinning_method='mcmc',
                                     save_workspace=True,
                                     x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
                                     save_suffix='_twin_intervals_mcmc')

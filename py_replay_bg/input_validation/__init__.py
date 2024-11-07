@@ -315,17 +315,17 @@ class HypotreatmentsHandlerParamsValidator:
                 raise Exception("'hypotreatments_handler_params' input must be a dict.'")
 
 
-class IdentificationMethodValidator:
+class TwinningMethodValidator:
     """
-    Class for validating the 'identification_method' input parameter of ReplayBG.
+    Class for validating the 'twinning_method' input parameter of ReplayBG.
     """
 
-    def __init__(self, identification_method):
-        self.identification_method = identification_method
+    def __init__(self, twinning_method):
+        self.twinning_method = twinning_method
 
     def validate(self):
-        if not (self.identification_method == 'mcmc' or self.identification_method == 'map'):
-            raise Exception("'identification_method' input must be 'mcmc' or 'map'.")
+        if not (self.twinning_method == 'mcmc' or self.twinning_method == 'map'):
+            raise Exception("'twinning_method' input must be 'mcmc' or 'map'.")
 
 
 class MealGeneratorHandlerValidator:
@@ -364,8 +364,8 @@ class ModalityValidator:
         self.modality = modality
 
     def validate(self):
-        if not (self.modality == 'identification' or self.modality == 'replay'):
-            raise Exception("'modality' input must be 'identification' or 'replay'.")
+        if not (self.modality == 'twinning' or self.modality == 'replay'):
+            raise Exception("'modality' input must be 'twinning' or 'replay'.")
 
 
 class NProcessesValidator:

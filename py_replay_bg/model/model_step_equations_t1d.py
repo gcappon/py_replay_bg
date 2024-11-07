@@ -4,14 +4,14 @@ from numba import njit
 
 
 @njit
-def identify_single_meal(tsteps, x, A, B,
+def twin_single_meal(tsteps, x, A, B,
                         bolus_delayed, basal_delayed,
                         meal_delayed, t_hour,
                         r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
                         f, kabs, alpha, previous_Ra):
     """
     Internal function that simulates the single-meal model using backward-euler method. Optimized for
-    identification only.
+    twinning only.
     """
     # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
@@ -26,7 +26,7 @@ def identify_single_meal(tsteps, x, A, B,
 
 
 @njit
-def identify_single_meal_exercise(tsteps, x, A, B,
+def twin_single_meal_exercise(tsteps, x, A, B,
                         bolus_delayed, basal_delayed,
                         meal_delayed, t_hour,
                         r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
@@ -47,7 +47,7 @@ def identify_single_meal_exercise(tsteps, x, A, B,
 
 
 @njit
-def identify_multi_meal(tsteps, x, A, B,
+def twin_multi_meal(tsteps, x, A, B,
                         bolus_delayed, basal_delayed,
                         meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
                         r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
@@ -72,7 +72,7 @@ def identify_multi_meal(tsteps, x, A, B,
 
 
 @njit
-def identify_multi_meal_exercise(tsteps, x, A, B,
+def twin_multi_meal_exercise(tsteps, x, A, B,
                         bolus_delayed, basal_delayed,
                         meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
                         r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,

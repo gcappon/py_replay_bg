@@ -12,7 +12,7 @@ from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DMultiMeal
 
 from py_replay_bg.model.logpriors_t1d import log_prior_multi_meal, log_prior_multi_meal_exercise
 
-from py_replay_bg.model.model_step_equations_t1d import identify_multi_meal
+from py_replay_bg.model.model_step_equations_t1d import twin_multi_meal
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_multi_meal
 
 from py_replay_bg.data import ReplayBGData
@@ -55,8 +55,8 @@ class T1DModelMultiMeal:
     exercise: bool
         A boolean indicating if the model includes the exercise.
 
-    identification_method : str
-        The method used to identify the model.
+    twinning_method : str
+        The method used to twin the model.
 
     x0: list
         The initial conditions for the model state. If None cold_boot will be set to True.
@@ -89,7 +89,7 @@ class T1DModelMultiMeal:
                  x0: list | None = None,
                  previous_data_name: str | None = None,
                  environment: Environment | None = None,
-                 identification_method: str = 'mcmc'
+                 twinning_method: str = 'mcmc'
                  ):
         """
         Constructs all the necessary attributes of the object.
@@ -109,8 +109,8 @@ class T1DModelMultiMeal:
             the current portion of data.
         environment: Environment, optional, default : None
             An object that represents the hyperparameters to be used by ReplayBG.
-        identification_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
-            The method to used to identify the model.
+        twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
+            The method to used to twin the model.
         """
         # Time constants during simulation
         self.ts = 1  # Integration step
@@ -140,7 +140,7 @@ class T1DModelMultiMeal:
         # Get the hour of the day for each data point
         t = np.array(data.t.dt.hour.values).astype(int)
 
-        # TODO: fix default un-identified parameters
+        # TODO: fix default un-twinned parameters
 
         # Attach breakfast SI if data between 4:00 - 11:00 are available
         self.pos_SI_B = 0
@@ -240,13 +240,13 @@ class T1DModelMultiMeal:
         self.previous_data_name = previous_data_name
         self.previous_day_draws = None
         if self.previous_data_name is not None:
-            with open(os.path.join(environment.replay_bg_path, 'results', identification_method,
-                                   identification_method+'_' + previous_data_name + '.pkl'), 'rb') as file:
-                previous_day_identification_results = pickle.load(file)
-            self.previous_day_draws = previous_day_identification_results['draws']
+            with open(os.path.join(environment.replay_bg_path, 'results', twinning_method,
+                                   twinning_method+'_' + previous_data_name + '.pkl'), 'rb') as file:
+                previous_day_twinning_results = pickle.load(file)
+            self.previous_day_draws = previous_day_twinning_results['draws']
 
-        # Remember the identification method
-        self.identification_method = identification_method
+        # Remember the twinning method
+        self.twinning_method = twinning_method
 
         # Set initial conditions
         self.x0 = x0
@@ -263,8 +263,8 @@ class T1DModelMultiMeal:
             # Get the initial values of the meal submodel
             xk = self.x0[2:17]
 
-            # Set model parameter values (if some parameters were not identified, set them to the population value.
-            if identification_method == 'mcmc':
+            # Set model parameter values (if some parameters were not twinned, set them to the population value.
+            if twinning_method == 'mcmc':
                 kgri = self.previous_day_draws['kempt']['samples_1'][0]
                 kempt = self.previous_day_draws['kempt']['samples_1'][0]
                 if "kabs_B" in self.previous_day_draws:
@@ -367,12 +367,12 @@ class T1DModelMultiMeal:
         ----------
         rbg_data : ReplayBGData
             The data to be used by ReplayBG during simulation.
-        modality: str, {'identification', 'replay'}
-            A string that defines whether the simulation was called while identifying or replaying.
+        modality: str, {'twinning', 'replay'}
+            A string that defines whether the simulation was called while twinning or replaying.
         environment: Environment
             An object that represents the hyperparameters to be used by ReplayBG.
         dss: DSS
-            An object that represents the hyperparameters of the dss. Unused during identification.
+            An object that represents the hyperparameters of the dss. Unused during twinning.
         sensors: Sensors
             An object that represents the sensors used during simulation.
 
@@ -457,7 +457,7 @@ class T1DModelMultiMeal:
             mp.Ipb = mp.ka2 / mp.ke * k2
 
             # Second, do the same thing, but using the model parameters of the previous portion of data (i.e., the one that "generated" the provided x0)
-            if self.identification_method == 'mcmc':
+            if self.twinning_method == 'mcmc':
                 k1_old = mp.u2ss / self.previous_day_draws['kd']['samples_1'][0]
                 k2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][0] * k1_old
                 Ipb_old = self.previous_day_draws['ka2']['samples_1'][0] / mp.ke * k2_old
@@ -517,7 +517,7 @@ class T1DModelMultiMeal:
                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                        mp.ka2 * kie, kie]]
 
-        # Run simulation in two ways depending on the modality to speed up the identification process
+        # Run simulation in two ways depending on the modality to speed up the twinning process
         if is_replay:
 
             # Set the initial cgm value if modality is 'replay' and make copies of meal vectors
@@ -711,7 +711,7 @@ class T1DModelMultiMeal:
         else:
 
             # Run simulation
-            self.x = identify_multi_meal(self.tsteps,
+            self.x = twin_multi_meal(self.tsteps,
                                          self.x,
                                          self.A,
                                          self.B,
@@ -745,7 +745,7 @@ class T1DModelMultiMeal:
                                          mp.alpha,
                                          self.previous_Ra)
 
-            # Return just the glucose vector if modality == 'identification'
+            # Return just the glucose vector if modality == 'twinning'
             return self.x[self.nx - 1, :]
 
     def __log_likelihood(self, theta: np.ndarray, rbg_data: ReplayBGData):
@@ -803,7 +803,7 @@ class T1DModelMultiMeal:
         self.model_parameters.kgri = self.model_parameters.kempt
 
         # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='identification', environment=None, dss=None)
+        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
 
         # Sample the simulation
         G = G[0::self.yts]
@@ -870,7 +870,7 @@ class T1DModelMultiMeal:
         self.model_parameters.kgri = self.model_parameters.kempt
 
         # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='identification', environment=None, dss=None)
+        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
 
         # Sample the simulation
         G = G[0::self.yts]

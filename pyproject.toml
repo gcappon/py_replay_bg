@@ -9,13 +9,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py_replay_bg"
-version = "0.1.4"
+version = "1.0.0"
 authors = [
   { name="Giacomo Cappon", email="cappongiacomo@gmail.com" },
 ]
 description = "ReplayBG is a digital twin-based methodology to assess new strategies for type 1 diabetes management."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

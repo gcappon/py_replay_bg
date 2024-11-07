@@ -11,7 +11,7 @@ from py_replay_bg.analyzer import Analyzer
 verbose = True
 plot_mode = False
 
-# Set other parameters for identification
+# Set other parameters for twinning
 scenario = 'multi-meal'
 save_folder = os.path.join(os.path.abspath(''),'..','..','..')
 
@@ -37,7 +37,7 @@ print("Replaying " + save_name)
 # Replay the twin using a correction insulin bolus injection strategy and the standard formula for
 # meal insulin boluses
 replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
-                            identification_method='map',
+                            twinning_method='map',
                             save_workspace=True,
                             u2ss=u2ss,
                             save_suffix='_replay_map_dss',

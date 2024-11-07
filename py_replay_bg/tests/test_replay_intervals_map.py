@@ -13,7 +13,7 @@ def test_replay_bg():
     verbose = True
     plot_mode = False
 
-    # Set other parameters for identification
+    # Set other parameters for twinning
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
 
@@ -48,11 +48,11 @@ def test_replay_bg():
         data = load_test_data(day=day)
         save_name = 'data_day_' + str(day)
 
-        print("Identifying " + save_name)
+        print("Twinning " + save_name)
 
         # Replay the twin with the same input data to get the initial conditions for the subsequent day
         replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
-                                    identification_method='map',
+                                    twinning_method='map',
                                     save_workspace=True,
                                     x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
                                     save_suffix='_replay_intervals_map',

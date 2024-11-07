@@ -11,7 +11,7 @@ from py_replay_bg.analyzer import Analyzer
 verbose = True
 plot_mode = False
 
-# Set other parameters for identification
+# Set other parameters for twinning
 scenario = 'multi-meal'
 save_folder = os.path.join(os.path.abspath(''),'..','..','..')
 
@@ -38,7 +38,7 @@ print("Replaying " + save_name)
 # meal insulin boluses
 replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             n_replay=10,
-                            identification_method='mcmc',
+                            twinning_method='mcmc',
                             save_workspace=True,
                             u2ss=u2ss,
                             save_suffix='_replay_mcmc_dss',

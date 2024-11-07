@@ -23,7 +23,7 @@ from py_replay_bg.environment import Environment
 
 class MCMC:
     """
-    A class that orchestrates the identification process.
+    A class that orchestrates the twinning process.
 
     ...
     Attributes 
@@ -37,14 +37,14 @@ class MCMC:
     n_burn_in: int
         Number of burn_in steps.
     parallelize: bool
-        Whether to parallelize the identification procedure.
+        Whether to parallelize the twinning procedure.
     n_processes: int
         Number of parallel processes to run.
 
     Methods
     -------
-    identify(rbg_data, model, save_name, environment)
-        Runs the identification procedure.
+    twin(rbg_data, model, save_name, environment)
+        Runs the twinning procedure.
     """
 
     def __init__(self,
@@ -69,7 +69,7 @@ class MCMC:
         n_burn_in: int, optional, default : 10000
             Number of burn_in steps.
         parallelize: bool
-            Whether to parallelize the identification procedure.
+            Whether to parallelize the twinning procedure.
         n_processes: int
             Number of parallel processes to run.
 
@@ -106,18 +106,18 @@ class MCMC:
         self.parallelize = parallelize
         self.n_processes = n_processes
 
-    def identify(self,
-                 rbg_data: ReplayBGData,
-                 model: T1DModelSingleMeal | T1DModelMultiMeal,
-                 save_name: str,
-                 environment: Environment) -> Dict:
+    def twin(self,
+             rbg_data: ReplayBGData,
+             model: T1DModelSingleMeal | T1DModelMultiMeal,
+             save_name: str,
+             environment: Environment) -> Dict:
         """
-        Runs the identification procedure.
+        Runs the twinning procedure.
 
         Parameters
         ----------
         rbg_data: ReplayBGData
-            An object containing the data to be used during the identification procedure.
+            An object containing the data to be used during the twinning procedure.
         model: T1DModelSingleMeal | T1DModelMultiMeal
             An object that represents the physiological model to be used by ReplayBG.
         save_name : str
@@ -143,7 +143,7 @@ class MCMC:
         --------
         None
         """
-        # Number of unknown parameters to identify
+        # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)
 
         # Number of walkers to use. It should be at least twice the number of dimensions (here 50 times).
@@ -235,19 +235,19 @@ class MCMC:
         # TODO: Check physiological plausibility
 
         # Save results
-        identification_results = dict()
-        identification_results['draws'] = draws
+        twinning_results = dict()
+        twinning_results['draws'] = draws
 
         # Attach also chain if needed
         if self.save_chains:
-            identification_results['sampler'] = sampler
-            identification_results['tau'] = tau
-            identification_results['thin'] = thin
-            identification_results['burnin'] = burnin
+            twinning_results['sampler'] = sampler
+            twinning_results['tau'] = tau
+            twinning_results['thin'] = thin
+            twinning_results['burnin'] = burnin
 
         with open(os.path.join(environment.replay_bg_path, 'results', 'mcmc',
                                'mcmc_' + save_name + '.pkl'), 'wb') as file:
-            pickle.dump(identification_results, file)
+            pickle.dump(twinning_results, file)
 
         return draws
 
@@ -338,7 +338,7 @@ class MCMC:
             A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling,
             respectively.
         rbg_data: ReplayBGData
-            An object containing the data to be used during the identification procedure.
+            An object containing the data to be used during the twinning procedure.
         environment: Environment
             An object that represents the hyperparameters to be used by ReplayBG.
         model: T1DModelSingleMeal | T1DModelMultiMeal
@@ -395,7 +395,7 @@ class MCMC:
             model.model_parameters.kgri = model.model_parameters.kempt
 
             glucose['realizations'][r] = model.simulate(rbg_data=rbg_data,
-                                                        modality='identification',
+                                                        modality='twinning',
                                                         environment=environment,
                                                         dss=None)
 
@@ -438,7 +438,7 @@ def plot_progress(sampler, environment, model, rbg_data):
         setattr(model.model_parameters, model.unknown_parameters[p], last_sample[p])
     model.model_parameters.kgri = model.model_parameters.kempt
 
-    g = model.simulate(rbg_data=rbg_data, modality='identification', environment=environment, dss=None)
+    g = model.simulate(rbg_data=rbg_data, modality='twinning', environment=environment, dss=None)
     pylab.close()
 
     pylab.ion()  # Force interactive

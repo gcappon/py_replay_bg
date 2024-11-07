@@ -13,8 +13,8 @@ from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler
 
 from py_replay_bg.data import ReplayBGData
 
-from py_replay_bg.identification.mcmc import MCMC
-from py_replay_bg.identification.map import MAP
+from py_replay_bg.twinning.mcmc import MCMC
+from py_replay_bg.twinning.map import MAP
 from py_replay_bg.replay import Replayer
 from py_replay_bg.visualizer import Visualizer
 
@@ -39,10 +39,10 @@ class ReplayBG:
 
     Methods
     -------
-    twin(data, bw, save_name, identification_method, n_steps, save_chains, u2ss, x0, previous_data_name, parallelize,
+    twin(data, bw, save_name, twinning_method, n_steps, save_chains, u2ss, x0, previous_data_name, parallelize,
         n_processes)
         Runs ReplayBG twinning procedure.
-    replay(data, bw, save_name, u2ss, x0, previous_data_name, identification_method, bolus_source, basal_source,
+    replay(data, bw, save_name, u2ss, x0, previous_data_name, twinning_method, bolus_source, basal_source,
         cho_source, cr, cf, gt, meal_generator_handler, meal_generator_handler_params,
         bolus_calculator_handler, bolus_calculator_handler_params, basal_handler, basal_handler_params,
         enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
@@ -119,7 +119,7 @@ class ReplayBG:
                                        plot_mode=plot_mode, verbose=verbose)
 
     def twin(self, data: pd.DataFrame, bw: float, save_name: str,
-             identification_method: str = 'mcmc',
+             twinning_method: str = 'mcmc',
              n_steps: int = 50000, save_chains: bool = False,
              u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
              parallelize: bool = False, n_processes: int | None = None,
@@ -146,8 +146,8 @@ class ReplayBG:
             The name of the previous data portion. This is used to correcly "transfer" the initial model conditions to
             the current portion of data.
 
-        identification_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
-            The method to be used to identify the model.
+        twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
+            The method to be used to twin the model.
 
         n_steps: int, optional, default : 50000
             Number of steps to use for the main chain. This is ignored if modality is 'replay'.
@@ -155,7 +155,7 @@ class ReplayBG:
             A flag that specifies whether to save the resulting mcmc chains and copula samplers.
 
         parallelize : boolean, optional, default : False
-            A boolean that specifies whether to parallelize the identification process.
+            A boolean that specifies whether to parallelize the twinning process.
         n_processes : int, optional, default : None
             The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
@@ -179,7 +179,7 @@ class ReplayBG:
                  data=data,
                  bw=bw,
                  save_name=save_name,
-                 identification_method=identification_method,
+                 twinning_method=twinning_method,
                  n_steps=n_steps,
                  save_chains=save_chains,
                  u2ss=u2ss,
@@ -192,10 +192,10 @@ class ReplayBG:
                  ).validate()
 
         if self.environment.verbose:
-            print('Creating the digital twin using ' + identification_method.upper())
+            print('Creating the digital twin using ' + twinning_method.upper())
 
-        # If we are identifying, override initial conditions of glucose if they are not None. This allows to avoid
-        # "jumps" of glucose values during identification.
+        # If we are twinning, override initial conditions of glucose if they are not None. This allows to avoid
+        # "jumps" of glucose values during twinning.
         if x0 is not None:
             idx = np.where(data.glucose.isnull().values == False)[0][0]
             x0[0] = data.glucose.values[idx]
@@ -205,33 +205,33 @@ class ReplayBG:
         if self.environment.scenario == 'single-meal':
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
-                                       identification_method=identification_method,
+                                       twinning_method=twinning_method,
                                        environment=self.environment)
         else:
             model = T1DModelMultiMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                       previous_data_name=previous_data_name,
-                                      identification_method=identification_method,
+                                      twinning_method=twinning_method,
                                       environment=self.environment)
 
         # Unpack data to optimize performance during simulation
         rbg_data = ReplayBGData(data=data, model=model, environment=self.environment)
 
-        # Initialize identifier
-        if identification_method == 'mcmc':
-            identifier = MCMC(n_steps=n_steps,
+        # Initialize twinner
+        if twinning_method == 'mcmc':
+            twinner = MCMC(n_steps=n_steps,
                               save_chains=save_chains,
                               callback_ncheck=1000,
                               parallelize=parallelize,
                               n_processes=n_processes,
                               )
         else:
-            identifier = MAP(max_iter=100000,
+            twinner = MAP(max_iter=100000,
                              parallelize=parallelize,
                              n_processes=n_processes
                              )
 
         # Run twinning procedure
-        identifier.identify(rbg_data=rbg_data, model=model, save_name=save_name, environment=self.environment)
+        twinner.twin(rbg_data=rbg_data, model=model, save_name=save_name, environment=self.environment)
 
     def replay(self,
                data: pd.DataFrame,
@@ -240,7 +240,7 @@ class ReplayBG:
                u2ss: float | None = None,
                x0: np.ndarray | None = None,
                previous_data_name: str | None  = None,
-               identification_method: str = 'mcmc',
+               twinning_method: str = 'mcmc',
                bolus_source: str = 'data',
                basal_source: str = 'data',
                cho_source: str = 'data',
@@ -283,8 +283,8 @@ class ReplayBG:
         previous_data_name: str
             The name of the previous portion of data. To be used to initialize the initial conditions.
 
-        identification_method : str
-            The method used to identify the model.
+        twinning_method : str
+            The method used to twin the model.
 
         bolus_source : string, {'data', or 'dss'}
             A string defining whether to use, during replay, the insulin bolus data contained in the 'data' timetable
@@ -294,7 +294,7 @@ class ReplayBG:
             A string defining whether to use, during replay, the insulin basal data contained in the 'data' timetable
             (if 'data'), or the basal generated by the controller implemented via the provided
             'basalControllerHandler' function (if 'dss'), or fixed to the average basal rate used during
-            identification (if 'u2ss').
+            twinning (if 'u2ss').
         cho_source : string, {'data', 'generated'}
             A string defining whether to use, during replay, the CHO data contained in the 'data' timetable (if 'data'),
             or the CHO generated by the meal generator implemented via the provided 'mealGeneratorHandler' function.
@@ -342,7 +342,7 @@ class ReplayBG:
             A flag that specifies whether to save the resulting workspace.
 
         n_replay: int, {1, 10, 100, 1000}, optional, default: 1000
-            The number of Monte Carlo replays to be performed. Ignored if identification_method is 'map'.
+            The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors], optional, default: None
             The sensors to be used in each of the replay simulations.
 
@@ -395,7 +395,7 @@ class ReplayBG:
             u2ss=u2ss,
             x0=x0,
             previous_data_name=previous_data_name,
-            identification_method=identification_method,
+            twinning_method=twinning_method,
             bolus_source=bolus_source,
             basal_source=basal_source,
             cho_source=cho_source,
@@ -429,12 +429,12 @@ class ReplayBG:
         if self.environment.scenario == 'single-meal':
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
-                                       identification_method=identification_method,
+                                       twinning_method=twinning_method,
                                        environment=self.environment)
         else:
             model = T1DModelMultiMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                       previous_data_name=previous_data_name,
-                                      identification_method=identification_method,
+                                      twinning_method=twinning_method,
                                       environment=self.environment)
 
         # Initialize DSS
@@ -457,12 +457,12 @@ class ReplayBG:
 
         # Load model parameters
         if self.environment.verbose:
-            print('Loading identified model parameter realizations...')
+            print('Loading twinned model parameter realizations...')
 
-        with open(os.path.join(self.environment.replay_bg_path, 'results', identification_method,
-                               identification_method+'_' + save_name + '.pkl'), 'rb') as file:
-            identification_results = pickle.load(file)
-        draws = identification_results['draws']
+        with open(os.path.join(self.environment.replay_bg_path, 'results', twinning_method,
+                               twinning_method+'_' + save_name + '.pkl'), 'rb') as file:
+            twinning_results = pickle.load(file)
+        draws = twinning_results['draws']
 
         # Run replay
         if self.environment.verbose:
@@ -475,7 +475,7 @@ class ReplayBG:
             environment=self.environment,
             model=model,
             dss=dss,
-            identification_method=identification_method)
+            twinning_method=twinning_method)
         replay_results = replayer.replay_scenario()
 
         # Plot results if plot_mode is enabled

@@ -35,7 +35,7 @@ section.
 
 ## Step 1. Identify the model (AKA fits your data)
 
-The first step of PyReplayBG consists of identifying its model (i.e., the digital twinning procedure). This can be done
+The first step of PyReplayBG consists of twinning its model (i.e., the digital twinning procedure). This can be done
 with:
 
 ```python

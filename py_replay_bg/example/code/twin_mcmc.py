@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Set the number of steps for MCMC
     n_steps = 5000  # 5k is for testing. In production, this should be >= 50k
 
-    # Set other parameters for identification
+    # Set other parameters for twinning
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''),'..','..','..')
     parallelize = True
@@ -42,18 +42,18 @@ if __name__ == '__main__':
     data = load_test_data(day=1)
     save_name = 'data_day_' + str(1)
 
-    print("Identifying " + save_name)
+    print("Twinning " + save_name)
 
     # Run twinning procedure
     rbg.twin(data=data, bw=bw, save_name=save_name,
-             identification_method='mcmc',
+             twinning_method='mcmc',
              parallelize=parallelize,
              n_steps=n_steps,
              u2ss=u2ss)
 
     # Replay the twin with the same input data to get the initial conditions for the subsequent day
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
-                                identification_method='mcmc',
+                                twinning_method='mcmc',
                                 save_workspace=True,
                                 u2ss=u2ss,
                                 save_suffix='_twin_mcmc')

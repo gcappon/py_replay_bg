@@ -8,7 +8,7 @@ sidebar: auto
 A single meal scenario can be referred to a specific period of time when a specific subject had 1 meal and a
 corresponding insulin basal-bolus administration. 
 
-To run step 1 of PyReplayBG (i.e., identification) on a single meal scenario, user must provide the corresponding data as
+To run step 1 of PyReplayBG (i.e., twinning) on a single meal scenario, user must provide the corresponding data as
 a `.csv` file containing (at least) the following mandatory columns:
 * `t`: the timestamps when data of the corresponding row were recorded (format 
 `DD-MMM-YYYY HH:mm:SS` for example `20-Dec-2013 10:35:00`). The sampling grid defined by the `t` column must be
@@ -45,7 +45,7 @@ A representative data file of a single meal scenario can be found in `example/da
 A multi meal scenario can be referred to a specific period of time when a specific subject had more than 1 meal and a
 corresponding insulin basal-bolus administration regimen. 
 
-To run step 1 of PyReplayBG (i.e., identification) on a multi meal scenario, user must provide the corresponding data as
+To run step 1 of PyReplayBG (i.e., twinning) on a multi meal scenario, user must provide the corresponding data as
 a `.csv` file containing (at least) the following mandatory columns:
 * `t`: the timestamps when data of the corresponding row were recorded (format 
 `DD-MMM-YYYY HH:mm:SS` for example `20-Dec-2013 10:35:00`). The sampling grid defined by the `t` column must be

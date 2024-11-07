@@ -21,21 +21,21 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class MAP:
     """
-    A class that orchestrates the identification process via MAP.
+    A class that orchestrates the twinning process via MAP.
 
     Attributes
     ----------
     max_iter: int
         Maximum number of iterations.
     parallelize : bool
-        A boolean that specifies whether to parallelize the identification process.
+        A boolean that specifies whether to parallelize the twinning process.
     n_processes : int
         The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
     Methods
     -------
-    identify(rbg_data, model, save_name, environment)
-        Runs the identification procedure.
+    twin(rbg_data, model, save_name, environment)
+        Runs the twinning procedure.
     """
 
     def __init__(self,
@@ -51,7 +51,7 @@ class MAP:
         max_iter: int, optional, default : 100000
             Maximum number of iterations.
         parallelize : bool, optional, default : False
-            A boolean that specifies whether to parallelize the identification process.
+            A boolean that specifies whether to parallelize the twinning process.
         n_processes : int, optional, default : None
             The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
@@ -85,18 +85,18 @@ class MAP:
         self.parallelize = parallelize
         self.n_processes = n_processes
 
-    def identify(self,
+    def twin(self,
                  rbg_data: ReplayBGData,
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  save_name: str,
                  environment: Environment) -> Dict:
         """
-        Runs the identification procedure.
+        Runs the twinning procedure.
 
         Parameters
         ----------
         rbg_data: ReplayBGData
-            An object containing the data to be used during the identification procedure.
+            An object containing the data to be used during the twinning procedure.
         model: T1DModelSingleMeal | T1DModelMultiMeal
             An object that represents the physiological model to be used by ReplayBG.
         environment: Environment
@@ -123,7 +123,7 @@ class MAP:
         None
         """
 
-        # Number of unknown parameters to identify
+        # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)
 
         # Set the initial positions of the walkers.
@@ -186,14 +186,14 @@ class MAP:
             draws[model.unknown_parameters[up]] = results[best]['x'][up]
 
         # Save results
-        identification_results = dict()
-        identification_results['draws'] = draws
+        twinning_results = dict()
+        twinning_results['draws'] = draws
 
         saved_file = os.path.join(environment.replay_bg_path, 'results', 'map',
                                   'map_' + save_name + '.pkl')
 
         with open(saved_file, 'wb') as file:
-            pickle.dump(identification_results, file)
+            pickle.dump(twinning_results, file)
 
         if environment.verbose:
             print('Parameters saved in ' + saved_file)
@@ -207,23 +207,23 @@ def run_map(start: np.ndarray,
             options: Dict
             ) -> Dict:
     """
-    Utility function used to run MAP identification.
+    Utility function used to run MAP twinning.
 
     Parameters
     ----------
     start: np.ndarray
-        An object containing the data to be used during the identification procedure.
+        An object containing the data to be used during the twinning procedure.
     neg_log_posterior_func: Callable
         The function to minimize, i.e., the neg-loglikelihood.
     rbg_data: ReplayBGData
-        An object containing the data to be used during the identification procedure.
+        An object containing the data to be used during the twinning procedure.
     options : Dict
         A dictionary with the options necessary to the minimization function.
 
     Returns
     -------
     ret: dict
-        A dictionary containing the results of the MAP identification and the final value of the objective function.
+        A dictionary containing the results of the MAP twinning and the final value of the objective function.
 
     Raises
     ------
