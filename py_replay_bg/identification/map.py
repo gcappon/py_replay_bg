@@ -2,13 +2,18 @@ import os
 import warnings
 import pickle
 import numpy as np
-import pandas as pd
+
+from typing import Dict, Callable
 
 from multiprocessing import Pool
 from tqdm import tqdm
 from scipy.optimize import minimize
 
 from py_replay_bg.data import ReplayBGData
+from py_replay_bg.model.t1d_model_single_meal import T1DModelSingleMeal
+from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
+
+from py_replay_bg.environment import Environment
 
 # Suppress all RuntimeWarnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -17,19 +22,38 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 class MAP:
     """
     A class that orchestrates the identification process via MAP.
+
+    Attributes
+    ----------
+    max_iter: int
+        Maximum number of iterations.
+    parallelize : bool
+        A boolean that specifies whether to parallelize the identification process.
+    n_processes : int
+        The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
+
+    Methods
+    -------
+    identify(rbg_data, model, save_name, environment)
+        Runs the identification procedure.
     """
 
-    def __init__(self, model,
-                max_iter: int = 100000):
+    def __init__(self,
+                 max_iter: int = 100000,
+                 parallelize: bool = False,
+                 n_processes: int | None = None,
+                 ):
         """
         Constructs all the necessary attributes for the MCMC object.
 
         Parameters
         ----------
-        model: Model
-            An object that represents the physiological model hyperparameters to be used by ReplayBG.
         max_iter: int, optional, default : 100000
             Maximum number of iterations.
+        parallelize : bool, optional, default : False
+            A boolean that specifies whether to parallelize the identification process.
+        n_processes : int, optional, default : None
+            The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
         Returns
         -------
@@ -47,12 +71,6 @@ class MAP:
         --------
         None
         """
-
-        # Physiological model to identify
-        self.model = model
-
-        # Number of unknown parameters to identify
-        self.n_dim = len(self.model.unknown_parameters)
 
         # Number of times to re-run the procedure
         self.n_rerun = 64
@@ -63,23 +81,34 @@ class MAP:
         # Maximum number of function evaluations
         self.max_fev = 1000000
 
-    def identify(self, data, rbg_data, rbg):
+        # Parallelization options
+        self.parallelize = parallelize
+        self.n_processes = n_processes
+
+    def identify(self,
+                 rbg_data: ReplayBGData,
+                 model: T1DModelSingleMeal | T1DModelMultiMeal,
+                 save_name: str,
+                 environment: Environment) -> Dict:
         """
         Runs the identification procedure.
 
         Parameters
         ----------
-        data: pd.DataFrame
-            Pandas dataframe which contains the data to be used by the tool.
         rbg_data: ReplayBGData
             An object containing the data to be used during the identification procedure.
-        rbg: ReplayBG
-            The instance of ReplayBG.
+        model: T1DModelSingleMeal | T1DModelMultiMeal
+            An object that represents the physiological model to be used by ReplayBG.
+        environment: Environment
+            An object that represents the hyperparameters to be used by ReplayBG.
+        save_name : str
+            A string used to label, thus identify, each output file and result.
 
         Returns
         -------
         draws: dict
-            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula sampling, respectively.
+            A dictionary containing the chain and the samples obtained from the MCMC procedure and the copula
+            sampling, respectively.
 
         Raises
         ------
@@ -94,30 +123,33 @@ class MAP:
         None
         """
 
+        # Number of unknown parameters to identify
+        n_dim = len(model.unknown_parameters)
+
         # Set the initial positions of the walkers.
-        start = self.model.start_guess + self.model.start_guess_sigma * np.random.randn(self.n_rerun, self.n_dim)
+        start = model.start_guess + model.start_guess_sigma * np.random.randn(self.n_rerun, n_dim)
         start[start < 0] = 0
 
         # Set the pooler
         pool = None
-        if rbg.environment.parallelize:
-            pool = Pool(processes=rbg.environment.n_processes)
+        if self.parallelize:
+            pool = Pool(processes=self.n_processes)
 
-        # Setup the options
+        # Set up the options
         options = dict()
         options['maxiter'] = self.max_iter
         options['maxfev'] = self.max_fev
         options['disp'] = False
 
         # Select the function to minimize
-        neg_log_posterior_func = self.model.neg_log_posterior
+        neg_log_posterior_func = model.neg_log_posterior
 
         # Initialize results
         results = []
 
         if pool is None:
 
-            if rbg.environment.verbose:
+            if environment.verbose:
                 iterator = tqdm(range(self.n_rerun))
                 iterator.set_description("Min loss: %f" % np.nan)
             else:
@@ -131,7 +163,7 @@ class MAP:
                 results.append(result)
                 if best == -1 or result['fun'] < results[best]['fun']:
                     best = r
-                if rbg.environment.verbose:
+                if environment.verbose:
                     iterator.set_description("Min loss %f" % results[best]['fun'])
 
         else:
@@ -150,22 +182,62 @@ class MAP:
                     best = r
 
         draws = dict()
-        for up in range(len(rbg.model.unknown_parameters)):
-            draws[rbg.model.unknown_parameters[up]] = results[best]['x'][up]
+        for up in range(n_dim):
+            draws[model.unknown_parameters[up]] = results[best]['x'][up]
 
         # Save results
         identification_results = dict()
         identification_results['draws'] = draws
 
-        with open(os.path.join(rbg.environment.replay_bg_path, 'results', 'map',
-                               'map_' + rbg.environment.save_name + '.pkl'), 'wb') as file:
+        saved_file = os.path.join(environment.replay_bg_path, 'results', 'map',
+                                  'map_' + save_name + '.pkl')
+
+        with open(saved_file, 'wb') as file:
             pickle.dump(identification_results, file)
+
+        if environment.verbose:
+            print('Parameters saved in ' + saved_file)
 
         return draws
 
 
-def run_map(start, func, rbg_data, options):
-    result = minimize(func, start, method='Powell', args=(rbg_data,), options=options)
+def run_map(start: np.ndarray,
+            neg_log_posterior_func: Callable,
+            rbg_data: ReplayBGData,
+            options: Dict
+            ) -> Dict:
+    """
+    Utility function used to run MAP identification.
+
+    Parameters
+    ----------
+    start: np.ndarray
+        An object containing the data to be used during the identification procedure.
+    neg_log_posterior_func: Callable
+        The function to minimize, i.e., the neg-loglikelihood.
+    rbg_data: ReplayBGData
+        An object containing the data to be used during the identification procedure.
+    options : Dict
+        A dictionary with the options necessary to the minimization function.
+
+    Returns
+    -------
+    ret: dict
+        A dictionary containing the results of the MAP identification and the final value of the objective function.
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    None
+
+    Examples
+    --------
+    None
+    """
+    result = minimize(neg_log_posterior_func, start, method='Powell', args=(rbg_data,), options=options)
     ret = dict()
     ret['fun'] = result.fun
     ret['x'] = result.x

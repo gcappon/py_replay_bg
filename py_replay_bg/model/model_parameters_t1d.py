@@ -1,8 +1,13 @@
 import numpy as np
+import pandas as pd
 
 
 class ModelParametersT1D:
-    def __init__(self, data, bw, u2ss):
+    def __init__(self,
+                 data: pd.DataFrame,
+                 bw: float,
+                 u2ss: float
+                 ):
 
         """
         Function that returns the default parameters values of the t1d model.
@@ -11,9 +16,9 @@ class ModelParametersT1D:
         ----------
         data : pd.DataFrame
                 Pandas dataframe which contains the data to be used by the tool.
-        bw : double
+        bw : float
             The patient's body weight.
-        u2ss : double
+        u2ss : float
             The steady state of the basal insulin infusion
 
         Returns
@@ -90,7 +95,11 @@ class ModelParametersT1D:
 
 class ModelParametersT1DMultiMeal(ModelParametersT1D):
 
-    def __init__(self, data, bw, u2ss):
+    def __init__(self,
+                 data: pd.DataFrame,
+                 bw: float,
+                 u2ss: float
+                 ):
 
         """
         Function that returns the default parameters values of the t1d model in a multi-meal scenario.
@@ -99,9 +108,9 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
         ----------
         data : pd.DataFrame
                 Pandas dataframe which contains the data to be used by the tool.
-        bw : double
+        bw : float
             The patient's body weight.
-        u2ss : double
+        u2ss : float
             The steady state of the basal insulin infusion
 
         Returns
@@ -143,7 +152,11 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
 
 class ModelParametersT1DSingleMeal(ModelParametersT1D):
 
-    def __init__(self, data, bw, u2ss):
+    def __init__(self,
+                 data: pd.DataFrame,
+                 bw: float,
+                 u2ss: float
+                 ):
 
         """
         Function that returns the default parameters values of the t1d model in a single-meal scenario.
@@ -152,9 +165,9 @@ class ModelParametersT1DSingleMeal(ModelParametersT1D):
         ----------
         data : pd.DataFrame
                 Pandas dataframe which contains the data to be used by the tool.
-        bw : double
+        bw : float
             The patient's body weight.
-        u2ss : double
+        u2ss : float
             The steady state of the basal insulin infusion
 
         Returns

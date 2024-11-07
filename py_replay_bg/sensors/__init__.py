@@ -1,62 +1,45 @@
 import numpy as np
 
 
-class Sensors:
-    """
-    A class that represents the sensors to be used by ReplayBG.
-
-    ...
-    Attributes
-    ----------
-    cgm: CGM
-        The CGM sensor used to measure the interstitial glucose during simulations.
-
-    Methods
-    -------
-    None
-    """
-
-    def __init__(self, cgm):
-        """
-        Constructs all the necessary attributes for the Sensors object.
-
-        Parameters
-        ----------
-        cgm: CGM
-            The CGM sensor used to measure the interstitial glucose during simulations.
-        """
-        self.cgm = cgm
-
-
 class CGM:
     """
     A class that represents a CGM sensor.
 
-    ...
     Attributes
     ----------
     ts: int
         The sample time of the cgm sensor (min).
-    model: string, {'CGM','IG'}
-        A string that specifies the cgm model selection.
-        If IG is selected, CGM measure will be the noise-free IG state at the current time.
-    t_offset: double
+    t_offset: float
         The time offset of the cgm sensor (when new this is 0). This is used if a cgm sensor is shared between more
         replay runs.
-    cgm_error_parameters: array
+    cgm_error_parameters: np.ndarray
         An array containing the parameters of the CGM.
-    output_noise_SD: float
+    output_noise_sd: float
         The output standard deviation of the CGM error model.
+    ekm1: float
+        Memory term for the CGM noise: e(k-1).
+   ekm2: float
+        Memory term for the CGM noise: e(k-2).
+    max_lifetime: float
+        The maximum lifetime of the CGM sensor (in minutes).
+    connected_at: int
+        The time at which the CGM sensor is connected (utility variable to manage sensor lifetime through multiple
+        ReplayBG calls).
 
     Methods
     -------
-    connect_new_cgm():
+    connect_new_cgm(connected_at):
         Connects a new CGM sensor by sampling new error parameters.
-    measure(IG, t):
+    measure(ig, t):
         Function that provides a CGM measure using the model of Vettoretti et al., Sensors, 2019.
+    add_offset(to_add):
+        Utility function that adds an offset to the sensor life. Used when the sensor object must be shared through
+        multiple ReplayBG runs.
     """
 
-    def __init__(self, ts=5, model='CGM'):
+    def __init__(self,
+                 ts: int = 5,
+                 ):
         """
         Constructs all the necessary attributes for the CGM object.
 
@@ -64,23 +47,23 @@ class CGM:
         ----------
         ts: int, optional, default = 5
             The sample time of the cgm sensor (min).
-        model: string, {'CGM','IG'}, optional, default : 'CGM'
-            A string that specify the cgm model selection.
-            If IG is selected, CGM measure will be the noise-free IG state at the current time.
         """
         self.ts = ts
-        self.model = model
         self.t_offset = 0
 
-        if self.model == 'CGM':
-            self.connect_new_cgm()
-        else:
-            self.cgm_error_parameters, self.output_noise_SD = [], []
+        self.connect_new_cgm()
 
         # Set max lifetime (minutes)
         self.max_lifetime = 10 * 1440  # 10 days
         self.connected_at = 0
 
+        # Set the parameters of the CGM
+        self.cgm_error_parameters = []
+        self.output_noise_sd = []
+
+        # Set memory terms
+        self.ekm1 = None
+        self.ekm2 = None
 
     def connect_new_cgm(self, connected_at=0):
         """
@@ -88,7 +71,9 @@ class CGM:
 
         Parameters
         ----------
-        None
+        connected_at: int, optional, default = 0
+            The time at which the CGM sensor is connected (utility variable to manage sensor lifetime through multiple
+            ReplayBG calls).
 
         Returns
         -------
@@ -147,14 +132,15 @@ class CGM:
         # Modulate the covariance matrix
         sigma = sigma * f
         # Maximum allowed output noise SD (mg/dl)
-        max_output_noise_SD = 10
+        max_output_noise_sd = 10
         # Tolerance for model stability check
         toll = 0.02
 
         # Flag for stability of the AR(2) model
         stable = 0
-        output_noise_SD = np.inf
-        while (~ stable) or (output_noise_SD > max_output_noise_SD):
+        output_noise_sd = np.inf
+        cgm_error_parameters = []
+        while (~ stable) or (output_noise_sd > max_output_noise_sd):
             # Sample CGM error parameters
             cgm_error_parameters = np.random.multivariate_normal(mu, sigma)
 
@@ -162,14 +148,19 @@ class CGM:
             stable = (cgm_error_parameters[5] >= -1) and (
                     cgm_error_parameters[5] <= (1 - np.abs(cgm_error_parameters[4]) - toll))
 
-            # Compute the output noise standard deviation
-            output_noise_SD = np.sqrt(cgm_error_parameters[6] ** 2 / (
+            output_noise_var = cgm_error_parameters[6] ** 2 / (
                     1 - (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) - cgm_error_parameters[5] * (
-                    (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) + cgm_error_parameters[5])))
+                    (cgm_error_parameters[4] ** 2) / (1 - cgm_error_parameters[5]) + cgm_error_parameters[5]))
+
+            if output_noise_var < 0:
+                continue
+
+            # Compute the output noise standard deviation
+            output_noise_sd = np.sqrt(output_noise_var)
 
         # Set the parameters of the CGM
         self.cgm_error_parameters = cgm_error_parameters
-        self.output_noise_SD = output_noise_SD
+        self.output_noise_sd = output_noise_sd
 
         # Set memory terms
         self.ekm1 = 0
@@ -178,15 +169,16 @@ class CGM:
         # Set the offset (minutes)
         self.t_offset = 0
 
+        # Set the connection time
         self.connected_at = connected_at
 
-    def measure(self, IG, t):
+    def measure(self, ig, t):
         """
         Function that provides a CGM measure using the model of Vettoretti et al., Sensors, 2019.
 
         Parameters
         ----------
-        IG: float
+        ig: float
             The interstitial glucose concentration at current time (mg/dl).
         t: float
             Current time in days from the start of CGM sensor.
@@ -209,13 +201,9 @@ class CGM:
         None
         """
 
-        # If the model is IG, just echo the IG value
-        if self.model == 'IG':
-            return IG
-
         # Apply calibration error
-        IGs = (self.cgm_error_parameters[0] + self.cgm_error_parameters[1] * (t + self.t_offset) + self.cgm_error_parameters[
-            2] * ((t + self.t_offset) ** 2)) * IG + self.cgm_error_parameters[3]
+        ig_s = (self.cgm_error_parameters[0] + self.cgm_error_parameters[1] * (t + self.t_offset) +
+                self.cgm_error_parameters[2] * ((t + self.t_offset) ** 2)) * ig + self.cgm_error_parameters[3]
 
         # Generate noise
         z = np.random.normal(0, 1)
@@ -227,7 +215,60 @@ class CGM:
         self.ekm1 = e
 
         # Get final CGM
-        return IGs + e
+        return ig_s + e
 
-    def add_offset(self, to_add):
+    def add_offset(self,
+                   to_add: float) -> None:
+        """
+        Utility function that adds an offset to the sensor life. Used when the sensor object must be shared through
+        multiple ReplayBG runs.
+
+        Parameters
+        ----------
+        to_add: float
+            The offset to add to the sensor life.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
         self.t_offset += to_add
+
+
+class Sensors:
+    """
+    A class that represents the sensors to be used by ReplayBG.
+
+    ...
+    Attributes
+    ----------
+    cgm: CGM
+        The CGM sensor used to measure the interstitial glucose during simulations.
+
+    Methods
+    -------
+    None
+    """
+
+    def __init__(self, cgm: CGM):
+        """
+        Constructs all the necessary attributes for the Sensors object.
+
+        Parameters
+        ----------
+        cgm: CGM
+            The CGM sensor used to measure the interstitial glucose during simulations.
+        """
+        self.cgm = cgm

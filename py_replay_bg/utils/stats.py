@@ -3,7 +3,7 @@ import numpy as np
 from numba import njit
 
 
-@njit(fastmath = True)
+@njit(fastmath=True)
 def log_lognorm(x, mu, sigma):
     """
     Computes the logarithm of the log-normal pdf evaluated at given x with given mu and sigma.
@@ -37,7 +37,7 @@ def log_lognorm(x, mu, sigma):
     return np.log(1 / (x * sigma * np.sqrt(2 * np.pi)) * np.exp(- ((np.log(x) - mu) ** 2) / (2 * (sigma ** 2))))
 
 
-@njit(fastmath = True)
+@njit(fastmath=True)
 def log_norm(x, mu, sigma):
     """
     Computes the logarithm of the normal pdf evaluated at given x with given mu and sigma.
@@ -71,7 +71,7 @@ def log_norm(x, mu, sigma):
     return np.log(1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- 0.5 * ((x - mu) / sigma) ** 2))
 
 
-@njit(fastmath = True)
+@njit(fastmath=True)
 def log_gamma(x, alpha, beta):
     """
     Computes the logarithm of the gamma pdf evaluated at given x with given alpha and beta.

@@ -9,6 +9,11 @@ def identify_single_meal(tsteps, x, A, B,
                         meal_delayed, t_hour,
                         r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
                         f, kabs, alpha, previous_Ra):
+    """
+    Internal function that simulates the single-meal model using backward-euler method. Optimized for
+    identification only.
+    """
+    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -26,6 +31,10 @@ def identify_single_meal_exercise(tsteps, x, A, B,
                         meal_delayed, t_hour,
                         r1,r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
                         f, kabs, alpha, vo2rest, vo2max, e1, e2, previous_Ra):
+    """
+    Internal function that simulates the single-meal + exercise model using backward-euler method.
+    """
+    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -43,6 +52,10 @@ def identify_multi_meal(tsteps, x, A, B,
                         meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
                         r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                         f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
+    """
+    Internal function that simulates the multi-meal model using backward-euler method.
+    """
+    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -64,6 +77,10 @@ def identify_multi_meal_exercise(tsteps, x, A, B,
                         meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
                         r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                         f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, vo2rest, vo2max, e1, e2, previous_Ra):
+    """
+    Internal function that simulates the multi-meal + exercise model using backward-euler method.
+    """
+    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
@@ -85,92 +102,31 @@ def identify_multi_meal_exercise(tsteps, x, A, B,
 def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
                                      r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
                                      f, kabs, alpha, previous_Ra):
-        """
-        Internal function that simulates a step of the model using backward-euler method.
+    """
+    Internal function that simulates a step of the single-meal model using backward-euler method.
+    """
+    xk = xkm1
 
-        Parameters
-        ----------
-        A : np.ndarray
-        The state parameter matrix.
-        I : float
-            The (basal + bolus) insulin given as input.
-        cho : float
-            The meal cho given as input.
-        hour_of_the_day : float
-            The hour of the day given as input.
-        xkm1 : array
-            The model state values at the previous step (k-1).
-        B : np.ndarray
-            The (pre-allocated) input vector.
-        r1 : float
-            The value of the r1 parameter.
-        r2 : float
-            The value of the r2 parameter.
-        kgri : float
-            The value of the kgri parameter.
-        kd : float
-            The value of the kd parameter.
-        p2 : float
-            The value of the p2 parameter.
-        SI : float
-            The value of the SI parameter.
-        VI : float
-            The value of the VI parameter.
-        VG : float
-            The value of the VG parameter.
-        Ipb : float
-            The value of the Ipb parameter.
-        SG : float
-            The value of the SG parameter.
-        Gb : float
-            The value of the Gb parameter.
-        f : float
-            The value of the f parameter.
-        kabs : float
-            The value of the kabs parameter.
-        alpha : float
-            The value of the alpha parameter.
+    # Compute glucose risk
+    risk = 1
 
-        Returns
-        -------
-        xk: array
-            The model state values at the current step k.
+    # Compute the risk
+    if 119.13 > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    elif xkm1[0] < 60:
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
 
-        Raises
-        ------
-        None
+    # Compute the model state at time k using backward Euler method
+    B[:] = [cho / (1 + kgri), 0, 0,
+         I / (1 + kd), 0, 0]
+    C = np.ascontiguousarray(xkm1[2:8])
+    xk[2:8] = A @ C + B
 
-        See Also
-        --------
-        None
+    xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
+    xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+    xk[8] = (xkm1[8] + alpha * xk[0]) / (1 + alpha)
 
-        Examples
-        --------
-        None
-        """
-
-        xk = xkm1
-
-        # Compute glucose risk
-        risk = 1
-
-        # Compute the risk
-        if 119.13 > xkm1[0] >= 60:
-            risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
-        elif xkm1[0] < 60:
-            risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
-
-        # Compute the model state at time k using backward Euler method
-        B[:] = [cho / (1 + kgri), 0, 0,
-             I / (1 + kd), 0, 0]
-        C = np.ascontiguousarray(xkm1[2:8])
-        xk[2:8] = A @ C + B
-
-        xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-        xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
-        xk[8] = (xkm1[8] + alpha * xk[0]) / (1 + alpha)
-
-        return xk
+    return xk
 
 
 @njit
@@ -179,102 +135,42 @@ def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, x
                                      f, kabs, alpha,
                                      vo2rest, vo2max, e1, e2,
                                      previous_Ra):
-        """
-        Internal function that simulates a step of the model using backward-euler method.
+    """
+    Internal function that simulates a step of the single-meal + exercise model using backward-euler method.
+    """
 
-        Parameters
-        ----------
-        A : np.ndarray
-        The state parameter matrix.
-        I : float
-            The (basal + bolus) insulin given as input.
-        cho : float
-            The meal cho given as input.
-        hour_of_the_day : float
-            The hour of the day given as input.
-        xkm1 : array
-            The model state values at the previous step (k-1).
-        B : np.ndarray
-            The (pre-allocated) input vector.
-        r1 : float
-            The value of the r1 parameter.
-        r2 : float
-            The value of the r2 parameter.
-        kgri : float
-            The value of the kgri parameter.
-        kd : float
-            The value of the kd parameter.
-        p2 : float
-            The value of the p2 parameter.
-        SI : float
-            The value of the SI parameter.
-        VI : float
-            The value of the VI parameter.
-        VG : float
-            The value of the VG parameter.
-        Ipb : float
-            The value of the Ipb parameter.
-        SG : float
-            The value of the SG parameter.
-        Gb : float
-            The value of the Gb parameter.
-        f : float
-            The value of the f parameter.
-        kabs : float
-            The value of the kabs parameter.
-        alpha : float
-            The value of the alpha parameter.
+    xk = xkm1
 
-        Returns
-        -------
-        xk: array
-            The model state values at the current step k.
+    # Compute glucose risk
+    risk = 1
 
-        Raises
-        ------
-        None
+    # Compute the risk
+    if 119.13 > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    elif xkm1[0] < 60:
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
 
-        See Also
-        --------
-        None
+    if vo2 == 0:
+        xk[8] = 0
+    else:
+        xk[8] = xk[8] + 1 / 60
 
-        Examples
-        --------
-        None
-        """
+    # Compute exercise model terms
+    pvo2 = (vo2 - vo2rest) / (vo2max - vo2rest)
+    inc1 = e1 * pvo2
+    inc2 = e2 * (pvo2 + xk[8])
 
-        xk = xkm1
+    # Compute the model state at time k using backward Euler method
+    B[:] = [cho / (1 + kgri), 0, 0,
+         I / (1 + kd), 0, 0]
+    C = np.ascontiguousarray(xkm1[2:8])
+    xk[2:8] = A @ C + B
 
-        # Compute glucose risk
-        risk = 1
+    xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
+    xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+    xk[9] = (xkm1[9] + alpha * xk[0]) / (1 + alpha)
 
-        # Compute the risk
-        if 119.13 > xkm1[0] >= 60:
-            risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
-        elif xkm1[0] < 60:
-            risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
-
-        if vo2 == 0:
-            xk[8] = 0
-        else:
-            xk[8] = xk[8] + 1 / 60
-
-        # Compute exercise model terms
-        pvo2 = (vo2 - vo2rest) / (vo2max - vo2rest)
-        inc1 = e1 * pvo2
-        inc2 = e2 * (pvo2 + xk[8])
-
-        # Compute the model state at time k using backward Euler method
-        B[:] = [cho / (1 + kgri), 0, 0,
-             I / (1 + kd), 0, 0]
-        C = np.ascontiguousarray(xkm1[2:8])
-        xk[2:8] = A @ C + B
-
-        xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-        xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
-        xk[9] = (xkm1[9] + alpha * xk[0]) / (1 + alpha)
-
-        return xk
+    return xk
 
 
 @njit
@@ -282,87 +178,7 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
                                     r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                                     f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
     """
-    Internal function that simulates a step of the model using backward-euler method.
-
-    Parameters
-    ----------
-    A : np.ndarray
-        The state parameter matrix.
-    I : float
-        The (basal + bolus) insulin given as input.
-    cho_b : float
-        The meal breakfast cho given as input.
-    cho_l : float
-        The meal lunch cho given as input.
-    cho_d : float
-        The meal dinner cho given as input.
-    cho_s : float
-        The meal snack cho given as input.
-    cho_h : float
-        The meal hypotreatment cho given as input.
-    hour_of_the_day : float
-        The hour of the day given as input.
-    xkm1 : array
-        The model state values at the previous step (k-1).
-    B : np.ndarray
-        The (pre-allocated) input vector.
-    r1 : float
-        The value of the r1 parameter.
-    r2 : float
-        The value of the r2 parameter.
-    kgri : float
-        The value of the kgri parameter.
-    kd : float
-        The value of the kd parameter.
-    p2 : float
-        The value of the p2 parameter.
-    SI_B : float
-        The value of the SI_B parameter.
-    SI_L : float
-        The value of the SI_L parameter.
-    SI_D : float
-        The value of the SI_D parameter.
-    VI : float
-        The value of the VI parameter.
-    VG : float
-        The value of the VG parameter.
-    Ipb : float
-        The value of the Ipb parameter.
-    SG : float
-        The value of the SG parameter.
-    Gb : float
-        The value of the Gb parameter.
-    f : float
-        The value of the f parameter.
-    kabs_B : float
-        The value of the kabs_B parameter.
-    kabs_L : float
-        The value of the kabs_L parameter.
-    kabs_D : float
-        The value of the kabs_D parameter.
-    kabs_S : float
-        The value of the kabs_S parameter.
-    kabs_H : float
-        The value of the kabs_H parameter.
-    alpha : float
-        The value of the alpha parameter.
-
-    Returns
-    -------
-    xk: array
-        The model state values at the current step k.
-
-    Raises
-    ------
-    None
-
-    See Also
-    --------
-    None
-
-    Examples
-    --------
-    None
+    Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
 
     xk = xkm1
@@ -413,89 +229,7 @@ def model_step_equations_multi_meal_exercise(A, I, cho_b, cho_l, cho_d, cho_s, c
                                     vo2rest, vo2max, e1, e2,
                                     previous_Ra):
     """
-    Internal function that simulates a step of the model using backward-euler method.
-
-    Parameters
-    ----------
-    A : np.ndarray
-        The state parameter matrix.
-    I : float
-        The (basal + bolus) insulin given as input.
-    cho_b : float
-        The meal breakfast cho given as input.
-    cho_l : float
-        The meal lunch cho given as input.
-    cho_d : float
-        The meal dinner cho given as input.
-    cho_s : float
-        The meal snack cho given as input.
-    cho_h : float
-        The meal hypotreatment cho given as input.
-    vo2 : float
-        The vo2 given as input.
-    hour_of_the_day : float
-        The hour of the day given as input.
-    xkm1 : array
-        The model state values at the previous step (k-1).
-    B : np.ndarray
-        The (pre-allocated) input vector.
-    r1 : float
-        The value of the r1 parameter.
-    r2 : float
-        The value of the r2 parameter.
-    kgri : float
-        The value of the kgri parameter.
-    kd : float
-        The value of the kd parameter.
-    p2 : float
-        The value of the p2 parameter.
-    SI_B : float
-        The value of the SI_B parameter.
-    SI_L : float
-        The value of the SI_L parameter.
-    SI_D : float
-        The value of the SI_D parameter.
-    VI : float
-        The value of the VI parameter.
-    VG : float
-        The value of the VG parameter.
-    Ipb : float
-        The value of the Ipb parameter.
-    SG : float
-        The value of the SG parameter.
-    Gb : float
-        The value of the Gb parameter.
-    f : float
-        The value of the f parameter.
-    kabs_B : float
-        The value of the kabs_B parameter.
-    kabs_L : float
-        The value of the kabs_L parameter.
-    kabs_D : float
-        The value of the kabs_D parameter.
-    kabs_S : float
-        The value of the kabs_S parameter.
-    kabs_H : float
-        The value of the kabs_H parameter.
-    alpha : float
-        The value of the alpha parameter.
-
-    Returns
-    -------
-    xk: array
-        The model state values at the current step k.
-
-    Raises
-    ------
-    None
-
-    See Also
-    --------
-    None
-
-    Examples
-    --------
-    None
+    Internal function that simulates a step of the multi-meal + exercise model using backward-euler method.
     """
 
     xk = xkm1

@@ -4,8 +4,12 @@ from numba import njit
 
 import numpy as np
 
+
 @njit
-def log_prior_single_meal(VG, theta):
+def log_prior_single_meal(
+        VG: float,
+        theta: np.ndarray
+):
     """
     Internal function that computes the log prior of unknown parameters.
 
@@ -13,7 +17,7 @@ def log_prior_single_meal(VG, theta):
     ----------
     VG : float
         The value of the VG parameter
-    theta : array
+    theta : np.ndarray
         The current guess of unknown model parameters.
 
     Returns
@@ -39,29 +43,37 @@ def log_prior_single_meal(VG, theta):
 
     # compute each log prior
     logprior_SI = log_gamma(SI * VG, 3.3, 1 / 5e-4)
-
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
     logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
     logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
-
     logprior_kabs = log_lognorm(kabs, mu=-5.4591,
                                 sigma=1.4396) if kempt >= kabs and 0 < kabs < 1 else -np.inf
 
     logprior_beta = 0 if 0 <= beta <= 60 else -np.inf
 
     # Sum everything and return the value
-    return logprior_SI + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta
+    return (logprior_SI +
+            logprior_Gb +
+            logprior_SG +
+            logprior_ka2 +
+            logprior_kd +
+            logprior_kempt +
+            logprior_kabs +
+            logprior_beta)
 
 @njit
-def log_prior_single_meal_exercise(VG, theta):
+def log_prior_single_meal_exercise(
+        VG: float,
+        theta: np.ndarray
+):
     """
     Internal function that computes the log prior of unknown parameters.
 
     Parameters
     ----------
-    VG : float
+    VG : np.ndarray
         The value of the VG parameter
     theta : array
         The current guess of unknown model parameters.
@@ -105,16 +117,47 @@ def log_prior_single_meal_exercise(VG, theta):
     logprior_e2 = log_norm(e2, mu=2, sigma=0.1) if 0 <= e2 <= 4 else -np.inf
 
     # Sum everything and return the value
-    return logprior_SI + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs + logprior_beta + logprior_e1 + logprior_e2
+    return (logprior_SI +
+            logprior_Gb +
+            logprior_SG +
+            logprior_ka2 +
+            logprior_kd +
+            logprior_kempt +
+            logprior_kabs +
+            logprior_beta +
+            logprior_e1 +
+            logprior_e2)
 
 
 @njit
-def log_prior_multi_meal(VG,
-                           pos_SI_B, SI_B, pos_SI_L, SI_L, pos_SI_D, SI_D,
-                           pos_kabs_B, kabs_B, pos_kabs_L, kabs_L, pos_kabs_D, kabs_D, pos_kabs_S, kabs_S,
-                           pos_kabs_H, kabs_H,
-                           pos_beta_B, beta_B, pos_beta_L, beta_L, pos_beta_D, beta_D, pos_beta_S, beta_S,
-                           theta):
+def log_prior_multi_meal(
+        VG: float,
+        pos_SI_B: int,
+        SI_B: float,
+        pos_SI_L: int,
+        SI_L: float,
+        pos_SI_D: int,
+        SI_D: float,
+        pos_kabs_B: int,
+        kabs_B: float,
+        pos_kabs_L: int,
+        kabs_L: float,
+        pos_kabs_D: int,
+        kabs_D: float,
+        pos_kabs_S: int,
+        kabs_S: float,
+        pos_kabs_H: int,
+        kabs_H: float,
+        pos_beta_B: int,
+        beta_B: float,
+        pos_beta_L: int,
+        beta_L: float,
+        pos_beta_D: int,
+        beta_D: float,
+        pos_beta_S: int,
+        beta_S: float,
+        theta: np.ndarray
+):
     """
     Internal function that computes the log prior of unknown parameters.
 
@@ -241,17 +284,58 @@ def log_prior_multi_meal(VG,
     logprior_beta_S = 0 if 0 <= beta_S <= 60 else -np.inf
 
     # Sum everything and return the value
-    return logprior_SI_B + logprior_SI_L + logprior_SI_D + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs_B + logprior_kabs_L + logprior_kabs_D + logprior_kabs_S + logprior_kabs_H + logprior_beta_B + logprior_beta_L + logprior_beta_D + logprior_beta_S
+    return (logprior_SI_B +
+            logprior_SI_L +
+            logprior_SI_D +
+            logprior_Gb +
+            logprior_SG +
+            logprior_ka2 +
+            logprior_kd +
+            logprior_kempt +
+            logprior_kabs_B +
+            logprior_kabs_L +
+            logprior_kabs_D +
+            logprior_kabs_S +
+            logprior_kabs_H +
+            logprior_beta_B +
+            logprior_beta_L +
+            logprior_beta_D +
+            logprior_beta_S)
 
 
 @njit
-def log_prior_multi_meal_exercise(VG,
-                           pos_SI_B, SI_B, pos_SI_L, SI_L, pos_SI_D, SI_D,
-                           pos_kabs_B, kabs_B, pos_kabs_L, kabs_L, pos_kabs_D, kabs_D, pos_kabs_S, kabs_S,
-                           pos_kabs_H, kabs_H,
-                           pos_beta_B, beta_B, pos_beta_L, beta_L, pos_beta_D, beta_D, pos_beta_S, beta_S,
-                           pos_e1, e1, pos_e2, e2,
-                           theta):
+def log_prior_multi_meal_exercise(
+        VG: float,
+        pos_SI_B: int,
+        SI_B: float,
+        pos_SI_L: int,
+        SI_L: float,
+        pos_SI_D: int,
+        SI_D: float,
+        pos_kabs_B: int,
+        kabs_B: float,
+        pos_kabs_L: int,
+        kabs_L: float,
+        pos_kabs_D: int,
+        kabs_D: float,
+        pos_kabs_S: int,
+        kabs_S: float,
+        pos_kabs_H: int,
+        kabs_H: float,
+        pos_beta_B: int,
+        beta_B: float,
+        pos_beta_L: int,
+        beta_L: float,
+        pos_beta_D: int,
+        beta_D: float,
+        pos_beta_S: int,
+        beta_S: float,
+        pos_e1: int,
+        e1: float,
+        pos_e2: int,
+        e2: float,
+        theta: np.ndarray
+):
     """
     Internal function that computes the log prior of unknown parameters.
 
@@ -392,4 +476,22 @@ def log_prior_multi_meal_exercise(VG,
     logprior_e2 = log_norm(e2, mu=2, sigma=0.1) if 0 <= e2 <= 4 else -np.inf
 
     # Sum everything and return the value
-    return logprior_SI_B + logprior_SI_L + logprior_SI_D + logprior_Gb + logprior_SG + logprior_ka2 + logprior_kd + logprior_kempt + logprior_kabs_B + logprior_kabs_L + logprior_kabs_D + logprior_kabs_S + logprior_kabs_H + logprior_beta_B + logprior_beta_L + logprior_beta_D + logprior_beta_S + logprior_e1 + logprior_e2
+    return (logprior_SI_B +
+            logprior_SI_L +
+            logprior_SI_D +
+            logprior_Gb +
+            logprior_SG +
+            logprior_ka2 +
+            logprior_kd +
+            logprior_kempt +
+            logprior_kabs_B +
+            logprior_kabs_L +
+            logprior_kabs_D +
+            logprior_kabs_S +
+            logprior_kabs_H +
+            logprior_beta_B +
+            logprior_beta_L +
+            logprior_beta_D +
+            logprior_beta_S +
+            logprior_e1 +
+            logprior_e2)

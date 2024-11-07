@@ -1,0 +1,74 @@
+import os
+import numpy as np
+
+from py_replay_bg.tests import load_test_data, load_patient_info
+
+from py_replay_bg.py_replay_bg import ReplayBG
+from py_replay_bg.visualizer import Visualizer
+from py_replay_bg.analyzer import Analyzer
+
+def test_replay_bg():
+
+    # Set verbosity
+    verbose = True
+    plot_mode = False
+    parallelize = True
+
+    # Set the number of steps for MCMC
+    n_steps = 5000  # In production, this should be >= 50k
+
+    # Set other parameters for identification
+    scenario = 'multi-meal'
+    save_folder = os.path.join(os.path.abspath(''))
+
+    # load patient_info
+    patient_info = load_patient_info()
+    p = np.where(patient_info['patient'] == 1)[0][0]
+    # Set bw and u2ss
+    bw = float(patient_info.bw.values[p])
+    u2ss = float(patient_info.u2ss.values[p])
+    x0 = None
+    previous_data_name = None
+
+    # Instantiate ReplayBG
+    rbg = ReplayBG(scenario=scenario, save_folder=save_folder,
+                   yts=5, exercise=False,
+                   seed=1,
+                   verbose=verbose, plot_mode=plot_mode)
+
+    # Set interval to twin
+    start_day = 1
+    end_day = 2
+
+    # Twin the interval
+    for day in range(start_day, end_day+1):
+
+        # Step 1: Load data and set save_name
+        data = load_test_data(day=day)
+        save_name = 'data_day_' + str(day)
+
+        print("Identifying " + save_name)
+
+        # Run twinning procedure
+        rbg.twin(data=data, bw=bw, save_name=save_name,
+                 identification_method='mcmc',
+                 parallelize=parallelize,
+                 n_steps=n_steps,
+                 x0=x0, u2ss=u2ss, previous_data_name=previous_data_name)
+
+        # Replay the twin with the same input data to get the initial conditions for the subsequent day
+        replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
+                                    identification_method='mcmc',
+                                    save_workspace=True,
+                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
+                                    save_suffix='_twin_intervals_mcmc')
+
+        Visualizer.plot_replay_results(replay_results, data=data)
+        analysis = Analyzer.analyze_replay_results(replay_results, data=data)
+        print('Fit MARD: %.2f %%' % analysis['median']['twin']['mard'])
+
+        # Set initial conditions for next day equal to the "ending conditions" of the current day
+        x0 = replay_results['x_end']['realizations'][0].tolist()
+
+        # Set previous_data_name
+        previous_data_name = save_name
