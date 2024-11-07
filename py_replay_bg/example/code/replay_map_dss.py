@@ -7,6 +7,8 @@ from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 from py_replay_bg.analyzer import Analyzer
 
+from py_replay_bg.dss.default_dss_handlers import standard_bolus_calculator_handler
+
 # Set verbosity
 verbose = True
 plot_mode = False

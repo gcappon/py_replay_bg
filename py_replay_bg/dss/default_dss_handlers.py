@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def ada_hypotreatments_handler(
         glucose: np.ndarray,
         meal_announcement: np.ndarray,

@@ -7,7 +7,7 @@ The official Python porting of the ReplayBG software: [https://github.com/gcappo
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/gcappon/py_replay_bg/COPYING)
 [![GitHub commit](https://img.shields.io/github/last-commit/gcappon/py_replay_bg)](https://github.com/gcappon/py_replay_bg/commits/master)
 
-ReplayBG is a digital twin-based methodology to assess new strategies for type 1 diabetes management.
+ReplayBG is a digital twin-based methodology to develop and assess new strategies for type 1 diabetes management.
 
 # Reference 
 

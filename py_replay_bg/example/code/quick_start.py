@@ -16,9 +16,6 @@ if __name__ == '__main__':
     verbose = True
     plot_mode = False
 
-    # Set the number of steps for MCMC
-    n_steps = 5000  # 5k is for testing. In production, this should be >= 50k
-
     # Set other parameters for twinning
     scenario = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''),'..','..','..')
@@ -42,62 +39,40 @@ if __name__ == '__main__':
     data.t = pd.to_datetime(data['t'])
     save_name = 'data_day_1'
 
-    print("Twinning " + save_name)
-
-    # Step 1. Identification Run twinning procedure
+    # Step 1. Run twinning procedure
     rbg.twin(data=data, bw=bw, save_name=save_name,
              twinning_method='mcmc',
              parallelize=parallelize,
-             n_steps=n_steps,
+             n_steps=5000,
              u2ss=u2ss)
 
-    # Replay the twin with the same input data to get the initial conditions for the subsequent day
+    # Step 2a. Replay the twin with the same input data to get the initial conditions for the subsequent day
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='mcmc',
                                 save_workspace=True,
                                 u2ss=u2ss,
-                                save_suffix='_twin_mcmc')
+                                save_suffix='_step_2a')
 
+    # Visualize results and compare with the original glucose data
     Visualizer.plot_replay_results(replay_results, data=data)
+    # Analyze results
     analysis = Analyzer.analyze_replay_results(replay_results, data=data)
+    # Print, for example, the fit MARD and the average glucose
     print('Fit MARD: %.2f %%' % analysis['median']['twin']['mard'])
+    print('Mean glucose: %.2f mg/dl' % analysis['median']['glucose']['variability']['mean_glucose'])
 
-import os
-import pandas as pd
-from py_replay_bg.py_replay_bg import ReplayBG
+    # Step 2b. Replay the twin with different input data (-30% bolus insulin) to experiment how glucose changes
+    data.bolus = data.bolus * .7
+    replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
+                                twinning_method='mcmc',
+                                save_workspace=True,
+                                u2ss=u2ss,
+                                save_suffix='_step_2b')
 
-# Get data
-data = pd.read_csv(os.path.join(os.path.abspath(''),'..', 'data', 'multi-meal_example.csv'))
-data.t = pd.to_datetime(data['t'])
+    # Visualize results
+    Visualizer.plot_replay_results(replay_results)
+    # Analyze results
+    analysis = Analyzer.analyze_replay_results(replay_results)
 
-# Step 1. Identification
-modality = 'twinning' # set modality as 'identification'
-bw = 100 # set the patient body weight
-scenario = 'multi-meal' # set the type of scenario corresponding to the data at hand (can be single-meal or multi-meal)
-save_name = 'test_multi_meal' # set a save name
-n_steps = 2500 # set the number of steps that will be used for identification (for multi-meal it should be at least 50k)
-save_folder = os.path.abspath('') # set the results folder to the current folder
-
-# Instantiate ReplayBG
-rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder, n_steps=n_steps)
-
-# Run it
-rbg.run(data=data, bw=bw)
-
-# Step 2. Replay
-modality = 'replay' # change modality as 'replay'
-
-# Instantiate ReplayBG
-rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder)
-
-# Run it
-rbg.run(data=data, bw=bw)
-
-# Step 2 bis. Replay with less insulin
-data.bolus = data.bolus * .7 # Reduce insulin boluses by 30%
-
-# Instantiate ReplayBG
-rbg = ReplayBG(modality=modality, data=data, bw=bw, scenario=scenario, save_name=save_name, save_folder=save_folder)
-
-# Run it
-rbg.run(data=data, bw=bw)
+    # Print, for example, the average glucose
+    print('Mean glucose: %.2f mg/dl' % analysis['median']['glucose']['variability']['mean_glucose'])

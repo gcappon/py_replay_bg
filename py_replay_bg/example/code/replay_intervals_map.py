@@ -46,7 +46,7 @@ for day in range(start_day, end_day+1):
     data = load_test_data(day=day)
     save_name = 'data_day_' + str(day)
 
-    print("Twinning " + save_name)
+    print("Replaying " + save_name)
 
     # Replay the twin with the same input data to get the initial conditions for the subsequent day
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
