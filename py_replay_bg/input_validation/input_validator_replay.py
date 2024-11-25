@@ -90,9 +90,8 @@ class InputValidatorReplay:
     sensors: list[Sensors]
         The sensors to be used in each of the replay simulations.
 
-    scenario: str
-            A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal
-            scenario.
+    blueprint: str
+            A string that specifies the blueprint to be used to create the digital twin.
     exercise: bool
         A boolean that specifies whether to use exercise model or not.
 
@@ -132,7 +131,7 @@ class InputValidatorReplay:
                  save_workspace: bool,
                  n_replay: int,
                  sensors: list,
-                 scenario: str,
+                 blueprint: str,
                  exercise: bool,
                  ):
         self.data = data
@@ -164,7 +163,7 @@ class InputValidatorReplay:
         self.save_workspace = save_workspace
         self.n_replay = n_replay
         self.sensors = sensors
-        self.scenario = scenario
+        self.blueprint = blueprint
         self.exercise = exercise
 
 
@@ -174,7 +173,7 @@ class InputValidatorReplay:
         """
 
         # Validate the 'data' input
-        DataValidator(modality='replay', data=self.data, scenario=self.scenario, exercise=self.exercise,
+        DataValidator(modality='replay', data=self.data, blueprint=self.blueprint, exercise=self.exercise,
                       bolus_source=self.bolus_source, basal_source=self.basal_source, cho_source=self.cho_source).validate()
 
         # Validate the 'bw' input

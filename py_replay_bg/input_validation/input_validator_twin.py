@@ -40,9 +40,8 @@ class InputValidatorTwin:
     n_processes : int, optional, default : None
         The number of processes to be spawn if `parallelize` is `True`. If None, the number of CPU cores is used.
 
-    scenario: str
-            A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal
-            scenario.
+    blueprint: str
+            A string that specifies the blueprint to be used to create the digital twin.
     exercise: bool
         A boolean that specifies whether to use exercise model or not.
 
@@ -64,7 +63,7 @@ class InputValidatorTwin:
                  previous_data_name: str | None,
                  parallelize: bool,
                  n_processes: int | None,
-                 scenario: str,
+                 blueprint: str,
                  exercise: bool
                  ):
         self.data = data
@@ -78,7 +77,7 @@ class InputValidatorTwin:
         self.previous_data_name = previous_data_name
         self.parallelize = parallelize
         self.n_processes = n_processes
-        self.scenario = scenario
+        self.blueprint = blueprint
         self.exercise = exercise
 
     def validate(self):
@@ -87,7 +86,7 @@ class InputValidatorTwin:
         """
 
         # Validate the 'data' input
-        DataValidator(modality='twin', data=self.data, scenario=self.scenario, exercise=self.exercise,
+        DataValidator(modality='twin', data=self.data, blueprint=self.blueprint, exercise=self.exercise,
                       bolus_source='data', basal_source='data', cho_source='data').validate()
 
         # Validate the 'bw' input

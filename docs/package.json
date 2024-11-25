@@ -1,19 +1,22 @@
 {
-  "name": "py_replay_bg",
+  "name": "docs",
   "version": "1.0.0",
-  "description": "Python porting of ReplayBG: a digital twin-based methodology to develop and assess new strategies for type 1 diabetes management.",
-  "main": "index.js",
-  "authors": {
-    "name": "Giacomo Cappon",
-    "email": "cappongiacomo@gmail.com"
-  },
-  "repository": "https://github.com/gcappon/py_replay_bg/",
-  "scripts": {
-    "dev": "vuepress dev src",
-    "build": "vuepress build src"
-  },
+  "description": "dio",
   "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "docs:build": "vuepress build docs",
+    "docs:clean-dev": "vuepress dev docs --clean-cache",
+    "docs:dev": "vuepress dev docs",
+    "docs:update-package": "yarn dlx vp-update"
+  },
   "devDependencies": {
-    "vuepress": "^1.5.3"
+    "@vuepress/bundler-vite": "^2.0.0-rc.7",
+    "@vuepress/plugin-markdown-math": "^2.0.0-rc.60",
+    "@vuepress/theme-default": "^2.0.0-rc.11",
+    "mathjax-full": "^3.2.2",
+    "sass": "^1.81.0",
+    "vue": "^3.4.0",
+    "vuepress": "^2.0.0-rc.7"
   }
 }

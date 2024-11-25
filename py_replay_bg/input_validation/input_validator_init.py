@@ -8,8 +8,8 @@ class InputValidatorInit:
     ...
     Attributes
     ----------
-    scenario: str, {'single-meal', 'multi-meal'}
-        A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
+    blueprint: str, {'single-meal', 'multi-meal'}
+            A string that specifies the blueprint to be used to create the digital twin.
     save_folder : str
         A string defining the folder that will contain the results.
 
@@ -33,7 +33,7 @@ class InputValidatorInit:
 
     def __init__(self,
                  save_folder: str,
-                 scenario: str,
+                 blueprint: str,
                  yts: int,
                  exercise: bool,
                  seed: int,
@@ -41,7 +41,7 @@ class InputValidatorInit:
                  verbose: bool,
                  ):
         self.save_folder = save_folder
-        self.scenario = scenario
+        self.blueprint = blueprint
         self.yts = yts
         self.exercise = exercise
         self.seed = seed
@@ -56,8 +56,8 @@ class InputValidatorInit:
         # Validate the 'save_folder' input
         SaveFolderValidator(save_folder=self.save_folder).validate()
 
-        # Validate the 'scenario' input
-        ScenarioValidator(scenario=self.scenario).validate()
+        # Validate the 'blueprint' input
+        BlueprintValidator(blueprint=self.blueprint).validate()
 
         # Validate the 'yts' input
         YTSValidator(yts=self.yts).validate()

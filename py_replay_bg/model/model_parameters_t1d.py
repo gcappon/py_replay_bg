@@ -102,7 +102,7 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
                  ):
 
         """
-        Function that returns the default parameters values of the t1d model in a multi-meal scenario.
+        Function that returns the default parameters values of the t1d model in a multi-meal blueprint.
 
         Parameters
         ----------
@@ -159,7 +159,7 @@ class ModelParametersT1DSingleMeal(ModelParametersT1D):
                  ):
 
         """
-        Function that returns the default parameters values of the t1d model in a single-meal scenario.
+        Function that returns the default parameters values of the t1d model in a single-meal blueprint.
 
         Parameters
         ----------

@@ -18,7 +18,7 @@ def test_replay_bg():
     n_steps = 5000  # In production, this should be >= 50k
 
     # Set other parameters for twinning
-    scenario = 'multi-meal'
+    blueprint = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
     parallelize = True
 
@@ -30,7 +30,7 @@ def test_replay_bg():
     u2ss = float(patient_info.u2ss.values[p])
 
     # Instantiate ReplayBG
-    rbg = ReplayBG(scenario=scenario, save_folder=save_folder,
+    rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
                    yts=5, exercise=False,
                    seed=1,
                    verbose=verbose, plot_mode=plot_mode)

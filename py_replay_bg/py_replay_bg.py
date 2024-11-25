@@ -51,7 +51,7 @@ class ReplayBG:
         Runs ReplayBG according to the chosen modality.
     """
 
-    def __init__(self, save_folder: str, scenario: str = 'single_meal',
+    def __init__(self, save_folder: str, blueprint: str = 'single_meal',
                  yts: int = 5, exercise: bool = False,
                  seed: int = 1,
                  plot_mode: bool = True, verbose: bool = True
@@ -61,9 +61,8 @@ class ReplayBG:
 
         Parameters
         ----------
-        scenario: str, {'single-meal', 'multi-meal'}
-            A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal
-            scenario.
+        blueprint: str, {'single-meal', 'multi-meal'}
+            A string that specifies the blueprint to be used to create the digital twin.
         save_folder : str
             A string defining the folder that will contain the results.
 
@@ -104,7 +103,7 @@ class ReplayBG:
         # Validate input
         InputValidatorInit(
             save_folder=save_folder,
-            scenario=scenario,
+            blueprint=blueprint,
             yts=yts,
             exercise=exercise,
             seed=seed,
@@ -113,7 +112,7 @@ class ReplayBG:
         ).validate()
 
         # Initialize the environment parameters
-        self.environment = Environment(scenario=scenario, save_folder=save_folder,
+        self.environment = Environment(blueprint=blueprint, save_folder=save_folder,
                                        yts=yts, exercise=exercise,
                                        seed=seed,
                                        plot_mode=plot_mode, verbose=verbose)
@@ -187,7 +186,7 @@ class ReplayBG:
                  previous_data_name=previous_data_name,
                  parallelize=parallelize,
                  n_processes=n_processes,
-                 scenario=self.environment.scenario,
+                 blueprint=self.environment.blueprint,
                  exercise=self.environment.exercise,
                  ).validate()
 
@@ -202,7 +201,7 @@ class ReplayBG:
             x0[-1] = data.glucose.values[idx]
 
         # Initialize model
-        if self.environment.scenario == 'single-meal':
+        if self.environment.blueprint == 'single-meal':
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,
@@ -419,14 +418,14 @@ class ReplayBG:
             n_replay=n_replay,
             sensors=sensors,
             exercise=self.environment.exercise,
-            scenario=self.environment.scenario,
+            blueprint=self.environment.blueprint,
         ).validate()
 
         if self.environment.verbose:
             print('Running replay simulation')
 
         # Initialize model
-        if self.environment.scenario == 'single-meal':
+        if self.environment.blueprint == 'single-meal':
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,

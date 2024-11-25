@@ -42,20 +42,20 @@ class ReplayBGData:
     meal: np.ndarray
         An array containing the meal data (g/min).
     meal_M: np.ndarray
-        An array containing the main meal data (g/min). Present only if scenario is `single-meal`.
+        An array containing the main meal data (g/min). Present only if blueprint is `single-meal`.
     meal_O: np.ndarray
-        An array containing the meal data of the secondary (other) meals (g/min). Present only if scenario is
+        An array containing the meal data of the secondary (other) meals (g/min). Present only if blueprint is
         `single-meal`.
     meal_B: np.ndarray
-        An array containing the meal breakfast data (g/min). Present only if scenario is `multi-meal`.
+        An array containing the meal breakfast data (g/min). Present only if blueprint is `multi-meal`.
     meal_L: np.ndarray
-        An array containing the meal lunch data (g/min). Present only if scenario is `multi-meal`.
+        An array containing the meal lunch data (g/min). Present only if blueprint is `multi-meal`.
     meal_D: np.ndarray
-        An array containing the meal dinner data (g/min). Present only if scenario is `multi-meal`.
+        An array containing the meal dinner data (g/min). Present only if blueprint is `multi-meal`.
     meal_S: np.ndarray
-        An array containing the meal snack data (g/min). Present only if scenario is `multi-meal`.
+        An array containing the meal snack data (g/min). Present only if blueprint is `multi-meal`.
     meal_H: np.ndarray
-        An array containing the meal hypotreatment data (g/min). Present only if scenario is `multi-meal`.
+        An array containing the meal hypotreatment data (g/min). Present only if blueprint is `multi-meal`.
     meal_announcement: np.ndarray
         An array containing the meal announcements (g/min).
     meal_type: np.ndarray
@@ -304,11 +304,11 @@ class ReplayBGData:
         # Initialize the meal type vector
         self.meal_type = np.empty([model.tsteps, ], dtype=str)
 
-        if environment.scenario == 'single-meal':
+        if environment.blueprint == 'single-meal':
             self.meal_M = np.zeros([model.tsteps, ])
             self.meal_O = np.zeros([model.tsteps, ])
 
-        if environment.scenario == 'multi-meal':
+        if environment.blueprint == 'multi-meal':
             self.meal_B = np.zeros([model.tsteps, ])
             self.meal_L = np.zeros([model.tsteps, ])
             self.meal_D = np.zeros([model.tsteps, ])
@@ -328,7 +328,7 @@ class ReplayBGData:
                 self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = data['cho'][m_idx[i]] * model.model_parameters.to_mgkg  # mg/(kg*min)
                 self.meal_announcement[(m_idx[i] * environment.yts)] = data['cho'][m_idx[i]] * environment.yts  # mg/(kg*min)
 
-                if environment.scenario == 'single-meal':
+                if environment.blueprint == 'single-meal':
 
                     # Set the first meal to the MAIN meal (the one that can be delayed by beta) using the label 'M',
                     # set the other meal inputs to others using the label 'O'
@@ -339,7 +339,7 @@ class ReplayBGData:
                         self.meal_type[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = 'O'
                         self.meal_O[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]
 
-                if environment.scenario == 'multi-meal':
+                if environment.blueprint == 'multi-meal':
                     self.meal_type[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = data['cho_label'][m_idx[i]]
 
                     if data['cho_label'][m_idx[i]] == 'B':

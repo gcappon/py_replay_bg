@@ -384,7 +384,7 @@ class T1DModelSingleMeal:
                                                                 rbg_data.t_hour[0:k],
                                                                 k-1,
                                                                 dss,
-                                                                environment.scenario)
+                                                                environment.blueprint)
                     ch_mgkg = ch * mp.to_mgkg
                     # Add the CHO to the input (remember to add the delay)
                     if t == 'M':

@@ -13,8 +13,8 @@ class Environment:
     replay_bg_path: str
         The current absolute path of ReplayBG.
 
-    scenario: str, {'single-meal', 'multi-meal'}
-        A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal scenario.
+    blueprint: str, {'single-meal', 'multi-meal'}
+            A string that specifies the blueprint to be used to create the digital twin.
     yts: int
         An integer that specifies the data sampling time (in minutes).
 
@@ -32,7 +32,7 @@ class Environment:
     """
 
     def __init__(self,
-                 scenario: str = 'single_meal',
+                 blueprint: str = 'single_meal',
                  save_name: str = '',
                  save_folder: str = '',
                  yts: int = 5,
@@ -46,9 +46,8 @@ class Environment:
 
         Parameters
         ----------
-        scenario: str, {'single-meal', 'multi-meal'}, optional, default : 'single-meal'
-            A string that specifies whether the given scenario refers to a single-meal scenario or a multi-meal
-            scenario.
+        blueprint: str, {'single-meal', 'multi-meal'}, optional, default : 'single-meal'
+            A string that specifies the blueprint to be used to create the digital twin.
 
         save_name : str, optional, default : ''
             A string used to label, thus identify, each output file and result.
@@ -83,8 +82,8 @@ class Environment:
         if not (os.path.exists(os.path.join(self.replay_bg_path, 'results', 'workspaces'))):
             os.mkdir(os.path.join(self.replay_bg_path, 'results', 'workspaces'))
 
-        # Single-meal or multi-meal scenario?
-        self.scenario = scenario
+        # Single-meal or multi-meal blueprint?
+        self.blueprint = blueprint
 
         # Set sample time
         self.yts = yts

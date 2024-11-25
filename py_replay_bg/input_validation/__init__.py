@@ -167,11 +167,11 @@ class DataValidator:
     Class for validating the 'data' input parameter of ReplayBG.
     """
 
-    def __init__(self, modality, data, scenario, exercise,
+    def __init__(self, modality, data, blueprint, exercise,
                  bolus_source, basal_source, cho_source):
         self.modality = modality
         self.data = data
-        self.scenario = scenario
+        self.blueprint = blueprint
         self.exercise = exercise
 
         self.bolus_source = bolus_source
@@ -213,7 +213,7 @@ class DataValidator:
                 if self.data.exercise.isnull().values.any():
                     raise Exception("'data.exercise' must not contain nan values.'")
 
-            if self.scenario == 'multi-meal':
+            if self.blueprint == 'multi-meal':
                 # TODO: implement multi-meal extra checks
                 # d = {'t': t, 'glucose': glucose, 'cho': cho, 'choLabel' : choLabel, 'bolus' : bolus, 'bolusLabel' : bolusLabel, 'basal' : basal, 'exercise' : exercise}
                 pass
@@ -530,17 +530,17 @@ class SaveWorkspaceValidator:
             raise Exception("'save_workspace' input must be a boolean.'")
 
 
-class ScenarioValidator:
+class BlueprintValidator:
     """
-    Class for validating the 'scenario' input parameter of ReplayBG.
+    Class for validating the 'blueprint' input parameter of ReplayBG.
     """
 
-    def __init__(self, scenario):
-        self.scenario = scenario
+    def __init__(self, blueprint):
+        self.blueprint = blueprint
 
     def validate(self):
-        if not (self.scenario == 'single-meal' or self.scenario == 'multi-meal'):
-            raise Exception("'scenario' input must be 'single-meal' or 'multi-meal'.")
+        if not (self.blueprint == 'single-meal' or self.blueprint == 'multi-meal'):
+            raise Exception("'blueprint' input must be 'single-meal' or 'multi-meal'.")
 
 
 class SeedValidator:

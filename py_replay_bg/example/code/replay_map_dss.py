@@ -14,7 +14,7 @@ verbose = True
 plot_mode = False
 
 # Set other parameters for twinning
-scenario = 'multi-meal'
+blueprint = 'multi-meal'
 save_folder = os.path.join(os.path.abspath(''),'..','..','..')
 
 # load patient_info
@@ -25,7 +25,7 @@ bw = float(patient_info.bw.values[p])
 u2ss = float(patient_info.u2ss.values[p])
 
 # Instantiate ReplayBG
-rbg = ReplayBG(scenario=scenario, save_folder=save_folder,
+rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
                yts=5, exercise=False,
                seed=1,
                verbose=verbose, plot_mode=plot_mode)
@@ -45,7 +45,7 @@ replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             save_suffix='_replay_map_dss',
                             enable_correction_boluses=True,
                             bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
-                            cr=7, cf=25, gt=110)
+                            cr=10, cf=40, gt=110)
 
 # Visualize and analyze results
 Visualizer.plot_replay_results(replay_results, data=data)

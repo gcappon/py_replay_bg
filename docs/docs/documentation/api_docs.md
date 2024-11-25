@@ -1,0 +1,6 @@
+---
+sidebar: auto
+---
+
+# API Docs
+
