@@ -1,4 +1,4 @@
-<template><div><h1 id="the-results-folder" tabindex="-1"><a class="header-anchor" href="#the-results-folder"><span>The <em>results/</em> folder</span></a></h1>
+<template><div><h1 id="the-results-folder" tabindex="-1"><a class="header-anchor" href="#the-results-folder"><span>The <em>results/</em> Folder</span></a></h1>
 <p>All results of ReplayBG, i.e., both model parameters obtained via twinning procedure and replayed
 glucose traces of a given scenario, will be saved in a folder named <code v-pre>results/</code>.</p>
 <h2 id="choosing-the-path-of-results" tabindex="-1"><a class="header-anchor" href="#choosing-the-path-of-results"><span>Choosing the path of <em>results/</em></span></a></h2>

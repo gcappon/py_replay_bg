@@ -77,3 +77,10 @@ just add an empty `bolus_label` column.
 ::: tip
 A representative data file of a single meal blueprint can be found in `example/data/multi-meal_example.csv`
 :::
+
+
+
+
+firstly, an interval is split into single days. After that, the DT-T1D of the first day is created running the above mentioned twinning procedure by starting from steady state conditions. Then, the DT-T1D of the second day is created using the same procedure but setting the initial model conditions to the final model conditions of the first day. Finally, this process is iterated for each subsequent day of the interval. This process eliminates the need for the initial steady-state assumption for all days except the first, enabling the identification and simulation of longer, more comprehensive data intervals.
+
+\textit{Remark}: It is important to note that, to make the twinning procedure more reliable, days having significant data gaps (i.e., more that 10\% of missing glucose readings) or without a single reported meal intake or insulin bolus, should be discarded to avoid the creation of DT-T1D not representing the actual underneath physiology. From the practical point-of-view, this means that, a given patient's dataset will result in the creation of one or multiple DT-T1D each corresponding to a specific interval comprising sequences of one or more consecutive days.

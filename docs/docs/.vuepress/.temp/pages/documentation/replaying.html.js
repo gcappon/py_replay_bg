@@ -1,5 +1,5 @@
 import comp from "/Users/cappe/Repos/py_replay_bg/docs/docs/.vuepress/.temp/pages/documentation/replaying.html.vue"
-const data = JSON.parse("{\"path\":\"/documentation/replaying.html\",\"title\":\"Replaying\",\"lang\":\"en-US\",\"frontmatter\":{\"sidebar\":\"auto\"},\"headers\":[],\"git\":{},\"filePathRelative\":\"documentation/replaying.md\"}")
+const data = JSON.parse("{\"path\":\"/documentation/replaying.html\",\"title\":\"Replaying\",\"lang\":\"en-US\",\"frontmatter\":{\"sidebar\":\"auto\"},\"headers\":[],\"git\":{\"updatedTime\":1732546835000,\"contributors\":[{\"name\":\"Giacomo Cappon\",\"email\":\"cappongiacomo@gmail.com\",\"commits\":1,\"url\":\"https://github.com/Giacomo Cappon\"}]},\"filePathRelative\":\"documentation/replaying.md\"}")
 export { comp, data }
 
 if (import.meta.webpackHot) {

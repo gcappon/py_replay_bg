@@ -61,10 +61,11 @@ class ReplayBG:
 
         Parameters
         ----------
+        save_folder : str
+            A string defining the folder that will contain the results of the twinning procedure and the replay
+            simulations.
         blueprint: str, {'single-meal', 'multi-meal'}
             A string that specifies the blueprint to be used to create the digital twin.
-        save_folder : str
-            A string defining the folder that will contain the results.
 
         yts: int, optional, default : 5
             An integer that specifies the data sample time (in minutes).
@@ -139,7 +140,7 @@ class ReplayBG:
 
         u2ss : float, optional, default : None
             The steady state of the basal insulin infusion.
-        x0 : np.ndarray, optional, default : None
+        x0 : list, optional, default : None
             The initial model conditions.
         previous_data_name : str, optional, default : None
             The name of the previous data portion. This is used to correcly "transfer" the initial model conditions to
@@ -149,9 +150,10 @@ class ReplayBG:
             The method to be used to twin the model.
 
         n_steps: int, optional, default : 50000
-            Number of steps to use for the main chain. This is ignored if modality is 'replay'.
+            Number of steps to use for the main chain. This is ignored if twinning_method is 'map'.
         save_chains: bool, optional, default : False
-            A flag that specifies whether to save the resulting mcmc chains and copula samplers.
+            A flag that specifies whether to save additional results of the mcmc twinning method. This is ignored if
+            `twinning_method` is `'map'`.
 
         parallelize : boolean, optional, default : False
             A boolean that specifies whether to parallelize the twinning process.

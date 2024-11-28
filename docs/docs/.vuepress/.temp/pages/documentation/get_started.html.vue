@@ -1,6 +1,6 @@
 <template><div><h1 id="get-started" tabindex="-1"><a class="header-anchor" href="#get-started"><span>Get started</span></a></h1>
 <h2 id="installation" tabindex="-1"><a class="header-anchor" href="#installation"><span>Installation</span></a></h2>
-<p><strong>PyReplayBG</strong> can be installed via pypi by simply</p>
+<p><strong>ReplayBG</strong> can be installed via pypi by simply</p>
 <div class="language-python line-numbers-mode" data-highlighter="prismjs" data-ext="py" data-title="py"><pre v-pre><code><span class="line">pip install py<span class="token operator">-</span>replay<span class="token operator">-</span>bg</span>
 <span class="line"></span></code></pre>
 <div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0"><div class="line-number"></div></div></div><h3 id="requirements" tabindex="-1"><a class="header-anchor" href="#requirements"><span>Requirements</span></a></h3>

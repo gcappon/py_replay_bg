@@ -2,7 +2,7 @@
 sidebar: auto
 ---
 
-# The _results/_ folder
+# The _results/_ Folder
 
 All results of ReplayBG, i.e., both model parameters obtained via twinning procedure and replayed
 glucose traces of a given scenario, will be saved in a folder named `results/`.

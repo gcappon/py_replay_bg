@@ -5,7 +5,7 @@ sidebar: auto
 
 ## Installation
 
-**PyReplayBG** can be installed via pypi by simply 
+**ReplayBG** can be installed via pypi by simply 
 
 ```python
 pip install py-replay-bg
