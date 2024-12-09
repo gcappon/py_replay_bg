@@ -36,6 +36,12 @@ def test_replay_bg():
     data = load_test_data(day=1)
     save_name = 'data_day_' + str(1)
 
+    # Set params of the bolus calculator
+    bolus_calculator_handler_params = dict()
+    bolus_calculator_handler_params['cr'] = 7
+    bolus_calculator_handler_params['cf'] = 25
+    bolus_calculator_handler_params['gt'] = 110
+
     print("Replaying " + save_name)
 
     # Replay the twin using a correction insulin bolus injection strategy and the standard formula for
@@ -47,7 +53,7 @@ def test_replay_bg():
                                 save_suffix='_replay_map_dss',
                                 enable_correction_boluses=True,
                                 bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
-                                cr=7, cf=25, gt=110)
+                                bolus_calculator_handler_params=bolus_calculator_handler_params)
 
     # Visualize and analyze results
     Visualizer.plot_replay_results(replay_results, data=data)

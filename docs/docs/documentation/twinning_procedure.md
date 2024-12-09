@@ -85,7 +85,7 @@ n_steps = 5000  # 5k is for testing. In production, this should be >= 50k
 
 # Set other parameters for twinning
 blueprint = 'multi-meal'
-save_folder = os.path.join(os.path.abspath(''),'..','..','..')
+save_folder = os.path.join(os.path.abspath(''))
 parallelize = True
 
 # Set bw and u2ss
@@ -112,18 +112,13 @@ rbg.twin(data=data, bw=bw, save_name=save_name,
          u2ss=u2ss)
 ```
 
-The resulting digital twin will be saved in `results/mcmc/mcmc_example.pkl`. 
+The resulting digital twin will be saved in `<save_folder>/results/mcmc/mcmc_example.pkl`. 
 
 The fully working example can be found in `example/code/twin_mcmc.py`.
 
 ::: tip
 To do the same but using the MAP twinning method, just set `twinning_method` to `'map'`. The full example can be 
 found in `example/code/twin_map.py`.
-:::
-
-::: warning
-You should have one `u2ss` per subject so be careful to set ALWAYS the same value of `u2ss` if the subject is the same 
-otherwise your subject will have different steady-state conditions and equilibrium (which does not make sense).
 :::
 
 ### Twinning portions of data spanning more than one day (i.e., intervals)
@@ -154,7 +149,7 @@ n_steps = 5000  # 5k is for testing. In production, this should be >= 50k
 
 # Set other parameters for twinning
 blueprint = 'multi-meal'
-save_folder = os.path.join(os.path.abspath(''),'..','..','..')
+save_folder = os.path.join(os.path.abspath(''))
 parallelize = True
 
 # Set bw and u2ss
@@ -217,8 +212,8 @@ found in `example/code/twin_intervals_map.py`.
 :::
 
 ::: warning
-You should have one `u2ss` per subject so be careful to set ALWAYS the same value of `u2ss` if the subject is the same 
-otherwise your subject will have different steady-state conditions and equilibrium (which does not make sense).
+When working with intervals, you should use the same `u2ss` otherwise the digital twins will have different 
+steady-state conditions and equilibrium across the interval (which does not make sense).
 :::
 
 ### [MCMC](mcmc.md)

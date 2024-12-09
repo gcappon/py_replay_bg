@@ -34,18 +34,27 @@ rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
 data = load_test_data(day=1)
 save_name = 'data_day_' + str(1)
 
+# Set params of the bolus calculator
+bolus_calculator_handler_params = dict()
+bolus_calculator_handler_params['cr'] = 7
+bolus_calculator_handler_params['cf'] = 25
+bolus_calculator_handler_params['gt'] = 110
+
 print("Replaying " + save_name)
+
 
 # Replay the twin using a correction insulin bolus injection strategy and the standard formula for
 # meal insulin boluses
 replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
+                            n_replay=10,
                             twinning_method='map',
                             save_workspace=True,
                             u2ss=u2ss,
                             save_suffix='_replay_map_dss',
                             enable_correction_boluses=True,
                             bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
-                            cr=10, cf=40, gt=110)
+                            bolus_calculator_handler_params=bolus_calculator_handler_params
+                            )
 
 # Visualize and analyze results
 Visualizer.plot_replay_results(replay_results, data=data)

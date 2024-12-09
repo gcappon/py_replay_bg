@@ -60,6 +60,7 @@ class Visualizer:
     def plot_replay_results(
             replay_results: Dict,
             data: pd.DataFrame = None,
+            title: str = '',
     ) -> None:
         """
         Function that plots the results of ReplayBG simulation.
@@ -186,12 +187,15 @@ class Visualizer:
             ax[3].grid()
             ax[3].legend()
 
+        fig.suptitle(title, fontweight='bold')
         plt.show()
+
 
     @staticmethod
     def plot_replay_results_interval(
             replay_results_interval: list,
             data_interval: list = None,
+            title: str = '',
     ) -> None:
         """
         Function that plots the results of ReplayBG simulation (intervals).
@@ -279,4 +283,4 @@ class Visualizer:
         replay_results['rbg_data'] = replay_results_interval[0]['rbg_data']
         replay_results['rbg_data'].t_data = np.concatenate(t_data, axis=0)
 
-        Visualizer.plot_replay_results(replay_results=replay_results, data=data)
+        Visualizer.plot_replay_results(replay_results=replay_results, data=data, title=title)

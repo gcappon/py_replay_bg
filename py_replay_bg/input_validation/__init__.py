@@ -109,19 +109,6 @@ class CHOSourceValidator:
             raise Exception("'cho_source' input must be 'data' or 'generated'.")
 
 
-class CFValidator:
-    """
-    Class for validating the 'cf' input parameter of ReplayBG.
-    """
-
-    def __init__(self, cf):
-        self.cf = cf
-
-    def validate(self):
-        if not (isinstance(self.cf, float) or isinstance(self.cf, int)):
-            raise Exception("'cf' input must be a number.'")
-
-
 class CorrectionBolusesHandlerValidator:
     """
     Class for validating the 'correction_boluses_handler' input parameter of ReplayBG.
@@ -147,19 +134,6 @@ class CorrectionBolusesHandlerParamsValidator:
         if self.correction_boluses_handler_params is not None:
             if not isinstance(self.correction_boluses_handler_params, dict):
                 raise Exception("'correction_boluses_handler_params' input must be a dict.'")
-
-
-class CRValidator:
-    """
-    Class for validating the 'cr' input parameter of ReplayBG.
-    """
-
-    def __init__(self, cr):
-        self.cr = cr
-
-    def validate(self):
-        if not (isinstance(self.cr, float) or isinstance(self.cr, int)):
-            raise Exception("'cr' input must be a number.'")
 
 
 class DataValidator:
@@ -273,19 +247,6 @@ class ExerciseValidator:
     def validate(self):
         if not isinstance(self.exercise, bool):
             raise Exception("'exercise' input must be a boolean.'")
-
-
-class GTValidator:
-    """
-    Class for validating the 'gt' input parameter of ReplayBG.
-    """
-
-    def __init__(self, gt):
-        self.gt = gt
-
-    def validate(self):
-        if not (isinstance(self.gt, float) or isinstance(self.gt, int)):
-            raise Exception("'gt' input must be a number.'")
 
 
 class HypotreatmentsHandlerValidator:

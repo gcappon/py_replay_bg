@@ -61,7 +61,7 @@ to create a digital twin using the MCMC twinning method:</p>
 <span class="line"></span>
 <span class="line"><span class="token comment"># Set other parameters for twinning</span></span>
 <span class="line">blueprint <span class="token operator">=</span> <span class="token string">'multi-meal'</span></span>
-<span class="line">save_folder <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>abspath<span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">)</span></span>
+<span class="line">save_folder <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>abspath<span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span><span class="token punctuation">)</span></span>
 <span class="line">parallelize <span class="token operator">=</span> <span class="token boolean">True</span></span>
 <span class="line"></span>
 <span class="line"><span class="token comment"># Set bw and u2ss</span></span>
@@ -87,17 +87,12 @@ to create a digital twin using the MCMC twinning method:</p>
 <span class="line">         n_steps<span class="token operator">=</span>n_steps<span class="token punctuation">,</span></span>
 <span class="line">         u2ss<span class="token operator">=</span>u2ss<span class="token punctuation">)</span></span>
 <span class="line"></span></code></pre>
-<div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>The resulting digital twin will be saved in <code v-pre>results/mcmc/mcmc_example.pkl</code>.</p>
+<div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>The resulting digital twin will be saved in <code v-pre>&lt;save_folder&gt;/results/mcmc/mcmc_example.pkl</code>.</p>
 <p>The fully working example can be found in <code v-pre>example/code/twin_mcmc.py</code>.</p>
 <div class="hint-container tip">
 <p class="hint-container-title">Tips</p>
 <p>To do the same but using the MAP twinning method, just set <code v-pre>twinning_method</code> to <code v-pre>'map'</code>. The full example can be
 found in <code v-pre>example/code/twin_map.py</code>.</p>
-</div>
-<div class="hint-container warning">
-<p class="hint-container-title">Warning</p>
-<p>You should have one <code v-pre>u2ss</code> per subject so be careful to set ALWAYS the same value of <code v-pre>u2ss</code> if the subject is the same
-otherwise your subject will have different steady-state conditions and equilibrium (which does not make sense).</p>
 </div>
 <h3 id="twinning-portions-of-data-spanning-more-than-one-day-i-e-intervals" tabindex="-1"><a class="header-anchor" href="#twinning-portions-of-data-spanning-more-than-one-day-i-e-intervals"><span>Twinning portions of data spanning more than one day (i.e., intervals)</span></a></h3>
 <p>To twin portions of data than span multiple days, i.e., an intervals, you need to create multiple digital
@@ -123,7 +118,7 @@ to the final model conditions of the first day.</li>
 <span class="line"></span>
 <span class="line"><span class="token comment"># Set other parameters for twinning</span></span>
 <span class="line">blueprint <span class="token operator">=</span> <span class="token string">'multi-meal'</span></span>
-<span class="line">save_folder <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>abspath<span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">,</span><span class="token string">'..'</span><span class="token punctuation">)</span></span>
+<span class="line">save_folder <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>abspath<span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">)</span><span class="token punctuation">)</span></span>
 <span class="line">parallelize <span class="token operator">=</span> <span class="token boolean">True</span></span>
 <span class="line"></span>
 <span class="line"><span class="token comment"># Set bw and u2ss</span></span>
@@ -185,8 +180,8 @@ found in <code v-pre>example/code/twin_intervals_map.py</code>.</p>
 </div>
 <div class="hint-container warning">
 <p class="hint-container-title">Warning</p>
-<p>You should have one <code v-pre>u2ss</code> per subject so be careful to set ALWAYS the same value of <code v-pre>u2ss</code> if the subject is the same
-otherwise your subject will have different steady-state conditions and equilibrium (which does not make sense).</p>
+<p>When working with intervals, you should use the same <code v-pre>u2ss</code> otherwise the digital twins will have different
+steady-state conditions and equilibrium across the interval (which does not make sense).</p>
 </div>
 <h3 id="mcmc" tabindex="-1"><a class="header-anchor" href="#mcmc"><span><RouteLink to="/documentation/mcmc.html">MCMC</RouteLink></span></a></h3>
 <h4 id="theoretical-flavours" tabindex="-1"><a class="header-anchor" href="#theoretical-flavours"><span>Theoretical flavours</span></a></h4>

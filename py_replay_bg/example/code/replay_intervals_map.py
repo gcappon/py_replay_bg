@@ -42,7 +42,7 @@ end_day = 2
 # Twin the interval
 for day in range(start_day, end_day+1):
 
-    # Step 1: Load data and set save_name
+    # Load data and set save_name
     data = load_test_data(day=day)
     save_name = 'data_day_' + str(day)
 

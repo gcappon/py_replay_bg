@@ -34,7 +34,7 @@ save_name = 'data_day_' + str(1)
 
 print("Replaying " + save_name)
 
-# Replay the twin with the same input data to get the initial conditions for the subsequent day
+# Replay the twin with the same input data used for twinning
 replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             n_replay=10,
                             twinning_method='mcmc',

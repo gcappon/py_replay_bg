@@ -85,6 +85,23 @@ class Analyzer:
         data: pd.DataFrame, optional, default: None
             Pandas dataframe which contains the data to be used by the tool. If present, also analyzes glucose fit vs
             data.
+
+        Returns
+        -------
+        analysis: Dict
+            A dictionary containing the results of the analysis.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
         """
         agata = Agata(glycemic_target='diabetes')
 
@@ -225,7 +242,8 @@ class Analyzer:
 
         Returns
         -------
-        None
+        analysis: Dict
+            A dictionary containing the results of the analysis.
 
         Raises
         ------

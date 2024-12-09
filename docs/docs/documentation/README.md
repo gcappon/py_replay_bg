@@ -6,7 +6,9 @@ description: Docs index
 
 # Docs
 
-### [Quick Start](./quick_start.md)
+### [Quick Start](./quick_start.md) 
+
+TODO
 
 ---
 
@@ -18,24 +20,16 @@ description: Docs index
 
 ### [Twinning Procedure](./twinning_procedure.md)
 
+u2ss: what to do?
+
 ### [Replaying](./replaying.md)
 
 ### [The _results/_ Folder](./results_folder.md)
 
 ---
 
-### [Custom handlers and input data sources](./custom_handlers_data_sources.md)
-
----
-
 ### [Visualizing replay results](./visualizing_replay_results.md)
 
 ### [Analyzing replay results](./analyzing_replay_results.md)
-
----
-
-### [Examples](./examples.md)
-
-### [API Docs](./api_docs.md)
 
 ---

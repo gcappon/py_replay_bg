@@ -335,7 +335,7 @@ def default_meal_generator_handler(
     ma: float
         The generated meal announcement intake to administer at time(timeIndex+1) (g/min);
     type: string
-        The type of the generated meal. Can be 'M' or 'O' if is_single_meal, 'B' 'L' 'D' or 'S' otherwise.
+        The type of the generated meal. Can be 'M' or 'O' if the blueprint is single meal, 'B' 'L' 'D' or 'S' otherwise.
     dss: DSS
         An object that represents the hyperparameters of the integrated decision support system.
         dss is also an output since it contains meal_generator_handler_params that beside being a
@@ -475,7 +475,12 @@ def standard_bolus_calculator_handler(
         iob = np.convolve(bolus, iob_6h_curve)
         iob = iob[bolus.shape[0] - 1]
 
+        # get params
+        cr = dss.bolus_calculator_handler_params['cr'] if 'cr' in dss.bolus_calculator_handler_params else 10
+        cf = dss.bolus_calculator_handler_params['cf'] if 'cf' in dss.bolus_calculator_handler_params else 40
+        gt = dss.bolus_calculator_handler_params['gt'] if 'gt' in dss.bolus_calculator_handler_params else 120
+
         # ...give a bolus
-        b = np.max([0, meal_announcement[time_index] / dss.cr + (glucose[time_index] - dss.gt) / dss.cf - iob])
+        b = np.max([0, meal_announcement[time_index] / cr + (glucose[time_index] - gt) / cf - iob])
 
     return b, dss

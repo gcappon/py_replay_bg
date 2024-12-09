@@ -13,12 +13,6 @@ class DSS:
     ----------
     bw: double
         The patient's body weight.
-    cr: double
-        The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support system.
-    cf: double
-        The correction factor of the patient in mg/dl/U to be used by the integrated decision support system.
-    gt: double
-        The target glucose value in mg/dl to be used by the decision support system modules.
     meal_generator_handler: Callable
         A callback function that implements a meal generator to be used during the replay of a given scenario.
     meal_generator_handler_params: dict
@@ -55,9 +49,6 @@ class DSS:
 
     def __init__(self,
                  bw: float,
-                 cr: float = 10,
-                 cf: float = 40,
-                 gt: float = 120,
                  meal_generator_handler: Callable = default_meal_generator_handler,
                  meal_generator_handler_params: Dict | None = None,
                  bolus_calculator_handler: Callable = standard_bolus_calculator_handler,
@@ -78,13 +69,6 @@ class DSS:
         ----------
         bw: double
             The patient's body weight.
-        cr: double, optional, default : 10
-            The carbohydrate-to-insulin ratio of the patient in g/U to be used by the integrated decision support
-            system.
-        cf: double, optional, default : 40
-            The correction factor of the patient in mg/dl/U to be used by the integrated decision support system.
-        gt: double, optional, default : 120
-            The target glucose value in mg/dl to be used by the decision support system modules.
         meal_generator_handler: Callable, optional, default : default_meal_generator_handler
             A callback function that implements a meal generator to be used during the replay of a given scenario.
         meal_generator_handler_params: dict, optional, default : None
@@ -117,11 +101,6 @@ class DSS:
 
         # Patient's body weight
         self.bw = bw
-
-        # Patient therapy parameters
-        self.gt = gt
-        self.cr = cr
-        self.cf = cf
 
         # Meal Generator module parameters
         self.meal_generator_handler = meal_generator_handler
