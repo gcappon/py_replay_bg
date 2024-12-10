@@ -6,9 +6,7 @@ description: Docs index
 
 # Docs
 
-### [Quick Start](./quick_start.md) 
-
-TODO
+### [Get Started](./get_started.md) 
 
 ---
 

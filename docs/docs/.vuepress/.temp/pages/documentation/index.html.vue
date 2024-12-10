@@ -1,6 +1,5 @@
 <template><div><h1 id="docs" tabindex="-1"><a class="header-anchor" href="#docs"><span>Docs</span></a></h1>
-<h3 id="quick-start" tabindex="-1"><a class="header-anchor" href="#quick-start"><span><RouteLink to="/documentation/quick_start.html">Quick Start</RouteLink></span></a></h3>
-<p>TODO</p>
+<h3 id="get-started" tabindex="-1"><a class="header-anchor" href="#get-started"><span><RouteLink to="/documentation/get_started.html">Get Started</RouteLink></span></a></h3>
 <hr>
 <h3 id="data-requirements" tabindex="-1"><a class="header-anchor" href="#data-requirements"><span><RouteLink to="/documentation/data_requirements.html">Data Requirements</RouteLink></span></a></h3>
 <h3 id="the-replaybg-object" tabindex="-1"><a class="header-anchor" href="#the-replaybg-object"><span><RouteLink to="/documentation/replaybg_object.html">The ReplayBG Object</RouteLink></span></a></h3>

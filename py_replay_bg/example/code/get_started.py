@@ -21,7 +21,11 @@ if __name__ == '__main__':
     save_folder = os.path.join(os.path.abspath(''),'..','..','..')
     parallelize = True
 
-    # load patient_info
+    # Load data
+    data = pd.read_csv(os.path.join(os.path.abspath(''), '..', 'data', 'data_day_1.csv'))
+    data.t = pd.to_datetime(data['t'])
+
+    # Load patient_info
     patient_info = pd.read_csv(os.path.join(os.path.abspath(''), '..', 'data', 'patient_info.csv'))
     p = np.where(patient_info['patient'] == 1)[0][0]
     # Set bw and u2ss
@@ -34,9 +38,7 @@ if __name__ == '__main__':
                    seed=1,
                    verbose=verbose, plot_mode=plot_mode)
 
-    # Load data and set save_name
-    data = pd.read_csv(os.path.join(os.path.abspath(''), '..', 'data', 'data_day_1.csv'))
-    data.t = pd.to_datetime(data['t'])
+    # Set save name
     save_name = 'data_day_1'
 
     # Step 1. Run twinning procedure
