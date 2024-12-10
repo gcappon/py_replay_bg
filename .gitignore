@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+/venv
+
+#DS_stores
+.DS_Store
+
+# VS Code things
+.vscode/
+
+#Results folder 
+/results
+
+node_modules/
+docs/.vuepress/.cache/
+docs/.vuepress/.temp/
+docs/.vuepress/dist/
