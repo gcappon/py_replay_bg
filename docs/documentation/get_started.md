@@ -32,7 +32,7 @@ Here, `os` will be used to manage the filesystem, `numpy` and `pandas` to manipu
 parallelized way. 
 
 Then, we will import the necessary ReplayBG modules:
-```python
+```python twoslash
 from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 from py_replay_bg.analyzer import Analyzer
