@@ -17,7 +17,7 @@ export default defineUserConfig({
 
     navbar: ['/', '/documentation/get_started', '/documentation/'],
     repo: 'https://github.com/gcappon/py_replay_bg',
-    docsDir: 'docs/docs/',
+    docsDir: 'docs/',
     docsBranch: 'master'
   }),
 
