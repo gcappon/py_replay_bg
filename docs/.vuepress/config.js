@@ -9,6 +9,7 @@ export default defineUserConfig({
   lang: 'en-US',
 
   title: 'ReplayBG',
+  base: 'py_replay_bg',
   description: 'A digital twin based framework for the development and assessment of new algorithms for type 1 ' +
       'diabetes management',
 
