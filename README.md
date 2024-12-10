@@ -1,4 +1,4 @@
-# PyReplayBG
+# ReplayBG
 
 <img src="https://i.postimg.cc/gJn8Sy0X/replay-bg-logo.png" width="250" height="250">
 
