@@ -22,22 +22,18 @@ jobs:
 
 
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: yarn
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Deps
         run: |
-          corepack enable
-          yarn install --frozen-lockfile
+          bun install --frozen-lockfile
 
       - name: Build Docs
         env:
           NODE_OPTIONS: --max_old_space_size=8192
         run: |-
-          yarn run docs:build
+          bun run docs:build
           > docs/.vuepress/dist/.nojekyll
 
       - name: Deploy Docs
