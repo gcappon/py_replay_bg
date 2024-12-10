@@ -183,11 +183,11 @@ for day in range(start_day, end_day+1):
              n_steps=n_steps,
              x0=x0, u2ss=u2ss, previous_data_name=previous_data_name)
 
-    # Replay the twin with the same input data to get the initial conditions for the subsequent day
+    # Replay the twin with the same input data
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='mcmc',
                                 save_workspace=True,
-                                x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
+                                x0=x0, previous_data_name=previous_data_name,
                                 save_suffix='_twin_intervals_mcmc')
 
     # Set initial conditions for next day equal to the "ending conditions" of the current day
@@ -372,10 +372,11 @@ following fields:
     - `samples_100`: a list with 100 realizations
     - `samples_10`: a list with 10 realizations 
     - `samples_1`: a list with just 1 realization
-  - `sampler` (only if `save_chain=True`): the MCMC sampler object 
-  - `tau` (only if `save_chain=True`): the value of the estimated autocorrelation time
-  - `thin` (only if `save_chain=True`): the MCMC thinning factor
-  - `burnin` (only if `save_chain=True`): the number of burn-in samples
+- `u2ss`: the value of `u2ss` used during twinning
+- `sampler` (only if `save_chain=True`): the MCMC sampler object 
+- `tau` (only if `save_chain=True`): the value of the estimated autocorrelation time
+- `thin` (only if `save_chain=True`): the MCMC thinning factor
+- `burnin` (only if `save_chain=True`): the number of burn-in samples
 
 ::: tip
 Since hypotreatments are usually related to fast absorbing meals, `beta_H` is not estimated and fixed to 0.
@@ -474,6 +475,7 @@ following fields:
   the estimated values of the `beta_D` parameter
   - `beta_S` (only if `blueprint='multi-meal'`, and if `data` contains a meal snack event `S`): 
   the estimated values of the `beta_S` parameter
+- `u2ss`: the value of `u2ss` used during twinning
 
 ::: tip
 Since MAP has no sampled forms, the `n_replay` parameter of the `replay` method of a `ReplayBG` object is ignored.

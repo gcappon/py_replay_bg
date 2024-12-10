@@ -45,6 +45,7 @@ class Replayer:
     def __init__(self,
                  rbg_data: ReplayBGData,
                  draws: Dict,
+                 u2ss: float,
                  n_replay: int,
                  sensors: list[Sensors] | None,
                  environment: Environment,
@@ -61,6 +62,8 @@ class Replayer:
             The data to be used by ReplayBG during simulation.
         draws: dict
             An array containing the model parameter realizations to be used for simulating the model.
+        u2ss: float
+            The steady state of the basal insulin infusion.
         n_replay: int, {1000, 100, 10}
             The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors] | None
@@ -94,6 +97,7 @@ class Replayer:
         # The data and draws to be used to run the replay
         self.rbg_data = rbg_data
         self.draws = draws
+        self.u2ss = u2ss
 
         # The twinning method used to estimate the parameters
         self.twinning_method = twinning_method
@@ -222,6 +226,7 @@ class Replayer:
                 # set the model parameters
                 for p in self.model.unknown_parameters:
                     setattr(self.model.model_parameters, p, self.draws[p])
+            self.model.model_parameters.u2ss = self.u2ss
 
             if new_sensors:
                 # connect a new set of sensors

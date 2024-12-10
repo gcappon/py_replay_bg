@@ -46,7 +46,7 @@ def test_replay_bg():
 
         # Step 1: Load data and set save_name
         data = load_test_data(day=day)
-        save_name = 'data_day_' + str(day)
+        save_name = 'data_day_' + str(day) + '_interval'
 
         print("Replaying " + save_name)
 
@@ -54,8 +54,8 @@ def test_replay_bg():
         replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                     twinning_method='map',
                                     save_workspace=True,
-                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
-                                    save_suffix='_replay_intervals_map',
+                                    x0=x0, previous_data_name=previous_data_name,
+                                    save_suffix='_replay_map',
                                     sensors=sensors)
 
         # Append results

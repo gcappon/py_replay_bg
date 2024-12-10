@@ -48,11 +48,10 @@ def test_replay_bg():
              n_steps=n_steps,
              u2ss=u2ss)
 
-    # Replay the twin with the same input data to get the initial conditions for the subsequent day
+    # Replay the twin with the same input data
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='mcmc',
                                 save_workspace=True,
-                                u2ss=u2ss,
                                 save_suffix='_twin_mcmc')
 
     Visualizer.plot_replay_results(replay_results, data=data)

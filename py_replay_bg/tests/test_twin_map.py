@@ -43,11 +43,10 @@ def test_replay_bg():
              parallelize=parallelize,
              u2ss=u2ss)
 
-    # Replay the twin with the same input data to get the initial conditions for the subsequent day
+    # Replay the twin with the same input data
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='map',
                                 save_workspace=True,
-                                u2ss=u2ss,
                                 save_suffix='_twin_map')
 
     # Visualize and analyze results

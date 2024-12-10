@@ -238,7 +238,6 @@ class ReplayBG:
                data: pd.DataFrame,
                bw: float,
                save_name: str,
-               u2ss: float | None = None,
                x0: np.ndarray | None = None,
                previous_data_name: str | None  = None,
                twinning_method: str = 'mcmc',
@@ -274,8 +273,6 @@ class ReplayBG:
         save_name : str
         A string used to label, thus identify, each output file and result.
 
-        u2ss : float
-            The steady state of the basal insulin infusion.
         x0: list
             The initial model state.
         previous_data_name: str
@@ -382,7 +379,6 @@ class ReplayBG:
             data=data,
             bw=bw,
             save_name=save_name,
-            u2ss=u2ss,
             x0=x0,
             previous_data_name=previous_data_name,
             twinning_method=twinning_method,
@@ -412,14 +408,14 @@ class ReplayBG:
         if self.environment.verbose:
             print('Running replay simulation')
 
-        # Initialize model
+        # Initialize model (u2ss set to -1 as a placeholder to indicate that it has to be loaded)
         if self.environment.blueprint == 'single-meal':
-            model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
+            model = T1DModelSingleMeal(data=data, bw=bw, u2ss=-1, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,
                                        environment=self.environment)
         else:
-            model = T1DModelMultiMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
+            model = T1DModelMultiMeal(data=data, bw=bw, u2ss=-1, x0=x0,
                                       previous_data_name=previous_data_name,
                                       twinning_method=twinning_method,
                                       environment=self.environment)
@@ -450,6 +446,7 @@ class ReplayBG:
                                twinning_method+'_' + save_name + '.pkl'), 'rb') as file:
             twinning_results = pickle.load(file)
         draws = twinning_results['draws']
+        u2ss = twinning_results['u2ss']
 
         # Run replay
         if self.environment.verbose:
@@ -457,6 +454,7 @@ class ReplayBG:
         replayer = Replayer(
             rbg_data=rbg_data,
             draws=draws,
+            u2ss=u2ss,
             n_replay=n_replay,
             sensors=sensors,
             environment=self.environment,

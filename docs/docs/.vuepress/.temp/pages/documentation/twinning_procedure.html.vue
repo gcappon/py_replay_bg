@@ -152,11 +152,11 @@ to the final model conditions of the first day.</li>
 <span class="line">             n_steps<span class="token operator">=</span>n_steps<span class="token punctuation">,</span></span>
 <span class="line">             x0<span class="token operator">=</span>x0<span class="token punctuation">,</span> u2ss<span class="token operator">=</span>u2ss<span class="token punctuation">,</span> previous_data_name<span class="token operator">=</span>previous_data_name<span class="token punctuation">)</span></span>
 <span class="line"></span>
-<span class="line">    <span class="token comment"># Replay the twin with the same input data to get the initial conditions for the subsequent day</span></span>
+<span class="line">    <span class="token comment"># Replay the twin with the same input data</span></span>
 <span class="line">    replay_results <span class="token operator">=</span> rbg<span class="token punctuation">.</span>replay<span class="token punctuation">(</span>data<span class="token operator">=</span>data<span class="token punctuation">,</span> bw<span class="token operator">=</span>bw<span class="token punctuation">,</span> save_name<span class="token operator">=</span>save_name<span class="token punctuation">,</span></span>
 <span class="line">                                twinning_method<span class="token operator">=</span><span class="token string">'mcmc'</span><span class="token punctuation">,</span></span>
 <span class="line">                                save_workspace<span class="token operator">=</span><span class="token boolean">True</span><span class="token punctuation">,</span></span>
-<span class="line">                                x0<span class="token operator">=</span>x0<span class="token punctuation">,</span> u2ss<span class="token operator">=</span>u2ss<span class="token punctuation">,</span> previous_data_name<span class="token operator">=</span>previous_data_name<span class="token punctuation">,</span></span>
+<span class="line">                                x0<span class="token operator">=</span>x0<span class="token punctuation">,</span> previous_data_name<span class="token operator">=</span>previous_data_name<span class="token punctuation">,</span></span>
 <span class="line">                                save_suffix<span class="token operator">=</span><span class="token string">'_twin_intervals_mcmc'</span><span class="token punctuation">)</span></span>
 <span class="line"></span>
 <span class="line">    <span class="token comment"># Set initial conditions for next day equal to the "ending conditions" of the current day</span></span>
@@ -389,12 +389,13 @@ containing the estimated values of the <code v-pre>beta_S</code> parameter in fo
 <li><code v-pre>samples_1</code>: a list with just 1 realization</li>
 </ul>
 </li>
+</ul>
+</li>
+<li><code v-pre>u2ss</code>: the value of <code v-pre>u2ss</code> used during twinning</li>
 <li><code v-pre>sampler</code> (only if <code v-pre>save_chain=True</code>): the MCMC sampler object</li>
 <li><code v-pre>tau</code> (only if <code v-pre>save_chain=True</code>): the value of the estimated autocorrelation time</li>
 <li><code v-pre>thin</code> (only if <code v-pre>save_chain=True</code>): the MCMC thinning factor</li>
 <li><code v-pre>burnin</code> (only if <code v-pre>save_chain=True</code>): the number of burn-in samples</li>
-</ul>
-</li>
 </ul>
 <div class="hint-container tip">
 <p class="hint-container-title">Tips</p>
@@ -483,6 +484,7 @@ the estimated values of the <code v-pre>beta_D</code> parameter</li>
 the estimated values of the <code v-pre>beta_S</code> parameter</li>
 </ul>
 </li>
+<li><code v-pre>u2ss</code>: the value of <code v-pre>u2ss</code> used during twinning</li>
 </ul>
 <div class="hint-container tip">
 <p class="hint-container-title">Tips</p>

@@ -5,7 +5,6 @@
 <h3 id="the-replaybg-object" tabindex="-1"><a class="header-anchor" href="#the-replaybg-object"><span><RouteLink to="/documentation/replaybg_object.html">The ReplayBG Object</RouteLink></span></a></h3>
 <h3 id="choosing-blueprint" tabindex="-1"><a class="header-anchor" href="#choosing-blueprint"><span><RouteLink to="/documentation/choosing_blueprint.html">Choosing Blueprint</RouteLink></span></a></h3>
 <h3 id="twinning-procedure" tabindex="-1"><a class="header-anchor" href="#twinning-procedure"><span><RouteLink to="/documentation/twinning_procedure.html">Twinning Procedure</RouteLink></span></a></h3>
-<p>u2ss: what to do?</p>
 <h3 id="replaying" tabindex="-1"><a class="header-anchor" href="#replaying"><span><RouteLink to="/documentation/replaying.html">Replaying</RouteLink></span></a></h3>
 <h3 id="the-results-folder" tabindex="-1"><a class="header-anchor" href="#the-results-folder"><span><RouteLink to="/documentation/results_folder.html">The <em>results/</em> Folder</RouteLink></span></a></h3>
 <hr>

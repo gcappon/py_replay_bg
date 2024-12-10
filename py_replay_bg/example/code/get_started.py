@@ -52,7 +52,6 @@ if __name__ == '__main__':
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='mcmc',
                                 save_workspace=True,
-                                u2ss=u2ss,
                                 save_suffix='_step_2a')
 
     # Visualize results and compare with the original glucose data

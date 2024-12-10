@@ -237,6 +237,7 @@ class MCMC:
         # Save results
         twinning_results = dict()
         twinning_results['draws'] = draws
+        twinning_results['u2ss'] = model.model_parameters.u2ss
 
         # Attach also chain if needed
         if self.save_chains:

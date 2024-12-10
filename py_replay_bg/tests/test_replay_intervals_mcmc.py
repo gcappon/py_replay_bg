@@ -46,7 +46,7 @@ def test_replay_bg():
 
         # Step 1: Load data and set save_name
         data = load_test_data(day=day)
-        save_name = 'data_day_' + str(day)
+        save_name = 'data_day_' + str(day) + '_interval'
 
         print("Replaying " + save_name)
 
@@ -55,8 +55,8 @@ def test_replay_bg():
                                     twinning_method='mcmc',
                                     n_replay=10,
                                     save_workspace=True,
-                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name, sensors=sensors,
-                                    save_suffix='_replay_intervals_mcmc')
+                                    x0=x0, previous_data_name=previous_data_name, sensors=sensors,
+                                    save_suffix='_replay_mcmc')
 
         # Append results
         replay_results_interval.append(replay_results)

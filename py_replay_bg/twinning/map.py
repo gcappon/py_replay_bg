@@ -188,6 +188,7 @@ class MAP:
         # Save results
         twinning_results = dict()
         twinning_results['draws'] = draws
+        twinning_results['u2ss'] = model.model_parameters.u2ss
 
         saved_file = os.path.join(environment.replay_bg_path, 'results', 'map',
                                   'map_' + save_name + '.pkl')

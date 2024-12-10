@@ -20,7 +20,6 @@ patient_info = load_patient_info()
 p = np.where(patient_info['patient'] == 1)[0][0]
 # Set bw and u2ss
 bw = float(patient_info.bw.values[p])
-u2ss = float(patient_info.u2ss.values[p])
 x0 = None
 previous_data_name = None
 sensors = None
@@ -44,7 +43,7 @@ for day in range(start_day, end_day+1):
 
     # Load data and set save_name
     data = load_test_data(day=day)
-    save_name = 'data_day_' + str(day)
+    save_name = 'data_day_' + str(day) + '_interval'
 
     print("Replaying " + save_name)
 
@@ -53,8 +52,8 @@ for day in range(start_day, end_day+1):
                                 twinning_method='mcmc',
                                 n_replay=100,
                                 save_workspace=True,
-                                x0=x0, u2ss=u2ss, previous_data_name=previous_data_name, sensors=sensors,
-                                save_suffix='_replay_intervals_mcmc')
+                                x0=x0, previous_data_name=previous_data_name, sensors=sensors,
+                                save_suffix='_replay_mcmc')
 
     # Append results
     replay_results_interval.append(replay_results)

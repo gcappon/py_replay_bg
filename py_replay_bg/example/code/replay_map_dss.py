@@ -20,9 +20,8 @@ save_folder = os.path.join(os.path.abspath(''),'..','..','..')
 # load patient_info
 patient_info = load_patient_info()
 p = np.where(patient_info['patient'] == 1)[0][0]
-# Set bw and u2ss
+# Set bw
 bw = float(patient_info.bw.values[p])
-u2ss = float(patient_info.u2ss.values[p])
 
 # Instantiate ReplayBG
 rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
@@ -49,7 +48,6 @@ replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             n_replay=10,
                             twinning_method='map',
                             save_workspace=True,
-                            u2ss=u2ss,
                             save_suffix='_replay_map_dss',
                             enable_correction_boluses=True,
                             bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,

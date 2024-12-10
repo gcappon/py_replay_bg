@@ -20,7 +20,6 @@ patient_info = load_patient_info()
 p = np.where(patient_info['patient'] == 1)[0][0]
 # Set bw and u2ss
 bw = float(patient_info.bw.values[p])
-u2ss = float(patient_info.u2ss.values[p])
 x0 = None
 previous_data_name = None
 sensors = None
@@ -44,7 +43,7 @@ for day in range(start_day, end_day+1):
 
     # Load data and set save_name
     data = load_test_data(day=day)
-    save_name = 'data_day_' + str(day)
+    save_name = 'data_day_' + str(day) + '_interval'
 
     print("Replaying " + save_name)
 
@@ -52,8 +51,8 @@ for day in range(start_day, end_day+1):
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='map',
                                 save_workspace=True,
-                                x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
-                                save_suffix='_replay_intervals_map',
+                                x0=x0, previous_data_name=previous_data_name,
+                                save_suffix='_replay_map',
                                 sensors=sensors)
 
     # Append results

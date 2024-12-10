@@ -22,7 +22,6 @@ def test_replay_bg():
     p = np.where(patient_info['patient'] == 1)[0][0]
     # Set bw and u2ss
     bw = float(patient_info.bw.values[p])
-    u2ss = float(patient_info.u2ss.values[p])
 
     # Instantiate ReplayBG
     rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
@@ -40,7 +39,6 @@ def test_replay_bg():
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='map',
                                 save_workspace=True,
-                                u2ss=u2ss,
                                 save_suffix='_replay_map')
 
     # Visualize and analyze results

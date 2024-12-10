@@ -147,7 +147,7 @@ method, which is formerly defined as:
 
 ### Input parameters
 - `replay_results_interval`: a list of dictionaries returned by or saved with the `rbg.replay()` method
-- `data`, optional, default: `None`: The list of `data` parameter passed to `rbg.replay()` . If present, the method will also
+- `data_interval`, optional, default: `None`: The list of `data` passed to `rbg.replay()` . If present, the method will also
 compare the glucose fit vs the data.
 
 ### Output parameter

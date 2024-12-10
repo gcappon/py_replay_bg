@@ -30,6 +30,10 @@ def test_replay_bg():
     x0 = None
     previous_data_name = None
 
+    # Initialize the list of results
+    replay_results_interval = []
+    data_interval = []
+
     # Instantiate ReplayBG
     rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
                    yts=5, exercise=False,
@@ -45,7 +49,7 @@ def test_replay_bg():
 
         # Step 1: Load data and set save_name
         data = load_test_data(day=day)
-        save_name = 'data_day_' + str(day)
+        save_name = 'data_day_' + str(day) + '_interval'
 
         print("Twinning " + save_name)
 
@@ -56,19 +60,23 @@ def test_replay_bg():
                  n_steps=n_steps,
                  x0=x0, u2ss=u2ss, previous_data_name=previous_data_name)
 
-        # Replay the twin with the same input data to get the initial conditions for the subsequent day
+        # Replay the twin with the same input data
         replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                     twinning_method='mcmc',
                                     save_workspace=True,
-                                    x0=x0, u2ss=u2ss, previous_data_name=previous_data_name,
-                                    save_suffix='_twin_intervals_mcmc')
+                                    x0=x0, previous_data_name=previous_data_name,
+                                    save_suffix='_twin_mcmc')
 
-        Visualizer.plot_replay_results(replay_results, data=data)
-        analysis = Analyzer.analyze_replay_results(replay_results, data=data)
-        print('Fit MARD: %.2f %%' % analysis['median']['twin']['mard'])
+        # Append results
+        replay_results_interval.append(replay_results)
+        data_interval.append(data)
 
         # Set initial conditions for next day equal to the "ending conditions" of the current day
         x0 = replay_results['x_end']['realizations'][0].tolist()
 
         # Set previous_data_name
         previous_data_name = save_name
+
+    Visualizer.plot_replay_results_interval(replay_results_interval, data_interval=data_interval)
+    analysis = Analyzer.analyze_replay_results_interval(replay_results_interval, data_interval=data_interval)
+    print('Fit MARD: %.2f %%' % analysis['median']['twin']['mard'])

@@ -20,8 +20,6 @@ class InputValidatorReplay:
     save_name : str
         A string used to label, thus identify, each output file and result.
 
-    u2ss : float
-        The steady state of the basal insulin infusion.
     x0: list
         The initial model state.
     previous_data_name: str
@@ -97,7 +95,6 @@ class InputValidatorReplay:
                  data: pd.DataFrame,
                  bw: float,
                  save_name: str,
-                 u2ss: float,
                  x0: np.ndarray,
                  previous_data_name: str,
                  twinning_method: str,
@@ -126,7 +123,6 @@ class InputValidatorReplay:
         self.data = data
         self.bw = bw
         self.save_name = save_name
-        self.u2ss = u2ss
         self.x0 = x0
         self.previous_data_name = previous_data_name
         self.twinning_method = twinning_method
@@ -167,9 +163,6 @@ class InputValidatorReplay:
 
         # Validate the 'save_name' input
         SaveNameValidator(save_name=self.save_name).validate()
-
-        # Validate the 'u2ss' input
-        U2SSValidator(u2ss=self.u2ss).validate()
 
         # Validate the 'save_name' input
         X0Validator(x0=self.x0).validate()

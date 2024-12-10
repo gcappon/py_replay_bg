@@ -27,7 +27,6 @@ defined as:
 rbg.replay(data: pd.DataFrame,
    bw: float,
    save_name: str,
-   u2ss: float | None = None,
    x0: np.ndarray | None = None,
    previous_data_name: str | None  = None,
    twinning_method: str = 'mcmc',
@@ -59,9 +58,6 @@ requirements see [Data Requirements](./data_requirements.md) page.
 - `bw`: A float representing the patient's body weight in kg.
 - `save_name`: A string used to label, thus identify, each output file and result. This MUST correspond to the `save_name`
 string provided to the `twin` method during twinning.
-- `u2ss`, optional, default: `None`: A float representing the steady state of the basal insulin infusion (e.g., the 
-average basal insulin) in mU/(kg*min). If `None`, it will be set to the average of the basal insulin in input. This MUST 
-correspond to the `u2ss` value provided to the `twin` method during twinning.
 - `x0`, optional, default: `None`: An np.ndarray, containing the initial model conditions. If `None`, the model will
 start to the default steady state.
 - `previous_data_name`, optional, default: `None`: A string representing the name of the previous data portion. 
@@ -217,9 +213,8 @@ plot_mode = False
 blueprint = 'multi-meal'
 save_folder = os.path.join(os.path.abspath(''))
 
-# Set bw and u2ss
+# Set bw
 bw = ... # Set bw
-u2ss = ... #u2ss
 
 # Instantiate ReplayBG
 rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
@@ -239,7 +234,6 @@ replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             n_replay=10,
                             twinning_method='mcmc',
                             save_workspace=True,
-                            u2ss=u2ss,
                             save_suffix='reduced')
 ```
 
@@ -281,9 +275,8 @@ plot_mode = False
 blueprint = 'multi-meal'
 save_folder = os.path.join(os.path.abspath(''))
 
-# Set bw and u2ss
+# Set bw
 bw = ...
-u2ss = ...
 
 x0 = None
 previous_data_name = None
@@ -310,12 +303,12 @@ for day in range(start_day, end_day+1):
     data = ...
     save_name = 'example' + str(day)
 
-    # Replay the twin with the same input data to get the initial conditions for the subsequent day
+    # Replay the twin with the same input data
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='mcmc',
                                 n_replay=100,
                                 save_workspace=True,
-                                x0=x0, u2ss=u2ss, previous_data_name=previous_data_name, sensors=sensors,
+                                x0=x0, previous_data_name=previous_data_name, sensors=sensors,
                                 save_suffix='_intervals')
 
     # Append results

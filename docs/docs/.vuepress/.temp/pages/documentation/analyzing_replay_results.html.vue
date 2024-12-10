@@ -168,7 +168,7 @@ method, which is formerly defined as:</p>
 <div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="input-parameters-1" tabindex="-1"><a class="header-anchor" href="#input-parameters-1"><span>Input parameters</span></a></h3>
 <ul>
 <li><code v-pre>replay_results_interval</code>: a list of dictionaries returned by or saved with the <code v-pre>rbg.replay()</code> method</li>
-<li><code v-pre>data</code>, optional, default: <code v-pre>None</code>: The list of <code v-pre>data</code> parameter passed to <code v-pre>rbg.replay()</code> . If present, the method will also
+<li><code v-pre>data_interval</code>, optional, default: <code v-pre>None</code>: The list of <code v-pre>data</code> passed to <code v-pre>rbg.replay()</code> . If present, the method will also
 compare the glucose fit vs the data.</li>
 </ul>
 <h3 id="output-parameter-1" tabindex="-1"><a class="header-anchor" href="#output-parameter-1"><span>Output parameter</span></a></h3>

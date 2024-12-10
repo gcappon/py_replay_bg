@@ -18,8 +18,6 @@ description: Docs index
 
 ### [Twinning Procedure](./twinning_procedure.md)
 
-u2ss: what to do?
-
 ### [Replaying](./replaying.md)
 
 ### [The _results/_ Folder](./results_folder.md)

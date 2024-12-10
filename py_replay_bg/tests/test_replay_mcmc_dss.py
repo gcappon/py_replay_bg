@@ -24,7 +24,6 @@ def test_replay_bg():
     p = np.where(patient_info['patient'] == 1)[0][0]
     # Set bw and u2ss
     bw = float(patient_info.bw.values[p])
-    u2ss = float(patient_info.u2ss.values[p])
 
     # Instantiate ReplayBG
     rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
@@ -50,7 +49,6 @@ def test_replay_bg():
                                 n_replay=10,
                                 twinning_method='mcmc',
                                 save_workspace=True,
-                                u2ss=u2ss,
                                 save_suffix='_replay_mcmc_dss',
                                 enable_correction_boluses=True,
                                 bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
