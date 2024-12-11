@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py_replay_bg"
-version = "1.0.0"
+version = "1.0.2"
 authors = [
   { name="Giacomo Cappon", email="cappongiacomo@gmail.com" },
 ]
@@ -32,5 +32,6 @@ optional-dependencies = {dev = { file = ["requirements-dev.txt"] }}
 "Homepage" = "https://github.com/gcappon/py_replay_bg"
 "Bug Tracker" = "https://github.com/gcappon/py_replay_bg/issues"
 
-[tool.setuptools]
-packages = ["py_replay_bg"]
+[tool.setuptools.packages.find]
+include = ["py_replay_bg*"]
+exclude = ["venv*"]
