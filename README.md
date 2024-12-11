@@ -135,7 +135,6 @@ The possibilities are several, but for now let's just see what happens if we run
 replay_results = rbg.replay(data=data, bw=bw, save_name='data_day_1',
                             twinning_method='mcmc',
                             save_workspace=True,
-                            u2ss=u2ss,
                             save_suffix='_step_2a')
 ```
 
