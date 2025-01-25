@@ -91,7 +91,8 @@ class T1DModelSingleMeal:
                  x0: list | None = None,
                  previous_data_name: str | None = None,
                  environment: Environment | None = None,
-                 twinning_method: str = 'mcmc'
+                 twinning_method: str = 'mcmc',
+                 is_twin: bool = False
                  ):
         """
         Constructs all the necessary attributes for the Model object.
@@ -113,6 +114,8 @@ class T1DModelSingleMeal:
             An object that represents the hyperparameters to be used by ReplayBG.
         twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
             The method to used to twin the model.
+        is_twin: bool, optional, default: False
+            Whether or not the model is being created during twinning.
         """
 
         # Time constants during simulation
@@ -141,23 +144,22 @@ class T1DModelSingleMeal:
         # initial guess for the SD of each parameter
         self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3])
 
-        # TODO: fix default un-twinned parameters
-
-        # Attach SI
-        self.pos_SI = self.start_guess.shape[0]
-        self.unknown_parameters = np.append(self.unknown_parameters, 'SI')
-        self.start_guess = np.append(self.start_guess, self.model_parameters.SI)
-        self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
-        # Attach kabs
-        self.pos_kabs = self.start_guess.shape[0]
-        self.unknown_parameters = np.append(self.unknown_parameters, 'kabs')
-        self.start_guess = np.append(self.start_guess, self.model_parameters.kabs)
-        self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
-        # Attach beta
-        self.pos_beta = self.start_guess.shape[0]
-        self.unknown_parameters = np.append(self.unknown_parameters, 'beta')
-        self.start_guess = np.append(self.start_guess, self.model_parameters.beta)
-        self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+        if is_twin:
+            # Attach SI
+            self.pos_SI = self.start_guess.shape[0]
+            self.unknown_parameters = np.append(self.unknown_parameters, 'SI')
+            self.start_guess = np.append(self.start_guess, self.model_parameters.SI)
+            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+            # Attach kabs
+            self.pos_kabs = self.start_guess.shape[0]
+            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs')
+            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs)
+            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+            # Attach beta
+            self.pos_beta = self.start_guess.shape[0]
+            self.unknown_parameters = np.append(self.unknown_parameters, 'beta')
+            self.start_guess = np.append(self.start_guess, self.model_parameters.beta)
+            self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Exercise
         self.exercise = environment.exercise

@@ -89,7 +89,8 @@ class T1DModelMultiMeal:
                  x0: list | None = None,
                  previous_data_name: str | None = None,
                  environment: Environment | None = None,
-                 twinning_method: str = 'mcmc'
+                 twinning_method: str = 'mcmc',
+                 is_twin: bool = False
                  ):
         """
         Constructs all the necessary attributes of the object.
@@ -111,6 +112,8 @@ class T1DModelMultiMeal:
             An object that represents the hyperparameters to be used by ReplayBG.
         twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
             The method to used to twin the model.
+        is_twin: bool, optional, default : False
+            Whether or not the model is being created during twinning.
         """
         # Time constants during simulation
         self.ts = 1  # Integration step
@@ -140,91 +143,90 @@ class T1DModelMultiMeal:
         # Get the hour of the day for each data point
         t = np.array(data.t.dt.hour.values).astype(int)
 
-        # TODO: fix default un-twinned parameters
+        if is_twin:
+            # Attach breakfast SI if data between 4:00 - 11:00 are available
+            self.pos_SI_B = 0
+            if np.any(np.logical_and(t >= 4, t < 11)):
+                self.pos_SI_B = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
-        # Attach breakfast SI if data between 4:00 - 11:00 are available
-        self.pos_SI_B = 0
-        if np.any(np.logical_and(t >= 4, t < 11)):
-            self.pos_SI_B = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+            # Attach lunch SI if data between 11:00 - 17:00 are available
+            self.pos_SI_L = 0
+            if np.any(np.logical_and(t >= 11, t < 17)):
+                self.pos_SI_L = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'SI_L')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_L)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
-        # Attach lunch SI if data between 11:00 - 17:00 are available
-        self.pos_SI_L = 0
-        if np.any(np.logical_and(t >= 11, t < 17)):
-            self.pos_SI_L = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'SI_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_L)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+            # Attach dinner SI if data between 0:00 - 4:00 or 17:00 - 24:00 are available
+            self.pos_SI_D = 0
+            if np.any(np.logical_or(t < 4, t >= 17)):
+                self.pos_SI_D = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'SI_D')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_D)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
 
-        # Attach dinner SI if data between 0:00 - 4:00 or 17:00 - 24:00 are available
-        self.pos_SI_D = 0
-        if np.any(np.logical_or(t < 4, t >= 17)):
-            self.pos_SI_D = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'SI_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_D)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+            # Attach kabs and beta breakfast if there is a breakfast
+            self.pos_kabs_B = 0
+            self.pos_beta_B = 0
+            if np.any(np.array(data.cho_label) == 'B'):
+                self.pos_kabs_B = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_B')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_B)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                self.pos_beta_B = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'beta_B')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.beta_B)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
-        # Attach kabs and beta breakfast if there is a breakfast
-        self.pos_kabs_B = 0
-        self.pos_beta_B = 0
-        if np.any(np.array(data.cho_label) == 'B'):
-            self.pos_kabs_B = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_B)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
-            self.pos_beta_B = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'beta_B')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_B)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+            # Attach kabs and beta lunch if there is a lunch
+            self.pos_kabs_L = 0
+            self.pos_beta_L = 0
+            if np.any(np.array(data.cho_label) == 'L'):
+                self.pos_kabs_L = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_L')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_L)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                self.pos_beta_L = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'beta_L')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.beta_L)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
-        # Attach kabs and beta lunch if there is a lunch
-        self.pos_kabs_L = 0
-        self.pos_beta_L = 0
-        if np.any(np.array(data.cho_label) == 'L'):
-            self.pos_kabs_L = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_L)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
-            self.pos_beta_L = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'beta_L')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_L)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+            # Attach kabs and beta dinner if there is a dinner
+            self.pos_kabs_D = 0
+            self.pos_beta_D = 0
+            if np.any(np.array(data.cho_label) == 'D'):
+                self.pos_kabs_D = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_D')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_D)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                self.pos_beta_D = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'beta_D')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.beta_D)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
-        # Attach kabs and beta dinner if there is a dinner
-        self.pos_kabs_D = 0
-        self.pos_beta_D = 0
-        if np.any(np.array(data.cho_label) == 'D'):
-            self.pos_kabs_D = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_D)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
-            self.pos_beta_D = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'beta_D')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_D)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+            # Attach kabs and beta snack if there is a snack
+            self.pos_kabs_S = 0
+            self.pos_beta_S = 0
+            if np.any(np.array(data.cho_label) == 'S'):
+                self.pos_kabs_S = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_S')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_S)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                self.pos_beta_S = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'beta_S')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.beta_S)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
-        # Attach kabs and beta snack if there is a snack
-        self.pos_kabs_S = 0
-        self.pos_beta_S = 0
-        if np.any(np.array(data.cho_label) == 'S'):
-            self.pos_kabs_S = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_S')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_S)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
-            self.pos_beta_S = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'beta_S')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.beta_S)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
-
-        # Attach kabs and hypotreatment if there is an hypotreatment
-        self.pos_kabs_H = 0
-        if np.any(np.array(data.cho_label) == 'H'):
-            self.pos_kabs_H = self.start_guess.shape[0]
-            self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_H')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_H)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+            # Attach kabs and hypotreatment if there is an hypotreatment
+            self.pos_kabs_H = 0
+            if np.any(np.array(data.cho_label) == 'H'):
+                self.pos_kabs_H = self.start_guess.shape[0]
+                self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_H')
+                self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_H)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
 
         # Exercise
         self.exercise = environment.exercise

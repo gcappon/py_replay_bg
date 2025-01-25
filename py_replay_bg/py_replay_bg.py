@@ -207,12 +207,14 @@ class ReplayBG:
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,
-                                       environment=self.environment)
+                                       environment=self.environment,
+                                       is_twin=True)
         else:
             model = T1DModelMultiMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                       previous_data_name=previous_data_name,
                                       twinning_method=twinning_method,
-                                      environment=self.environment)
+                                      environment=self.environment,
+                                      is_twin=True)
 
         # Unpack data to optimize performance during simulation
         rbg_data = ReplayBGData(data=data, model=model, environment=self.environment)
