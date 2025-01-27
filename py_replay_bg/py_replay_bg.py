@@ -415,12 +415,14 @@ class ReplayBG:
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=-1, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,
-                                       environment=self.environment)
+                                       environment=self.environment,
+                                       is_twin=False)
         else:
             model = T1DModelMultiMeal(data=data, bw=bw, u2ss=-1, x0=x0,
                                       previous_data_name=previous_data_name,
                                       twinning_method=twinning_method,
-                                      environment=self.environment)
+                                      environment=self.environment,
+                                      is_twin=False)
 
         # Initialize DSS
         dss = DSS(bw=bw,

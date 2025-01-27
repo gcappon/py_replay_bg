@@ -220,12 +220,14 @@ class Replayer:
 
             if self.twinning_method == 'mcmc':
                 # set the model parameters
-                for p in self.model.unknown_parameters:
+                for p in self.draws:
                     setattr(self.model.model_parameters, p, self.draws[p]['samples_'+str(self.n_replay)][r])
+                self.model.model_parameters.kgri = self.model.model_parameters.kempt
             else:
                 # set the model parameters
-                for p in self.model.unknown_parameters:
+                for p in self.draws:
                     setattr(self.model.model_parameters, p, self.draws[p])
+                self.model.model_parameters.kgri = self.model.model_parameters.kempt
             self.model.model_parameters.u2ss = self.u2ss
 
             if new_sensors:
