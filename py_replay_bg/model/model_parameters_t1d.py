@@ -6,7 +6,8 @@ class ModelParametersT1D:
     def __init__(self,
                  data: pd.DataFrame,
                  bw: float,
-                 u2ss: float
+                 u2ss: float,
+                 extended: bool
                  ):
 
         """
@@ -20,6 +21,8 @@ class ModelParametersT1D:
             The patient's body weight.
         u2ss : float
             The steady state of the basal insulin infusion
+        extended : bool
+            A flag indicating whether to use the "extended" model for twinning
 
         Returns
         -------
@@ -98,7 +101,8 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
     def __init__(self,
                  data: pd.DataFrame,
                  bw: float,
-                 u2ss: float
+                 u2ss: float,
+                 extended: bool,
                  ):
 
         """
@@ -112,6 +116,8 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
             The patient's body weight.
         u2ss : float
             The steady state of the basal insulin infusion
+        extended : bool
+            A flag indicating whether to use the "extended" model for twinning
 
         Returns
         -------
@@ -131,12 +137,15 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
         None
         """
         # Initialize common parameters
-        super().__init__(data, bw, u2ss)
+        super().__init__(data, bw, u2ss, extended)
 
         # Glucose-insulin submodel parameters
         self.SI_B = 10.35e-4 / self.VG  # mL/(uU*min)
         self.SI_L = 10.35e-4 / self.VG  # mL/(uU*min)
         self.SI_D = 10.35e-4 / self.VG  # mL/(uU*min)
+
+        if extended:
+            self.SI_B2 = 10.35e-4 / self.VG  # mL/(uU*min)
 
         # Oral glucose absorption submodel parameters
         self.kabs_B = 0.012  # 1/min
@@ -149,13 +158,21 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
         self.beta_D = 0  # min
         self.beta_S = 0  # min
 
+        if extended:
+            self.kabs_B2 = 0.012  # 1/min
+            self.kabs_L2 = 0.012  # 1/min
+            self.kabs_S2 = 0.012  # 1/min
+            self.beta_B2 = 0  # min
+            self.beta_L2 = 0  # min
+            self.beta_S2 = 0  # min
+
 
 class ModelParametersT1DSingleMeal(ModelParametersT1D):
 
     def __init__(self,
                  data: pd.DataFrame,
                  bw: float,
-                 u2ss: float
+                 u2ss: float,
                  ):
 
         """
@@ -188,7 +205,7 @@ class ModelParametersT1DSingleMeal(ModelParametersT1D):
         None
         """
         # Initialize common parameters
-        super().__init__(data, bw, u2ss)
+        super().__init__(data, bw, u2ss, extended=False)
 
         # Glucose-insulin submodel parameters
         self.SI = 10.35e-4 / self.VG  # mL/(uU*min)

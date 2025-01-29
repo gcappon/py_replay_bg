@@ -120,10 +120,10 @@ class ReplayBG:
 
     def twin(self, data: pd.DataFrame, bw: float, save_name: str,
              twinning_method: str = 'mcmc',
+             extended: bool = False,
              n_steps: int = 50000, save_chains: bool = False,
              u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
              parallelize: bool = False, n_processes: int | None = None,
-
     ) -> None:
         """
         Runs ReplayBG twinning procedure.
@@ -148,6 +148,9 @@ class ReplayBG:
 
         twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
             The method to be used to twin the model.
+
+        extended : bool, default : False
+            A flag indicating whether to use the "extended" model for twinning
 
         n_steps: int, optional, default : 50000
             Number of steps to use for the main chain. This is ignored if twinning_method is 'map'.
@@ -190,6 +193,7 @@ class ReplayBG:
                  n_processes=n_processes,
                  blueprint=self.environment.blueprint,
                  exercise=self.environment.exercise,
+                 extended=extended,
                  ).validate()
 
         if self.environment.verbose:
@@ -214,7 +218,7 @@ class ReplayBG:
                                       previous_data_name=previous_data_name,
                                       twinning_method=twinning_method,
                                       environment=self.environment,
-                                      is_twin=True)
+                                      is_twin=True, extended=extended)
 
         # Unpack data to optimize performance during simulation
         rbg_data = ReplayBGData(data=data, model=model, environment=self.environment)

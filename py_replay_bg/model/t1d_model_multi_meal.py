@@ -10,9 +10,10 @@ import copy
 
 from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DMultiMeal
 
-from py_replay_bg.model.logpriors_t1d import log_prior_multi_meal, log_prior_multi_meal_exercise
+from py_replay_bg.model.logpriors_t1d import (log_prior_multi_meal, log_prior_multi_meal_exercise,
+                                              log_prior_multi_meal_extended)
 
-from py_replay_bg.model.model_step_equations_t1d import twin_multi_meal
+from py_replay_bg.model.model_step_equations_t1d import twin_multi_meal, twin_multi_meal_extended
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_multi_meal
 
 from py_replay_bg.data import ReplayBGData
@@ -57,6 +58,8 @@ class T1DModelMultiMeal:
 
     twinning_method : str
         The method used to twin the model.
+    extended : bool
+        A flag indicating whether to use the "extended" model for twinning
 
     x0: list
         The initial conditions for the model state. If None cold_boot will be set to True.
@@ -90,6 +93,7 @@ class T1DModelMultiMeal:
                  previous_data_name: str | None = None,
                  environment: Environment | None = None,
                  twinning_method: str = 'mcmc',
+                 extended: bool = False,
                  is_twin: bool = False
                  ):
         """
@@ -112,6 +116,8 @@ class T1DModelMultiMeal:
             An object that represents the hyperparameters to be used by ReplayBG.
         twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
             The method to used to twin the model.
+        extended : bool, default : False
+            A flag indicating whether to use the "extended" model for twinning
         is_twin: bool, optional, default : False
             Whether or not the model is being created during twinning.
         """
@@ -125,9 +131,11 @@ class T1DModelMultiMeal:
 
         # Model dimensionality
         self.nx = 21
+        if extended:
+            self.nx += 9
 
         # Model parameters
-        self.model_parameters = ModelParametersT1DMultiMeal(data, bw, u2ss)
+        self.model_parameters = ModelParametersT1DMultiMeal(data, bw, u2ss, extended)
 
         # Unknown parameters
         self.unknown_parameters = ['Gb', 'SG', 'ka2', 'kd', 'kempt']
@@ -143,7 +151,11 @@ class T1DModelMultiMeal:
         # Get the hour of the day for each data point
         t = np.array(data.t.dt.hour.values).astype(int)
 
+        # Set if we are using the extended model
+        self.extended = extended
+
         if is_twin:
+
             # Attach breakfast SI if data between 4:00 - 11:00 are available
             self.pos_SI_B = 0
             if np.any(np.logical_and(t >= 4, t < 11)):
@@ -227,6 +239,58 @@ class T1DModelMultiMeal:
                 self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_H')
                 self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_H)
                 self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+
+            # If using the extended model, attach additional parameters
+            if self.extended:
+
+                # This is the index of 03:55 of the second day
+                idx_355 = np.where(t == 3)[0][-1]
+                # This is the index of 03:55 of the second day (in simulation steps)
+                self.split_point = idx_355 * self.yts
+
+                self.pos_SI_B2 = 0
+                if np.any(np.logical_and(t[idx_355:] >= 4, t[idx_355:] < 11)):
+                    self.pos_SI_B2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+
+                # Attach kabs and beta breakfast 2 if there is a breakfast 2
+                self.pos_kabs_B2 = 0
+                self.pos_beta_B2 = 0
+                if np.any(np.array(data.cho_label) == 'B2'):
+                    self.pos_kabs_B2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_B2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_B2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                    self.pos_beta_B2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'beta_B2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.beta_B2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+                # Attach kabs and beta snack 2 if there is a snack 2
+                self.pos_kabs_S2 = 0
+                self.pos_beta_S2 = 0
+                if np.any(np.array(data.cho_label) == 'S2'):
+                    self.pos_kabs_S2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_S2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_S2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                    self.pos_beta_S2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'beta_S2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.beta_S2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
+                # Attach kabs and beta lunch 2 if there is a lunch 2
+                self.pos_kabs_L2 = 0
+                self.pos_beta_L2 = 0
+                if np.any(np.array(data.cho_label) == 'L2'):
+                    self.pos_kabs_L2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'kabs_L2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.kabs_L2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-3)
+                    self.pos_beta_L2 = self.start_guess.shape[0]
+                    self.unknown_parameters = np.append(self.unknown_parameters, 'beta_L2')
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.beta_L2)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 0.5)
 
         # Exercise
         self.exercise = environment.exercise
@@ -439,7 +503,14 @@ class T1DModelMultiMeal:
         meal_L_delayed = np.append(np.zeros(shape=(mp.beta_L.__trunc__(),)), rbg_data.meal_L)
         meal_D_delayed = np.append(np.zeros(shape=(mp.beta_D.__trunc__(),)), rbg_data.meal_D)
         meal_S_delayed = np.append(np.zeros(shape=(mp.beta_S.__trunc__(),)), rbg_data.meal_S)
+
         meal_H = rbg_data.meal_H * 1
+
+        # If using the extended model, shift also the meal vectors of the second day
+        if self.extended:
+            meal_B2_delayed = np.append(np.zeros(shape=(mp.beta_B2.__trunc__(),)), rbg_data.meal_B2)
+            meal_L2_delayed = np.append(np.zeros(shape=(mp.beta_L2.__trunc__(),)), rbg_data.meal_L2)
+            meal_S2_delayed = np.append(np.zeros(shape=(mp.beta_S2.__trunc__(),)), rbg_data.meal_S2)
 
         # Get the initial conditions
         k1 = mp.u2ss / mp.kd
@@ -448,7 +519,11 @@ class T1DModelMultiMeal:
 
         # If initial model conditions are None, set the default initial conditions, i.e., steady-state
         if self.x0 is None:
-            self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+            if self.extended:
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+            else:
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+
         # otherwise, set the initial model condition appropriately.
         else:
             # IMPORTANT: Scale the initial conditions of the insulin compartment to avoid "fake meal/bolus" effects
@@ -470,9 +545,9 @@ class T1DModelMultiMeal:
 
             # Scale as --> initial_old:initial_new = k1old:k1new
             self.x[:, 0] = self.x0
-            self.x[17,0] = k1 * self.x[17,0] / k1_old
-            self.x[18, 0] = k2 * self.x[18, 0] / k2_old
-            self.x[19, 0] = mp.Ipb * self.x[19, 0] / Ipb_old # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
+            self.x[self.nx-4, 0] = k1 * self.x[self.nx-4,0] / k1_old
+            self.x[self.nx-3, 0] = k2 * self.x[self.nx-3, 0] / k2_old
+            self.x[self.nx-2, 0] = mp.Ipb * self.x[self.nx-2, 0] / Ipb_old # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
 
 
         # Set the initial glucose value
@@ -490,34 +565,72 @@ class T1DModelMultiMeal:
         ki1 = 1 / (1 + mp.kd)
         ki2 = 1 / (1 + mp.ka2)
         kie = 1 / (1 + mp.ke)
-        self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [k2, k3, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, mp.kempt * kb, kb, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, k2, k3, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, mp.kempt * kl, kl, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, k2, k3,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd,
-                       kd, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks,
-                       ks, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh,
-                       kh, 0, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
-                       ki2, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                       mp.ka2 * kie, kie]]
+        if self.extended:
+            kb2 = 1 / (1 + mp.kabs_B2)
+            kl2 = 1 / (1 + mp.kabs_L2)
+            ks2 = 1 / (1 + mp.kabs_S2)
+            self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, mp.kempt * kb, kb, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, mp.kempt * kl, kl, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd, kd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks, ks, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh, kh, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kb2, kb2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kl2, kl2, 0, 0, 0, 0, 0, 0],
+
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks2, ks2, 0, 0, 0],
+
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
+                          ki2, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          mp.ka2 * kie, kie]]
+        else:
+            self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [k2, k3, 0, 0, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, mp.kempt * kb, kb, 0, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, k2, k3, 0, 0, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, mp.kempt * kl, kl, 0,
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, k2, k3,
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd,
+                           kd, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks,
+                           ks, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh,
+                           kh, 0, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
+                           ki2, 0],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                           mp.ka2 * kie, kie]]
 
         # Run simulation in two ways depending on the modality to speed up the twinning process
         if is_replay:
@@ -713,7 +826,50 @@ class T1DModelMultiMeal:
         else:
 
             # Run simulation
-            self.x = twin_multi_meal(self.tsteps,
+            if self.extended:
+                self.x = twin_multi_meal_extended(self.tsteps,
+                                         self.x,
+                                         self.A,
+                                         self.B,
+                                         bolus_delayed,
+                                         basal_delayed,
+                                         meal_B_delayed,
+                                         meal_L_delayed,
+                                         meal_D_delayed,
+                                         meal_S_delayed,
+                                         meal_H,
+                                         meal_B2_delayed,
+                                         meal_L2_delayed,
+                                         meal_S2_delayed,
+                                         rbg_data.t_hour,
+                                         self.split_point,
+                                         mp.r1,
+                                         mp.r2,
+                                         mp.kgri,
+                                         mp.kd,
+                                         mp.p2,
+                                         mp.SI_B,
+                                         mp.SI_L,
+                                         mp.SI_D,
+                                         mp.SI_B2,
+                                         mp.VI,
+                                         mp.VG,
+                                         mp.Ipb,
+                                         mp.SG,
+                                         mp.Gb,
+                                         mp.f,
+                                         mp.kabs_B,
+                                         mp.kabs_L,
+                                         mp.kabs_D,
+                                         mp.kabs_S,
+                                         mp.kabs_H,
+                                         mp.kabs_B2,
+                                         mp.kabs_L2,
+                                         mp.kabs_S2,
+                                         mp.alpha,
+                                         self.previous_Ra)
+            else:
+                self.x = twin_multi_meal(self.tsteps,
                                          self.x,
                                          self.A,
                                          self.B,
@@ -881,8 +1037,86 @@ class T1DModelMultiMeal:
         return -0.5 * np.sum(
             ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
 
+    def __log_likelihood_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
+        """
+        Internal function that computes the log likelihood of unknown parameters (extended model).
+
+        Parameters
+        ----------
+        theta : np.ndarray
+            The current guess of unknown model parameters.
+        rbg_data : ReplayBGData
+            The data to be used by ReplayBG during simulation.
+
+        Returns
+        -------
+        log_likelihood_extended: float
+            The value of the log likelihood of current unknown model parameters guess.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+
+        # Set model parameters to current guess
+        (self.model_parameters.Gb,
+         self.model_parameters.SG,
+         self.model_parameters.ka2,
+         self.model_parameters.kd,
+         self.model_parameters.kempt) = theta[0:5]
+
+        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
+        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
+        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
+
+        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
+        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
+        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
+        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
+        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
+
+        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
+        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
+        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
+        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
+
+        self.model_parameters.SI_B2 = theta[self.pos_SI_B2] if self.pos_SI_B2 else self.model_parameters.SI_B2
+
+        self.model_parameters.kabs_B2 = theta[self.pos_kabs_B2] if self.pos_kabs_B2 else self.model_parameters.kabs_B2
+        self.model_parameters.kabs_L2 = theta[self.pos_kabs_L2] if self.pos_kabs_L2 else self.model_parameters.kabs_L2
+        self.model_parameters.kabs_S2 = theta[self.pos_kabs_S2] if self.pos_kabs_S2 else self.model_parameters.kabs_S2
+
+        self.model_parameters.beta_B2 = theta[self.pos_beta_B2] if self.pos_beta_B2 else self.model_parameters.beta_B2
+        self.model_parameters.beta_L2 = theta[self.pos_beta_L2] if self.pos_beta_L2 else self.model_parameters.beta_L2
+        self.model_parameters.beta_S2 = theta[self.pos_beta_S2] if self.pos_beta_S2 else self.model_parameters.beta_S2
+
+        # Enforce constraints
+        self.model_parameters.kgri = self.model_parameters.kempt
+
+        # Simulate the model
+        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
+
+        # Sample the simulation
+        G = G[0::self.yts]
+
+        # Compute and return the log likelihood
+        return -0.5 * np.sum(
+            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
+
     def neg_log_posterior(self, theta: np.ndarray, rbg_data: ReplayBGData):
         res = - self.log_posterior(theta, rbg_data)
+        return res
+
+    def neg_log_posterior_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
+        res = - self.log_posterior_extended(theta, rbg_data)
         return res
 
     def log_posterior(self, theta: np.ndarray, rbg_data: ReplayBGData):
@@ -928,6 +1162,57 @@ class T1DModelMultiMeal:
                             self.pos_beta_S, self.model_parameters.beta_S,
                             theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood(theta, rbg_data)
+
+    def log_posterior_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
+        """
+        Function that computes the log posterior of unknown parameters (extended model).
+
+        Parameters
+        ----------
+        theta : np.ndarray
+            The current guess of unknown model parameters.
+        rbg_data : ReplayBGData
+            The data to be used by ReplayBG during simulation.
+
+        Returns
+        -------
+        log_posterior_extended: float
+            The value of the log posterior of current unknown model parameters guess.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        p = log_prior_multi_meal_extended(self.model_parameters.VG,
+                                          self.pos_SI_B, self.model_parameters.SI_B,
+                                          self.pos_SI_L, self.model_parameters.SI_L,
+                                          self.pos_SI_D, self.model_parameters.SI_D,
+                                          self.pos_kabs_B, self.model_parameters.kabs_B,
+                                          self.pos_kabs_L, self.model_parameters.kabs_L,
+                                          self.pos_kabs_D, self.model_parameters.kabs_D,
+                                          self.pos_kabs_S, self.model_parameters.kabs_S,
+                                          self.pos_kabs_H, self.model_parameters.kabs_H,
+                                          self.pos_beta_B, self.model_parameters.beta_B,
+                                          self.pos_beta_L, self.model_parameters.beta_L,
+                                          self.pos_beta_D, self.model_parameters.beta_D,
+                                          self.pos_beta_S, self.model_parameters.beta_S,
+                                          self.pos_SI_B2, self.model_parameters.SI_B2,
+                                          self.pos_kabs_B2, self.model_parameters.kabs_B2,
+                                          self.pos_kabs_L2, self.model_parameters.kabs_L2,
+                                          self.pos_kabs_S2, self.model_parameters.kabs_S2,
+                                          self.pos_beta_B2, self.model_parameters.beta_B2,
+                                          self.pos_beta_L2, self.model_parameters.beta_L2,
+                                          self.pos_beta_S2, self.model_parameters.beta_S2,
+                                          theta)
+        return -np.inf if p == -np.inf else p + self.__log_likelihood_extended(theta, rbg_data)
 
     def check_realization(self, theta: np.ndarray):
         """
@@ -1012,3 +1297,51 @@ class T1DModelMultiMeal:
                             self.pos_e1, self.model_parameters.e1,
                             self.pos_e2, self.model_parameters.e2,
                             theta) != -np.inf
+
+    def check_realization_extended(self, theta: np.ndarray):
+        """
+        Function that checks if a copula extraction is valid or not depending on the prior constraints. (extended model)
+
+        Parameters
+        ----------
+        theta : np.ndarray
+            The copula extraction of unknown model parameters.
+
+        Returns
+        -------
+        is_ok: bool
+            The flag indicating if the extraction is ok or not.
+
+        Raises
+        ------
+        None
+
+        See Also
+        --------
+        None
+
+        Examples
+        --------
+        None
+        """
+        return log_prior_multi_meal_extended(self.model_parameters.VG,
+                                          self.pos_SI_B, self.model_parameters.SI_B,
+                                          self.pos_SI_L, self.model_parameters.SI_L,
+                                          self.pos_SI_D, self.model_parameters.SI_D,
+                                          self.pos_kabs_B, self.model_parameters.kabs_B,
+                                          self.pos_kabs_L, self.model_parameters.kabs_L,
+                                          self.pos_kabs_D, self.model_parameters.kabs_D,
+                                          self.pos_kabs_S, self.model_parameters.kabs_S,
+                                          self.pos_kabs_H, self.model_parameters.kabs_H,
+                                          self.pos_beta_B, self.model_parameters.beta_B,
+                                          self.pos_beta_L, self.model_parameters.beta_L,
+                                          self.pos_beta_D, self.model_parameters.beta_D,
+                                          self.pos_beta_S, self.model_parameters.beta_S,
+                                          self.pos_SI_B2, self.model_parameters.SI_B2,
+                                          self.pos_kabs_B2, self.model_parameters.kabs_B2,
+                                          self.pos_kabs_L2, self.model_parameters.kabs_L2,
+                                          self.pos_kabs_S2, self.model_parameters.kabs_S2,
+                                          self.pos_beta_B2, self.model_parameters.beta_B2,
+                                          self.pos_beta_L2, self.model_parameters.beta_L2,
+                                          self.pos_beta_S2, self.model_parameters.beta_S2,
+                                          theta) != -np.inf

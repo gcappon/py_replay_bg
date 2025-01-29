@@ -249,6 +249,19 @@ class ExerciseValidator:
             raise Exception("'exercise' input must be a boolean.'")
 
 
+class ExtendedValidator:
+    """
+    Class for validating the 'extended' input parameter of ReplayBG.
+    """
+
+    def __init__(self, extended):
+        self.extended = extended
+
+    def validate(self):
+        if not isinstance(self.extended, bool):
+            raise Exception("'extended' input must be a boolean.'")
+
+
 class HypotreatmentsHandlerValidator:
     """
     Class for validating the 'hypotreatments_handler' input parameter of ReplayBG.

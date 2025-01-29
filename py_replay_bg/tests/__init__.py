@@ -8,6 +8,13 @@ def load_test_data(day):
     return df
 
 
+def load_test_data_extended(day):
+    df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'data_day_' + str(day) +
+                                  '_extended.csv'))
+    df.t = pd.to_datetime(df['t'])
+    return df
+
+
 def load_patient_info():
     df = pd.read_csv(os.path.join(os.path.abspath(''), 'py_replay_bg', 'example', 'data', 'patient_info.csv'))
     return df

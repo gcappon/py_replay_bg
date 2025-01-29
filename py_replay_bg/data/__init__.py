@@ -315,6 +315,10 @@ class ReplayBGData:
             self.meal_S = np.zeros([model.tsteps, ])
             self.meal_H = np.zeros([model.tsteps, ])
 
+            self.meal_B2 = np.zeros([model.tsteps, ])
+            self.meal_L2 = np.zeros([model.tsteps, ])
+            self.meal_S2 = np.zeros([model.tsteps, ])
+
         self.meal_data = []
         if self.cho_source == 'data':
 
@@ -353,3 +357,11 @@ class ReplayBGData:
                                 (m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]
                     if data['cho_label'][m_idx[i]] == 'H':
                         self.meal_H[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]
+
+                    if data['cho_label'][m_idx[i]] == 'B2':
+                        self.meal_B2[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]
+                    if data['cho_label'][m_idx[i]] == 'L2':
+                        self.meal_L2[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]
+                    if data['cho_label'][m_idx[i]] == 'S2':
+                        self.meal_S2[(m_idx[i] * environment.yts):(
+                                (m_idx[i] + 1) * environment.yts)] = self.meal[(m_idx[i] * environment.yts):((m_idx[i] + 1) * environment.yts)]

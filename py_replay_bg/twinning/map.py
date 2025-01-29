@@ -142,7 +142,7 @@ class MAP:
         options['disp'] = False
 
         # Select the function to minimize
-        neg_log_posterior_func = model.neg_log_posterior
+        neg_log_posterior_func = model.neg_log_posterior_extended if model.extended else model.neg_log_posterior
 
         # Initialize results
         results = []
@@ -184,6 +184,23 @@ class MAP:
         draws = dict()
         for up in range(n_dim):
             draws[model.unknown_parameters[up]] = results[best]['x'][up]
+
+        # Clean-up draws from "extended" parameters
+        if model.extended:
+            if 'SI_B2' in draws:
+                del draws['SI_B2']
+            if 'kabs_B2' in draws:
+                del draws['kabs_B2']
+            if 'beta_B2' in draws:
+                del draws['beta_B2']
+            if 'kabs_L2' in draws:
+                del draws['kabs_L2']
+            if 'beta_L2' in draws:
+                del draws['beta_L2']
+            if 'kabs_S2' in draws:
+                del draws['kabs_S2']
+            if 'beta_S2' in draws:
+                del draws['beta_S2']
 
         # Save results
         twinning_results = dict()

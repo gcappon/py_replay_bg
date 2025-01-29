@@ -158,7 +158,8 @@ class MCMC:
         if self.parallelize:
             pool = Pool(processes=self.n_processes)
 
-        log_posterior_func = model.log_posterior
+        log_posterior_func = model.log_posterior_extended if model.extended else model.log_posterior
+
         sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_posterior_func,
                                         moves=[
                                             (emcee.moves.DEMove(sigma=1.0e-3), 0.2),
@@ -233,6 +234,23 @@ class MCMC:
         draws = self.__subsample(draws=draws, rbg_data=rbg_data, environment=environment, model=model)
 
         # TODO: Check physiological plausibility
+
+        # Clean-up draws from "extended" parameters
+        if model.extended:
+            if 'SI_B2' in draws:
+                del draws['SI_B2']
+            if 'kabs_B2' in draws:
+                del draws['kabs_B2']
+            if 'beta_B2' in draws:
+                del draws['beta_B2']
+            if 'kabs_L2' in draws:
+                del draws['kabs_L2']
+            if 'beta_L2' in draws:
+                del draws['beta_L2']
+            if 'kabs_S2' in draws:
+                del draws['kabs_S2']
+            if 'beta_S2' in draws:
+                del draws['beta_S2']
 
         # Save results
         twinning_results = dict()

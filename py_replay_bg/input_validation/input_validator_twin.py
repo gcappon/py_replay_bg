@@ -56,6 +56,7 @@ class InputValidatorTwin:
                  bw: float,
                  save_name: str,
                  twinning_method: str,
+                 extended: bool,
                  n_steps: int,
                  save_chains: bool,
                  u2ss: float | None,
@@ -70,6 +71,7 @@ class InputValidatorTwin:
         self.bw = bw
         self.save_name = save_name
         self.twinning_method = twinning_method
+        self.extended = extended
         self.n_steps = n_steps
         self.save_chains = save_chains
         self.u2ss = u2ss
@@ -97,6 +99,9 @@ class InputValidatorTwin:
 
         # Validate the 'twinning_method' input
         TwinningMethodValidator(twinning_method=self.twinning_method).validate()
+
+        # Validate the 'extended' input
+        ExtendedValidator(extended=self.extended).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()
