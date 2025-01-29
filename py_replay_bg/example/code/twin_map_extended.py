@@ -48,7 +48,8 @@ if __name__ == '__main__':
              twinning_method='map',
              parallelize=parallelize,
              u2ss=u2ss,
-             extended=True)
+             extended=True,
+             find_start_guess_first=True)
 
     # Cut data up to 4:00
     data = data.iloc[0:264, :]

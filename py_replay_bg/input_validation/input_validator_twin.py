@@ -30,6 +30,11 @@ class InputValidatorTwin:
     twinning_method : str
         The method to be used to twin the model.
 
+    extended : bool
+        A flag indicating whether to use the "extended" model for twinning
+    find_start_guess_first : bool
+        A flag indicating whether to find the start guess using MAP before twinning.
+
     n_steps: int
         Number of steps to use for the main chain. This is ignored if modality is 'replay'.
     save_chains: bool, optional, default : False
@@ -57,6 +62,7 @@ class InputValidatorTwin:
                  save_name: str,
                  twinning_method: str,
                  extended: bool,
+                 find_start_guess_first: bool,
                  n_steps: int,
                  save_chains: bool,
                  u2ss: float | None,
@@ -72,6 +78,7 @@ class InputValidatorTwin:
         self.save_name = save_name
         self.twinning_method = twinning_method
         self.extended = extended
+        self.find_start_guess_first = find_start_guess_first
         self.n_steps = n_steps
         self.save_chains = save_chains
         self.u2ss = u2ss
@@ -102,6 +109,9 @@ class InputValidatorTwin:
 
         # Validate the 'extended' input
         ExtendedValidator(extended=self.extended).validate()
+
+        # Validate the 'find_start_guess_first' input
+        FindStartGuessFirstValidator(find_start_guess_first=self.find_start_guess_first).validate()
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()

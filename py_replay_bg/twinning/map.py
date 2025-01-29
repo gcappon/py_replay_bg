@@ -89,7 +89,9 @@ class MAP:
                  rbg_data: ReplayBGData,
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  save_name: str,
-                 environment: Environment) -> Dict:
+                 environment: Environment,
+                 start_guess: Dict = None,
+                 for_start_guess: bool = False) -> Dict:
         """
         Runs the twinning procedure.
 
@@ -103,6 +105,10 @@ class MAP:
             An object that represents the hyperparameters to be used by ReplayBG.
         save_name : str
             A string used to label, thus identify, each output file and result.
+        start_guess: Dict, optional, default : None
+            The initial guess for the twinning process. If None, this is set to population values.
+        for_start_guess: bool, optional, default : False
+            Whether to use the twin method just to find the start guess to pass to the MCMC twinner.
 
         Returns
         -------
@@ -123,11 +129,20 @@ class MAP:
         None
         """
 
+        # If this is being used to find the start_guess, do /4 less reruns
+        if for_start_guess:
+            self.n_rerun = int(self.n_rerun/4)
+
         # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)
 
+        if start_guess is None:
+            sg = model.start_guess
+        else:
+            sg = np.array(list(start_guess.values()))
+
         # Set the initial positions of the walkers.
-        start = model.start_guess + model.start_guess_sigma * np.random.randn(self.n_rerun, n_dim)
+        start = sg + model.start_guess_sigma * np.random.randn(self.n_rerun, n_dim)
         start[start < 0] = 0
 
         # Set the pooler
@@ -184,6 +199,10 @@ class MAP:
         draws = dict()
         for up in range(n_dim):
             draws[model.unknown_parameters[up]] = results[best]['x'][up]
+
+        # If twin is being used just to find the start guess, just return draws without saving
+        if for_start_guess:
+            return draws
 
         # Clean-up draws from "extended" parameters
         if model.extended:

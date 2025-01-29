@@ -120,7 +120,7 @@ class ReplayBG:
 
     def twin(self, data: pd.DataFrame, bw: float, save_name: str,
              twinning_method: str = 'mcmc',
-             extended: bool = False,
+             extended: bool = False, find_start_guess_first: bool = False,
              n_steps: int = 50000, save_chains: bool = False,
              u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
              parallelize: bool = False, n_processes: int | None = None,
@@ -149,8 +149,10 @@ class ReplayBG:
         twinning_method : str, {'mcmc', 'map'}, optional, default : 'mcmc'
             The method to be used to twin the model.
 
-        extended : bool, default : False
+        extended : bool, optional, default : False
             A flag indicating whether to use the "extended" model for twinning
+        find_start_guess_first : bool, optional, default : False
+            A flag indicating whether to find the start guess using MAP before twinning.
 
         n_steps: int, optional, default : 50000
             Number of steps to use for the main chain. This is ignored if twinning_method is 'map'.
@@ -194,6 +196,7 @@ class ReplayBG:
                  blueprint=self.environment.blueprint,
                  exercise=self.environment.exercise,
                  extended=extended,
+                 find_start_guess_first=find_start_guess_first,
                  ).validate()
 
         if self.environment.verbose:
@@ -223,6 +226,9 @@ class ReplayBG:
         # Unpack data to optimize performance during simulation
         rbg_data = ReplayBGData(data=data, model=model, environment=self.environment)
 
+        # Initialize start_guess
+        start_guess = None
+
         # Initialize twinner
         if twinning_method == 'mcmc':
             twinner = MCMC(n_steps=n_steps,
@@ -237,8 +243,33 @@ class ReplayBG:
                              n_processes=n_processes
                              )
 
+        # Find the start guess if requested
+        if find_start_guess_first:
+
+            if self.environment.verbose:
+                print('Looking for start guess')
+
+            start_guesser = MAP(max_iter=100000,
+                          parallelize=parallelize,
+                          n_processes=n_processes
+                          )
+
+            # Run twinning procedure for finding the start guess.
+            start_guess = start_guesser.twin(rbg_data=rbg_data,
+                                       model=model,
+                                       save_name=save_name,
+                                       environment=self.environment,
+                                       for_start_guess=True)
+
+            if self.environment.verbose:
+                print('Running actual twinning')
+
         # Run twinning procedure
-        twinner.twin(rbg_data=rbg_data, model=model, save_name=save_name, environment=self.environment)
+        twinner.twin(rbg_data=rbg_data,
+                     model=model,
+                     save_name=save_name,
+                     environment=self.environment,
+                     start_guess=start_guess)
 
     def replay(self,
                data: pd.DataFrame,

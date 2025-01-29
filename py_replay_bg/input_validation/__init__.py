@@ -262,6 +262,19 @@ class ExtendedValidator:
             raise Exception("'extended' input must be a boolean.'")
 
 
+class FindStartGuessFirstValidator:
+    """
+    Class for validating the 'find_start_guess_first' input parameter of ReplayBG.
+    """
+
+    def __init__(self, find_start_guess_first):
+        self.find_start_guess_first = find_start_guess_first
+
+    def validate(self):
+        if not isinstance(self.find_start_guess_first, bool):
+            raise Exception("'find_start_guess_first' input must be a boolean.'")
+
+
 class HypotreatmentsHandlerValidator:
     """
     Class for validating the 'hypotreatments_handler' input parameter of ReplayBG.

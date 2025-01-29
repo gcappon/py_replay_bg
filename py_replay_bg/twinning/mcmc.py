@@ -110,7 +110,8 @@ class MCMC:
              rbg_data: ReplayBGData,
              model: T1DModelSingleMeal | T1DModelMultiMeal,
              save_name: str,
-             environment: Environment) -> Dict:
+             environment: Environment,
+             start_guess: Dict = None) -> Dict:
         """
         Runs the twinning procedure.
 
@@ -124,6 +125,8 @@ class MCMC:
             A string used to label, thus identify, each output file and result.
         environment: Environment
             An object that represents the hyperparameters to be used by ReplayBG.
+        start_guess: Dict, optional, default : None
+            The initial guess for the twinning process obtain from MAP. If None, this is set to population values.
 
         Returns
         -------
@@ -149,8 +152,13 @@ class MCMC:
         # Number of walkers to use. It should be at least twice the number of dimensions (here 50 times).
         n_walkers = 50 * n_dim
 
+        if start_guess is None:
+            sg = model.start_guess
+        else:
+            sg = np.array(list(start_guess.values()))
+
         # Set the initial positions of the walkers.
-        start = model.start_guess + model.start_guess_sigma * np.random.randn(n_walkers, n_dim)
+        start = sg + model.start_guess_sigma * np.random.randn(n_walkers, n_dim)
         start[start < 0] = 0
 
         # Initialize the sampler
