@@ -134,15 +134,15 @@ class T1DModelSingleMeal:
         self.model_parameters = ModelParametersT1DSingleMeal(data, bw, u2ss)
 
         # Unknown parameters
-        self.unknown_parameters = ['Gb', 'SG', 'ka2', 'kd', 'kempt']
+        self.unknown_parameters = ['Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt']
 
         # initial guess for unknown parameter
         self.start_guess = np.array(
-            [self.model_parameters.Gb, self.model_parameters.SG,
+            [self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.p2,
              self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt])
 
         # initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3])
+        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3])
 
         if is_twin:
             # Attach SI
@@ -598,6 +598,7 @@ class T1DModelSingleMeal:
         # Set model parameters to current guess
         (self.model_parameters.Gb,
          self.model_parameters.SG,
+         self.model_parameters.p2,
          self.model_parameters.ka2,
          self.model_parameters.kd,
          self.model_parameters.kempt,

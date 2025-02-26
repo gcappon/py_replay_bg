@@ -39,10 +39,10 @@ def log_prior_single_meal(
     """
 
     # unpack the model parameters
-    Gb, SG, ka2, kd, kempt, SI, kabs, beta = theta
-
+    Gb, SG, p2, ka2, kd, kempt, SI, kabs, beta = theta
     # compute each log prior
     logprior_SI = log_gamma(SI * VG, 3.3, 1 / 5e-4)
+    logprior_p2 = log_norm(np.sqrt(p2), mu=0.11, sigma=0.004) if 0 < p2 < 1 else -np.inf
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
@@ -57,6 +57,7 @@ def log_prior_single_meal(
     return (logprior_SI +
             logprior_Gb +
             logprior_SG +
+            logprior_p2 +
             logprior_ka2 +
             logprior_kd +
             logprior_kempt +
@@ -97,11 +98,10 @@ def log_prior_single_meal_exercise(
     """
 
     # unpack the model parameters
-    Gb, SG, ka2, kd, kempt, SI, kabs, beta, e1, e2 = theta
-
+    Gb, SG, p2, ka2, kd, kempt, SI, kabs, beta, e1, e2 = theta
     # compute each log prior
     logprior_SI = log_gamma(SI * VG, 3.3, 1 / 5e-4)
-
+    logprior_p2 = log_norm(np.sqrt(p2), mu=0.11, sigma=0.004) if 0 < p2 < 1 else -np.inf
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
@@ -120,6 +120,7 @@ def log_prior_single_meal_exercise(
     return (logprior_SI +
             logprior_Gb +
             logprior_SG +
+            logprior_p2 +
             logprior_ka2 +
             logprior_kd +
             logprior_kempt +
@@ -235,9 +236,9 @@ def log_prior_multi_meal(
     """
 
     # unpack the model parameters
-    # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
+    # Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
 
-    Gb, SG, ka2, kd, kempt = theta[0:5]
+    Gb, SG, p2, ka2, kd, kempt = theta[0:6]
 
     SI_B = theta[pos_SI_B] if pos_SI_B else SI_B
     SI_L = theta[pos_SI_L] if pos_SI_L else SI_L
@@ -262,7 +263,8 @@ def log_prior_multi_meal(
 
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
-    # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
+
+    logprior_p2 = log_norm(np.sqrt(p2), mu=0.11, sigma=0.004) if 0 < p2 < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
     logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
     logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
@@ -289,6 +291,7 @@ def log_prior_multi_meal(
             logprior_SI_D +
             logprior_Gb +
             logprior_SG +
+            logprior_p2 +
             logprior_ka2 +
             logprior_kd +
             logprior_kempt +
@@ -423,7 +426,7 @@ def log_prior_multi_meal_exercise(
     # unpack the model parameters
     # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
 
-    Gb, SG, ka2, kd, kempt = theta[0:5]
+    Gb, SG, p2, ka2, kd, kempt = theta[0:6]
 
     SI_B = theta[pos_SI_B] if pos_SI_B else SI_B
     SI_L = theta[pos_SI_L] if pos_SI_L else SI_L
@@ -451,7 +454,7 @@ def log_prior_multi_meal_exercise(
 
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
-    # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
+    logprior_p2 = log_norm(np.sqrt(p2), mu=0.11, sigma=0.004) if 0 < p2 < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
     logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
     logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
@@ -481,6 +484,7 @@ def log_prior_multi_meal_exercise(
             logprior_SI_D +
             logprior_Gb +
             logprior_SG +
+            logprior_p2 +
             logprior_ka2 +
             logprior_kd +
             logprior_kempt +
@@ -645,9 +649,9 @@ def log_prior_multi_meal_extended(
     """
 
     # unpack the model parameters
-    # SI, Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
+    # Gb, SG, p2, ka2, kd, kempt, kabs, beta = theta
 
-    Gb, SG, ka2, kd, kempt = theta[0:5]
+    Gb, SG, p2, ka2, kd, kempt = theta[0:6]
 
     SI_B = theta[pos_SI_B] if pos_SI_B else SI_B
     SI_L = theta[pos_SI_L] if pos_SI_L else SI_L
@@ -683,7 +687,7 @@ def log_prior_multi_meal_extended(
 
     logprior_Gb = log_norm(Gb, mu=119.13, sigma=7.11) if 70 <= Gb <= 180 else -np.inf
     logprior_SG = log_lognorm(SG, mu=-3.8, sigma=0.5) if 0 < SG < 1 else -np.inf
-    # logprior_p2 = np.log(stats.norm.pdf(np.sqrt(p2), 0.11, 0.004)) if 0 < p2 < 1 else -np.inf
+    logprior_p2 = log_norm(np.sqrt(p2), mu=0.11, sigma=0.004) if 0 < p2 < 1 else -np.inf
     logprior_ka2 = log_lognorm(ka2, mu=-4.2875, sigma=0.4274) if 0 < ka2 < kd and ka2 < 1 else -np.inf
     logprior_kd = log_lognorm(kd, mu=-3.5090, sigma=0.6187) if 0 < ka2 < kd and kd < 1 else -np.inf
     logprior_kempt = log_lognorm(kempt, mu=-1.9646, sigma=0.7069) if 0 < kempt < 1 else -np.inf
@@ -721,6 +725,7 @@ def log_prior_multi_meal_extended(
             logprior_SI_D +
             logprior_Gb +
             logprior_SG +
+            logprior_p2 +
             logprior_ka2 +
             logprior_kd +
             logprior_kempt +

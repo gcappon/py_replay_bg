@@ -26,7 +26,9 @@ py_replay_bg/example/code/replay_mcmc_dss.py
 py_replay_bg/example/code/twin_intervals_map.py
 py_replay_bg/example/code/twin_intervals_mcmc.py
 py_replay_bg/example/code/twin_map.py
+py_replay_bg/example/code/twin_map_extended.py
 py_replay_bg/example/code/twin_mcmc.py
+py_replay_bg/example/code/twin_mcmc_extended.py
 py_replay_bg/example/code/utils.py
 py_replay_bg/input_validation/__init__.py
 py_replay_bg/input_validation/input_validator_init.py
@@ -47,12 +49,16 @@ py_replay_bg/tests/test_replay_intervals_map.py
 py_replay_bg/tests/test_replay_intervals_mcmc.py
 py_replay_bg/tests/test_replay_map.py
 py_replay_bg/tests/test_replay_map_dss.py
+py_replay_bg/tests/test_replay_map_extended.py
 py_replay_bg/tests/test_replay_mcmc.py
 py_replay_bg/tests/test_replay_mcmc_dss.py
+py_replay_bg/tests/test_replay_mcmc_extended.py
 py_replay_bg/tests/test_twin_intervals_map.py
 py_replay_bg/tests/test_twin_intervals_mcmc.py
 py_replay_bg/tests/test_twin_map.py
+py_replay_bg/tests/test_twin_map_extended.py
 py_replay_bg/tests/test_twin_mcmc.py
+py_replay_bg/tests/test_twin_mcmc_extended.py
 py_replay_bg/twinning/__init__.py
 py_replay_bg/twinning/map.py
 py_replay_bg/twinning/mcmc.py

@@ -131,7 +131,7 @@ class MAP:
 
         # If this is being used to find the start_guess, do /4 less reruns
         if for_start_guess:
-            self.n_rerun = int(self.n_rerun/4)
+            self.n_rerun = int(self.n_rerun/16)
 
         # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)

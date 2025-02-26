@@ -142,10 +142,10 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
     risk = 1
 
     # Compute the risk
-    if 119.13 > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    if Gb > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
     elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
 
     # Compute the model state at time k using backward Euler method
     B[:] = [cho / (1 + kgri), 0, 0,
@@ -176,10 +176,10 @@ def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, x
     risk = 1
 
     # Compute the risk
-    if 119.13 > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    if Gb > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
     elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
 
     if vo2 == 0:
         xk[8] = 0
@@ -227,10 +227,10 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     risk = 1
 
     # Compute the risk
-    if 119.13 > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    if Gb > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
     elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
 
     # Compute the model state at time k using backward Euler method
 
@@ -276,10 +276,10 @@ def model_step_equations_multi_meal_extended(A, I, cho_b, cho_l, cho_d, cho_s, c
     risk = 1
 
     # Compute the risk
-    if 119.13 > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    if Gb > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
     elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
 
     # Compute the model state at time k using backward Euler method
 
@@ -330,10 +330,10 @@ def model_step_equations_multi_meal_exercise(A, I, cho_b, cho_l, cho_d, cho_s, c
     risk = 1
 
     # Compute the risk
-    if 119.13 > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(119.13) ** r2) ** 2
+    if Gb > xkm1[0] >= 60:
+        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
     elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(119.13) ** r2) ** 2
+        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
 
     if vo2 == 0:
         xk[20] = 0

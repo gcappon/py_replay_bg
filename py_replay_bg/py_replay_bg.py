@@ -445,15 +445,24 @@ class ReplayBG:
         if self.environment.verbose:
             print('Running replay simulation')
 
-        # Initialize model (u2ss set to -1 as a placeholder to indicate that it has to be loaded)
+        # Load model parameters
+        if self.environment.verbose:
+            print('Loading twinned model parameter realizations...')
+
+        with open(os.path.join(self.environment.replay_bg_path, 'results', twinning_method,
+                               twinning_method + '_' + save_name + '.pkl'), 'rb') as file:
+            twinning_results = pickle.load(file)
+        draws = twinning_results['draws']
+        u2ss = twinning_results['u2ss']
+
         if self.environment.blueprint == 'single-meal':
-            model = T1DModelSingleMeal(data=data, bw=bw, u2ss=-1, x0=x0,
+            model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                        previous_data_name=previous_data_name,
                                        twinning_method=twinning_method,
                                        environment=self.environment,
                                        is_twin=False)
         else:
-            model = T1DModelMultiMeal(data=data, bw=bw, u2ss=-1, x0=x0,
+            model = T1DModelMultiMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
                                       previous_data_name=previous_data_name,
                                       twinning_method=twinning_method,
                                       environment=self.environment,
@@ -476,16 +485,6 @@ class ReplayBG:
         rbg_data = ReplayBGData(data=data, model=model,
                                 environment=self.environment,
                                 bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source)
-
-        # Load model parameters
-        if self.environment.verbose:
-            print('Loading twinned model parameter realizations...')
-
-        with open(os.path.join(self.environment.replay_bg_path, 'results', twinning_method,
-                               twinning_method+'_' + save_name + '.pkl'), 'rb') as file:
-            twinning_results = pickle.load(file)
-        draws = twinning_results['draws']
-        u2ss = twinning_results['u2ss']
 
         # Run replay
         if self.environment.verbose:

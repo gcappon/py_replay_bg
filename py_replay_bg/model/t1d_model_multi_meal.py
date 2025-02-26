@@ -138,15 +138,15 @@ class T1DModelMultiMeal:
         self.model_parameters = ModelParametersT1DMultiMeal(data, bw, u2ss, extended)
 
         # Unknown parameters
-        self.unknown_parameters = ['Gb', 'SG', 'ka2', 'kd', 'kempt']
+        self.unknown_parameters = ['Gb', 'SG', 'p2', 'ka2', 'kd', 'kempt']
 
         # initial guess for unknown parameter
         self.start_guess = np.array(
-            [self.model_parameters.Gb, self.model_parameters.SG,
+            [self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.p2,
              self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt])
 
         # initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3])
+        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3])
 
         # Get the hour of the day for each data point
         t = np.array(data.t.dt.hour.values).astype(int)
@@ -938,9 +938,10 @@ class T1DModelMultiMeal:
         # Set model parameters to current guess
         (self.model_parameters.Gb,
          self.model_parameters.SG,
+         self.model_parameters.p2,
          self.model_parameters.ka2,
          self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:5]
+         self.model_parameters.kempt) = theta[0:6]
 
         self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
         self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
@@ -1002,9 +1003,10 @@ class T1DModelMultiMeal:
         # Set model parameters to current guess
         (self.model_parameters.Gb,
          self.model_parameters.SG,
+         self.model_parameters.p2,
          self.model_parameters.ka2,
          self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:5]
+         self.model_parameters.kempt) = theta[0:6]
 
         self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
         self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
@@ -1069,9 +1071,10 @@ class T1DModelMultiMeal:
         # Set model parameters to current guess
         (self.model_parameters.Gb,
          self.model_parameters.SG,
+         self.model_parameters.p2,
          self.model_parameters.ka2,
          self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:5]
+         self.model_parameters.kempt) = theta[0:6]
 
         self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
         self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
