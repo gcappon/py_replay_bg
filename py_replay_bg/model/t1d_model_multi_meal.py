@@ -805,7 +805,7 @@ class T1DModelMultiMeal:
 
                 # Get the cgm
                 if np.mod(k, sensors.cgm.ts) == 0:
-                    if k+sensors.cgm.t_offset >= sensors.cgm.max_lifetime:
+                    if np.mod(k+sensors.cgm.t_offset, sensors.cgm.max_lifetime) == 0:
                         # connect new sensor
                         sensors.cgm.connect_new_cgm(connected_at=k)
                         # manage offset
