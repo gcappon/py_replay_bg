@@ -28,7 +28,45 @@ export default defineUserConfig({
       math: {
         type: "mathjax",
       },
-    }
+    },
+    sidebar: [
+      {
+        text: 'Get Started',
+        link: '/get_started.md'
+      },
+      {
+        text: 'Data Requirements',
+        link: '/data_requirements.md'
+      },
+      {
+        text: 'The ReplayBG Object',
+        link: './replaybg_object.md'
+      },
+      {
+        text: 'Choosing Blueprint',
+        link: './choosing_blueprint.md'
+      },
+      {
+        text: 'Twinning Procedure',
+        link: './twinning_procedure.md'
+      },
+      {
+        text: 'Replaying',
+        link: './replaying.md'
+      },
+      {
+        text: 'The _results/_ Folder',
+        link: './results_folder.md'
+      },
+      {
+        text: 'Visualizing Replay Results',
+        link: './visualizing_replay_results.md'
+      },
+      {
+        text: 'Analyzing Replay Results',
+        link: './analyzing_replay_results.md'
+      }
+    ],
   }),
 
   bundler: viteBundler(),
