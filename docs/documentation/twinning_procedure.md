@@ -80,7 +80,7 @@ If you have questions like:
 - ...
 
 The answer is simple: parameters "associated" to events that are not present in the data used to twin will be just set to pouplation values. 
-This means, for example, that in the first case, $k_{abs_L}$ and $\beta_L won't be personalized and will be set to population values.
+This means, for example, that in the first case, $k_{abs_L}$ and $\beta_L$ won't be personalized and will be set to population values.
 
 ### Twinning single portions of data
 
