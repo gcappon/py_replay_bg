@@ -32,39 +32,39 @@ export default defineUserConfig({
     sidebar: [
       {
         text: 'Get Started',
-        link: '/get_started.md'
+        link: 'documentation/get_started.md'
       },
       {
         text: 'Data Requirements',
-        link: '/data_requirements.md'
+        link: 'documentation/data_requirements.md'
       },
       {
         text: 'The ReplayBG Object',
-        link: './replaybg_object.md'
+        link: 'documentation/replaybg_object.md'
       },
       {
         text: 'Choosing Blueprint',
-        link: './choosing_blueprint.md'
+        link: 'documentation/choosing_blueprint.md'
       },
       {
         text: 'Twinning Procedure',
-        link: './twinning_procedure.md'
+        link: 'documentation/twinning_procedure.md'
       },
       {
         text: 'Replaying',
-        link: './replaying.md'
+        link: 'documentation/replaying.md'
       },
       {
         text: 'The _results/_ Folder',
-        link: './results_folder.md'
+        link: 'documentation/results_folder.md'
       },
       {
         text: 'Visualizing Replay Results',
-        link: './visualizing_replay_results.md'
+        link: 'documentation/visualizing_replay_results.md'
       },
       {
         text: 'Analyzing Replay Results',
-        link: './analyzing_replay_results.md'
+        link: 'documentation/analyzing_replay_results.md'
       }
     ],
   }),
