@@ -72,6 +72,16 @@ the resulting parameters in the _results/_ folder.
 Specifically, for a given `twinning_method` of choice, the digital twin will be saved in a file
 `results/<twinning_method>/<twinning_method>_<save_name>.pkl`. 
 
+#### More on data used for twinning 
+
+If you have questions like: 
+- What happens if I'm using the multi-meal blueprint and I use a day worth of data that do not include any lunch event?
+- What happens if I use the multi-meal blueprint and I use data that span just half a day?
+- ...
+
+The answer is simple: parameters "associated" to events that are not present in the data used to twin will be just set to pouplation values. 
+This means, for example, that in the first case, $k_{abs_L}$ and $\beta_L won't be personalized and will be set to population values.
+
 ### Twinning single portions of data
 
 To twin single portions of data, i.e., a single meal event or a single day, you can follow this example, which shows how 
