@@ -28,6 +28,7 @@ defined as:
 ```python
 rbg.twin(data: pd.DataFrame, bw: float, save_name: str,
      twinning_method: str = 'mcmc',
+     extended: bool = False, find_start_guess_first: bool = False,
      n_steps: int = 50000, save_chains: bool = False,
      u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
      parallelize: bool = False, n_processes: int | None = None,
@@ -50,6 +51,10 @@ equal to the `save_name` used during the creation of the digital twin related to
 be set if `x0` is not `None`.
 - `twinning_method`, optional, `{'mcmc', 'map'}`, default: `'mcmc'`: A string used to select the method to be used to 
 twin the model.
+- `extended`, optional, default : `False`:  A flag indicating whether to use "extended" portions of data for twinning.
+For more information see below. 
+- `find_start_guess_first`: optional, default : `False`: A flag indicating whether to set the start parameter guess by 
+running a round of MAP before twinning.
 - `n_steps`, optional, default: `50000`: An integer representing the number of steps to use by the `'mcmc'` procedure. 
 This is ignored if `twinning_method` is `'map'`.
 - `save_chains`, optional, default : `False`: A boolean that specifies whether to save additional results of the mcmc 
@@ -215,6 +220,81 @@ found in `example/code/twin_intervals_map.py`.
 When working with intervals, you should use the same `u2ss` otherwise the digital twins will have different 
 steady-state conditions and equilibrium across the interval (which does not make sense).
 :::
+
+### Twinning using extended portions of data
+
+When twinning, it might be useful to run the twinning procedure using more data than actually necessary. 
+
+This is particularly useful to avoid that wrong parameters are set for the last part of the data, e.g., at dinner time. This is also reffered to as "tail effect". 
+
+As an example, think about having a dinner event at 22:00 and the portion of data you are using ends at 23:00. In this scenario, the twinning procedure will
+just have 1 hour worth of data to "understand" what is a plausible value for the dinner's absorption rate, which might be challenging. 
+
+For this reason, if one has enough data after the actual portion of data to be used for twinning, it is possible to set the `extended` parameter to `True` and 
+also leverage those data points for improving the process.
+
+::: warning
+This feature is implemented for the multi-meal blueprint only.
+:::
+
+Practically speaking, one has to follow three steps.
+
+#### Step 1. Prepare the input data appropriately
+
+!["Extended data"](https://i.postimg.cc/bNdYRtMv/replaybg-Extended.jpg "Extended data")
+
+As shown in the figure, data must be prepared before running the twinning procedure if `extended=True`. 
+
+To do that, the user must simply flag the meal events of the additional portion of data adding a `2`, i.e., 
+`B` -> `B2`, `L` -> `L2`, `S` -> `S2`. No need to flag also the insulin boluses. Also, no need to flag differently hypotreatment events. 
+
+::: tip
+Since the insulin sensitivity $SI$ profile "repeats" its pattern starting from 4:00, it is advised that the data to be used for twinning should stop at 4:00.
+:::
+
+::: tip
+To avoid to increase the computation time too much, the additional portion of data should not go > 11:00 of the next day.
+:::
+
+An example code for running this procedure is: 
+
+```python
+# Get the hours
+hours = np.array([t.hour for t in data.t])
+# Find the last idx of the first portion of data < 4:00 
+idx_split = np.where(hours == 3)[0][-1] + 1
+# Find the idxs with the labels to be modified and modify them
+idx_b2 = np.where(data.cho_label.values == 'B')[0]
+idx_b2 = idx_b2[idx_b2 > idx_split]
+idx_l2 = np.where(data.cho_label.values == 'L')[0]
+idx_l2 = idx_l2[idx_l2 > idx_split]
+idx_s2 = np.where(data.cho_label.values == 'S')[0]
+idx_s2 = idx_s2[idx_s2 > idx_split]
+data.loc[idx_b2, "cho_label"] = 'B2'
+data.loc[idx_l2, "cho_label"] = 'L2'
+data.loc[idx_s2, "cho_label"] = 'S2'
+```
+
+#### Step 2. Set `extended` parameter
+
+The second step must simply set `extended` equal to `True` and run `rbg.twin()`, e.g.:
+
+```python
+rbg.twin(...,
+    extended=True)
+```
+
+#### Step 3. Run replays
+
+Finally, remember to remove the additional portion of data before replaying, e.g.:
+
+```python
+# Cut data up to idx_split
+data = data.iloc[0:idx_split, :]
+
+# Replay the twin
+replay_results = rbg.replay(...)
+```
 
 ### [MCMC](mcmc.md)
 
