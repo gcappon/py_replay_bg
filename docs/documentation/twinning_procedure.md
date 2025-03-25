@@ -296,6 +296,11 @@ data = data.iloc[0:idx_split, :]
 replay_results = rbg.replay(...)
 ```
 
+::: tip
+Example code snippets can be found in `example/code/twin_mcmc_extended.py` and `example/code/twin_map_extended.py`.
+An example of already prepared data is stored in `example/data/data_day_1_extended.csv`.
+:::
+
 ### [MCMC](mcmc.md)
 
 #### Theoretical flavours 
