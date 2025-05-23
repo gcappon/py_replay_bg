@@ -67,7 +67,8 @@ class ModelParametersT1D:
         # self.ka1 = 0.0
         self.ka2 = 0.014  # 1/min
         self.tau = 8  # min
-        self.Ipb = self.ke * self.u2ss / self.kd + (self.ka2 / self.ke) * (self.kd / self.ka2) * self.u2ss / self.kd  # from eq. 5 steady-state
+        self.Ipb = self.u2ss / self.ke  # from eq. 5 steady-state
+
 
         # Oral glucose absorption submodel parameters
         self.kgri = 0.18  # = kmax % 1/min
