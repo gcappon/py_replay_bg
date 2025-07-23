@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+from py_replay_bg.example.code.fake_CGM import FakeCGM
 from py_replay_bg.sensors.DexcomG6 import DexcomG6
 from utils import load_test_data, load_patient_info
 
@@ -38,7 +39,7 @@ print("Replaying " + save_name)
 replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             twinning_method='map',
                             save_workspace=True,
-                            save_suffix='_replay_map')
+                            save_suffix='_replay_map', sensor_cgm=FakeCGM)
 
 # Visualize and analyze results
 Visualizer.plot_replay_results(replay_results, data=data)
