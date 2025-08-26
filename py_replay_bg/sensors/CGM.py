@@ -80,7 +80,7 @@ class CGM(ABC):
         self.connected_at = connected_at
 
     @abstractmethod
-    def measure(self, ig: float, past_ig: list[float], t):
+    def measure(self, ig: float, past_ig: list[float], t: float):
         """
         Function that provides a CGM measure from the past interstitial glucose values.
 
