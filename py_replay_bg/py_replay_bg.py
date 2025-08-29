@@ -13,7 +13,7 @@ from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler
 
 from py_replay_bg.data import ReplayBGData
 from py_replay_bg.sensors import CGM
-from py_replay_bg.sensors.DexcomG6 import DexcomG6
+from py_replay_bg.sensors.Vettoretti19CGM import Vettoretti19CGM
 
 from py_replay_bg.twinning.mcmc import MCMC
 from py_replay_bg.twinning.map import MAP
@@ -299,7 +299,7 @@ class ReplayBG:
                save_workspace: bool = False,
                n_replay: int = 1000,
                sensors: list | None = None,
-               sensor_cgm: CGM = DexcomG6,
+               sensor_cgm: CGM = Vettoretti19CGM,
                ) -> Dict:
         """
         Runs ReplayBG according to the chosen modality.
@@ -372,7 +372,7 @@ class ReplayBG:
             The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors], optional, default: None
             The sensors to be used in each of the replay simulations.
-        sensor_cgm: CGM, optional, default: DexcomG6
+        sensor_cgm: CGM, optional, default: Vettoretti19CGM
             The class representing the sensors to be used in each of the replay simulations.
 
         Returns

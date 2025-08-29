@@ -3,9 +3,9 @@ import numpy as np
 from py_replay_bg.sensors.CGM import CGM
 
 
-class DexcomG6(CGM):
+class Vettoretti19CGM(CGM):
     """
-    A class that represents a DexcomG6 CGM sensor.
+    A class that represents a CGM sensor based on the error model in Vettoretti et al., Sensors, 2019
 
     Attributes
     ----------

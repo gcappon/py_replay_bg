@@ -28,7 +28,7 @@ The abstract class defines the following methods:
 
 ## Default CGM error model
 
-The default CGM error model available in ReplayBG is the Dexcom G6 model as published in Vettoretti et al., Sensors,
+The default CGM error model available in ReplayBG is the Vettoretti19CGM model as published in Vettoretti et al., Sensors,
 2019, which is a factory-calibrated device with a lifespan of 10 days and a sample time of 5 minutes.
 
 Model equations are:
@@ -51,7 +51,7 @@ be used.
 import MyCustomCGM
 results = rbg.replay(..., sensor_cgm=MyCustomCGM)
 ```
-If no `sensor_cgm` is provided, the default CGM error model (Dexcom G6) is used.
+If no `sensor_cgm` is provided, the default CGM error model (Vettoretti19CGM) is used.
 
 ### Example of use
 

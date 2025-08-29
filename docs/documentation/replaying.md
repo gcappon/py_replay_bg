@@ -49,7 +49,7 @@ rbg.replay(data: pd.DataFrame,
    save_workspace: bool = False,
    n_replay: int = 1000,
    sensors: list | None = None,
-   sensor_cgm: CGM = DexcomG6,
+   sensor_cgm: CGM = Vettoretti19CGM,
 ) -> Dict:
 ```
 ### Input parameters
@@ -118,7 +118,7 @@ in the `results/workspaces` folder or not.
 replay simulations. Ignored if twinning_method is 'map'.
 - `sensors`: , optional, default: `None`: A `list[Sensors]` to be used in each of the replay simulations. Its length 
 must coincide with the selected `n_replay`. Used when working with intervals. If `None` new sensors will be used.
-- `sensor_cgm`, optional, default: `DexcomG6`: The class of the CGM error model to be used during the replay simulation.
+- `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation.
 
 ::: tip REMEMBER
 The total length of the simulation, `simulation_length`, is defined in minutes and determined by ReplayBG automatically 

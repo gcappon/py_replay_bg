@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from py_replay_bg.sensors.DexcomG6 import DexcomG6
+from py_replay_bg.sensors.Vettoretti19CGM import Vettoretti19CGM
 from utils import load_test_data, load_patient_info
 
 from py_replay_bg.py_replay_bg import ReplayBG
