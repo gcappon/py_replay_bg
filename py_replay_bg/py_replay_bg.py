@@ -12,6 +12,8 @@ from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler
     default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
 
 from py_replay_bg.data import ReplayBGData
+from py_replay_bg.sensors import CGM
+from py_replay_bg.sensors.Vettoretti19CGM import Vettoretti19CGM
 
 from py_replay_bg.twinning.mcmc import MCMC
 from py_replay_bg.twinning.map import MAP
@@ -124,7 +126,7 @@ class ReplayBG:
              n_steps: int = 50000, save_chains: bool = False,
              u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
              parallelize: bool = False, n_processes: int | None = None,
-    ) -> None:
+             ) -> None:
         """
         Runs ReplayBG twinning procedure.
 
@@ -182,22 +184,22 @@ class ReplayBG:
         None
         """
         InputValidatorTwin(
-                 data=data,
-                 bw=bw,
-                 save_name=save_name,
-                 twinning_method=twinning_method,
-                 n_steps=n_steps,
-                 save_chains=save_chains,
-                 u2ss=u2ss,
-                 x0=x0,
-                 previous_data_name=previous_data_name,
-                 parallelize=parallelize,
-                 n_processes=n_processes,
-                 blueprint=self.environment.blueprint,
-                 exercise=self.environment.exercise,
-                 extended=extended,
-                 find_start_guess_first=find_start_guess_first,
-                 ).validate()
+            data=data,
+            bw=bw,
+            save_name=save_name,
+            twinning_method=twinning_method,
+            n_steps=n_steps,
+            save_chains=save_chains,
+            u2ss=u2ss,
+            x0=x0,
+            previous_data_name=previous_data_name,
+            parallelize=parallelize,
+            n_processes=n_processes,
+            blueprint=self.environment.blueprint,
+            exercise=self.environment.exercise,
+            extended=extended,
+            find_start_guess_first=find_start_guess_first,
+        ).validate()
 
         if self.environment.verbose:
             print('Creating the digital twin using ' + twinning_method.upper())
@@ -232,16 +234,16 @@ class ReplayBG:
         # Initialize twinner
         if twinning_method == 'mcmc':
             twinner = MCMC(n_steps=n_steps,
-                              save_chains=save_chains,
-                              callback_ncheck=1000,
-                              parallelize=parallelize,
-                              n_processes=n_processes,
-                              )
+                           save_chains=save_chains,
+                           callback_ncheck=1000,
+                           parallelize=parallelize,
+                           n_processes=n_processes,
+                           )
         else:
             twinner = MAP(max_iter=100000,
-                             parallelize=parallelize,
-                             n_processes=n_processes
-                             )
+                          parallelize=parallelize,
+                          n_processes=n_processes
+                          )
 
         # Find the start guess if requested
         if find_start_guess_first:
@@ -250,16 +252,16 @@ class ReplayBG:
                 print('Looking for start guess')
 
             start_guesser = MAP(max_iter=100000,
-                          parallelize=parallelize,
-                          n_processes=n_processes
-                          )
+                                parallelize=parallelize,
+                                n_processes=n_processes
+                                )
 
             # Run twinning procedure for finding the start guess.
             start_guess = start_guesser.twin(rbg_data=rbg_data,
-                                       model=model,
-                                       save_name=save_name,
-                                       environment=self.environment,
-                                       for_start_guess=True)
+                                             model=model,
+                                             save_name=save_name,
+                                             environment=self.environment,
+                                             for_start_guess=True)
 
             if self.environment.verbose:
                 print('Running actual twinning')
@@ -276,7 +278,7 @@ class ReplayBG:
                bw: float,
                save_name: str,
                x0: np.ndarray | None = None,
-               previous_data_name: str | None  = None,
+               previous_data_name: str | None = None,
                twinning_method: str = 'mcmc',
                bolus_source: str = 'data',
                basal_source: str = 'data',
@@ -296,7 +298,8 @@ class ReplayBG:
                save_suffix: str = '',
                save_workspace: bool = False,
                n_replay: int = 1000,
-               sensors: list | None = None
+               sensors: list | None = None,
+               sensor_cgm: CGM = Vettoretti19CGM,
                ) -> Dict:
         """
         Runs ReplayBG according to the chosen modality.
@@ -369,6 +372,8 @@ class ReplayBG:
             The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors], optional, default: None
             The sensors to be used in each of the replay simulations.
+        sensor_cgm: CGM, optional, default: Vettoretti19CGM
+            The class representing the sensors to be used in each of the replay simulations.
 
         Returns
         -------
@@ -498,7 +503,7 @@ class ReplayBG:
             environment=self.environment,
             model=model,
             dss=dss,
-            twinning_method=twinning_method)
+            twinning_method=twinning_method, sensor_cgm=sensor_cgm)
         replay_results = replayer.replay_scenario()
 
         # Plot results if plot_mode is enabled

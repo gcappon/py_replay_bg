@@ -179,7 +179,7 @@ class T1DModelSingleMeal:
         self.previous_day_draws = None
         if self.previous_data_name is not None:
             with open(os.path.join(environment.replay_bg_path, 'results', twinning_method,
-                                   twinning_method+'_' + previous_data_name + '.pkl'), 'rb') as file:
+                                   twinning_method + '_' + previous_data_name + '.pkl'), 'rb') as file:
                 previous_day_twinning_results = pickle.load(file)
             self.previous_day_draws = previous_day_twinning_results['draws']
 
@@ -346,7 +346,8 @@ class T1DModelSingleMeal:
             self.x[:, 0] = self.x0
             self.x[5, 0] = k1 * self.x[5, 0] / k1_old
             self.x[6, 0] = k2 * self.x[6, 0] / k2_old
-            self.x[7, 0] = mp.Ipb * self.x[7, 0] / Ipb_old  # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
+            self.x[7, 0] = mp.Ipb * self.x[
+                7, 0] / Ipb_old  # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
 
         # Set the initial glucose value
         self.G[0] = self.x[self.nx - 1, 0]
@@ -360,17 +361,17 @@ class T1DModelSingleMeal:
         ki2 = 1 / (1 + mp.ka2)
         kie = 1 / (1 + mp.ke)
         self.A[:] = [[k1, 0, 0, 0, 0, 0],
-                      [k2, k3, 0, 0, 0, 0],
-                      [0, mp.kempt * kb, kb, 0, 0, 0],
-                      [0, 0, 0, ki1, 0, 0],
-                      [0, 0, 0, mp.kd * ki2, ki2, 0],
-                      [0, 0, 0, 0, mp.ka2 * kie, kie]]
+                     [k2, k3, 0, 0, 0, 0],
+                     [0, mp.kempt * kb, kb, 0, 0, 0],
+                     [0, 0, 0, ki1, 0, 0],
+                     [0, 0, 0, mp.kd * ki2, ki2, 0],
+                     [0, 0, 0, 0, mp.ka2 * kie, kie]]
 
         # Run simulation in two ways depending on the modality to speed up the twinning process
         if is_replay:
 
             # Set the initial cgm value if modality is 'replay' and make copies of meal vectors
-            self.CGM[0] = sensors.cgm.measure(self.x[self.nx - 1, 0], 0)
+            self.CGM[0] = sensors.cgm.measure(self.x[self.nx - 1, 0], t=0, past_ig=self.x[self.nx - 1, :0])
 
             for k in np.arange(1, self.tsteps):
                 # Meal generation module
@@ -384,14 +385,14 @@ class T1DModelSingleMeal:
                                                                 bolus[0:k] * mp.to_g,
                                                                 basal[0:k] * mp.to_g,
                                                                 rbg_data.t_hour[0:k],
-                                                                k-1,
+                                                                k - 1,
                                                                 dss,
                                                                 environment.blueprint)
                     ch_mgkg = ch * mp.to_mgkg
                     # Add the CHO to the input (remember to add the delay)
                     if t == 'M':
-                        if (k+mp.beta.__trunc__()) < self.tsteps:
-                            meal_delayed[k+mp.beta.__trunc__()] = meal_delayed[k+mp.beta.__trunc__()] + ch_mgkg
+                        if (k + mp.beta.__trunc__()) < self.tsteps:
+                            meal_delayed[k + mp.beta.__trunc__()] = meal_delayed[k + mp.beta.__trunc__()] + ch_mgkg
                     elif t == 'O':
                         meal_delayed[k] = meal_delayed[k] + ch_mgkg
 
@@ -411,12 +412,12 @@ class T1DModelSingleMeal:
                                                            bolus[0:k] * mp.to_g,
                                                            basal[0:k] * mp.to_g,
                                                            rbg_data.t_hour[0:k],
-                                                           k-1,
+                                                           k - 1,
                                                            dss)
                     bo_mgkg = bo * mp.to_mgkg
 
                     # Add the bolus to the input bolus vector.
-                    if(k+mp.tau.__trunc__()) < self.tsteps:
+                    if (k + mp.tau.__trunc__()) < self.tsteps:
                         bolus_delayed[k + mp.tau.__trunc__()] = bolus_delayed[k + mp.tau.__trunc__()] + bo_mgkg
 
                     # Add the bolus to the non-delayed bolus vector.
@@ -432,7 +433,7 @@ class T1DModelSingleMeal:
                                                 bolus[0:k] * mp.to_g,
                                                 basal[0:k] * mp.to_g,
                                                 rbg_data.t_hour[0:k],
-                                                k-1,
+                                                k - 1,
                                                 dss)
                     ba_mgkg = ba * mp.to_mgkg
                     # Add the basal to the input basal vector.
@@ -506,17 +507,20 @@ class T1DModelSingleMeal:
                                                                 mp.f,
                                                                 mp.kabs,
                                                                 mp.alpha,
-                                                                self.previous_Ra[k-1])
+                                                                self.previous_Ra[k - 1])
 
                 self.G[k] = self.x[self.nx - 1, k]
 
                 # Get the cgm
                 if np.mod(k, sensors.cgm.ts) == 0:
-                    if np.mod(k+sensors.cgm.t_offset, sensors.cgm.max_lifetime) == 0:
+                    if np.mod(k + sensors.cgm.t_offset, sensors.cgm.max_lifetime) == 0:
                         # connect new sensor
                         sensors.cgm.connect_new_cgm(connected_at=k)
                         # manage offset
-                    self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k], (k - sensors.cgm.connected_at) / (24 * 60))
+                    self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k],
+                                                                            t=(k - sensors.cgm.connected_at) / (
+                                                                                        24 * 60),
+                                                                            past_ig=self.x[self.nx - 1, :k], )
 
             # TODO: add vo2
             return (self.x[0, :].copy(),

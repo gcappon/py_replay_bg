@@ -307,7 +307,7 @@ class T1DModelMultiMeal:
         self.previous_day_draws = None
         if self.previous_data_name is not None:
             with open(os.path.join(environment.replay_bg_path, 'results', twinning_method,
-                                   twinning_method+'_' + previous_data_name + '.pkl'), 'rb') as file:
+                                   twinning_method + '_' + previous_data_name + '.pkl'), 'rb') as file:
                 previous_day_twinning_results = pickle.load(file)
             self.previous_day_draws = previous_day_twinning_results['draws']
 
@@ -520,9 +520,11 @@ class T1DModelMultiMeal:
         # If initial model conditions are None, set the default initial conditions, i.e., steady-state
         if self.x0 is None:
             if self.extended:
-                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0,
+                                mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
             else:
-                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+                self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0,
+                                mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
 
         # otherwise, set the initial model condition appropriately.
         else:
@@ -536,7 +538,8 @@ class T1DModelMultiMeal:
             # Second, do the same thing, but using the model parameters of the previous portion of data (i.e., the one that "generated" the provided x0)
             if self.twinning_method == 'mcmc':
                 k1_old = mp.u2ss / self.previous_day_draws['kd']['samples_1'][0]
-                k2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][0] * k1_old
+                k2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][
+                    0] * k1_old
                 Ipb_old = self.previous_day_draws['ka2']['samples_1'][0] / mp.ke * k2_old
             else:
                 k1_old = mp.u2ss / self.previous_day_draws['kd']
@@ -545,10 +548,10 @@ class T1DModelMultiMeal:
 
             # Scale as --> initial_old:initial_new = k1old:k1new
             self.x[:, 0] = self.x0
-            self.x[self.nx-4, 0] = k1 * self.x[self.nx-4,0] / k1_old
-            self.x[self.nx-3, 0] = k2 * self.x[self.nx-3, 0] / k2_old
-            self.x[self.nx-2, 0] = mp.Ipb * self.x[self.nx-2, 0] / Ipb_old # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
-
+            self.x[self.nx - 4, 0] = k1 * self.x[self.nx - 4, 0] / k1_old
+            self.x[self.nx - 3, 0] = k2 * self.x[self.nx - 3, 0] / k2_old
+            self.x[self.nx - 2, 0] = mp.Ipb * self.x[
+                self.nx - 2, 0] / Ipb_old  # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
 
         # Set the initial glucose value
         self.G[0] = self.x[self.nx - 1, 0]
@@ -587,15 +590,18 @@ class T1DModelMultiMeal:
 
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kb2, kb2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kb2, kb2, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0],
 
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kl2, kl2, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kl2, kl2, 0, 0, 0, 0, 0,
+                          0],
 
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks2, ks2, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks2, ks2, 0, 0,
+                          0],
 
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
@@ -604,39 +610,39 @@ class T1DModelMultiMeal:
                           mp.ka2 * kie, kie]]
         else:
             self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [k2, k3, 0, 0, 0, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, mp.kempt * kb, kb, 0, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, k2, k3, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, mp.kempt * kl, kl, 0,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, k2, k3,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd,
-                           kd, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks,
-                           ks, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh,
-                           kh, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
-                           ki2, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                           mp.ka2 * kie, kie]]
+                         [k2, k3, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, mp.kempt * kb, kb, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, k2, k3, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, mp.kempt * kl, kl, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, k2, k3,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd,
+                          kd, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks,
+                          ks, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh,
+                          kh, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
+                          ki2, 0],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          mp.ka2 * kie, kie]]
 
         # Run simulation in two ways depending on the modality to speed up the twinning process
         if is_replay:
 
             # Set the initial cgm value if modality is 'replay' and make copies of meal vectors
-            self.CGM[0] = sensors.cgm.measure(self.x[self.nx - 1, 0], 0)
+            self.CGM[0] = sensors.cgm.measure(self.x[self.nx - 1, 0], t=0, past_ig=self.x[self.nx - 1, :0])
 
             meal_B = rbg_data.meal_B * 1
             meal_L = rbg_data.meal_L * 1
@@ -655,27 +661,31 @@ class T1DModelMultiMeal:
                                                                 bolus[0:k] * mp.to_g,
                                                                 basal[0:k] * mp.to_g,
                                                                 rbg_data.t_hour[0:k],
-                                                                k-1,
+                                                                k - 1,
                                                                 dss,
                                                                 environment.blueprint)
                     ch_mgkg = ch * mp.to_mgkg
                     # Add the CHO to the input (remember to add the delay)
                     if t == 'B':
-                        if(k+mp.beta_B.__trunc__()) < self.tsteps:
+                        if (k + mp.beta_B.__trunc__()) < self.tsteps:
                             meal_B[k] = meal_B[k] + ch_mgkg
-                            meal_B_delayed[k+mp.beta_B.__trunc__()] = meal_B_delayed[k+mp.beta_B.__trunc__()] + ch_mgkg
+                            meal_B_delayed[k + mp.beta_B.__trunc__()] = meal_B_delayed[
+                                                                            k + mp.beta_B.__trunc__()] + ch_mgkg
                     elif t == 'L':
                         if (k + mp.beta_L.__trunc__()) < self.tsteps:
                             meal_L[k] = meal_L[k] + ch_mgkg
-                            meal_L_delayed[k + mp.beta_L.__trunc__()] = meal_L_delayed[k + mp.beta_L.__trunc__()] + ch_mgkg
+                            meal_L_delayed[k + mp.beta_L.__trunc__()] = meal_L_delayed[
+                                                                            k + mp.beta_L.__trunc__()] + ch_mgkg
                     elif t == 'D':
-                        if(k+mp.beta_D.__trunc__()) < self.tsteps:
+                        if (k + mp.beta_D.__trunc__()) < self.tsteps:
                             meal_D[k] = meal_D[k] + ch_mgkg
-                            meal_D_delayed[k+mp.beta_D.__trunc__()] = meal_D_delayed[k+mp.beta_D.__trunc__()] + ch_mgkg
+                            meal_D_delayed[k + mp.beta_D.__trunc__()] = meal_D_delayed[
+                                                                            k + mp.beta_D.__trunc__()] + ch_mgkg
                     elif t == 'S':
                         if (k + mp.beta_S.__trunc__()) < self.tsteps:
                             meal_S[k] = meal_S[k] + ch_mgkg
-                            meal_S_delayed[k + mp.beta_S.__trunc__()] = meal_S_delayed[k + mp.beta_S.__trunc__()] + ch_mgkg
+                            meal_S_delayed[k + mp.beta_S.__trunc__()] = meal_S_delayed[
+                                                                            k + mp.beta_S.__trunc__()] + ch_mgkg
 
                     # Update the event vectors
                     meal_announcement[k] = meal_announcement[k] + ma
@@ -694,12 +704,12 @@ class T1DModelMultiMeal:
                                                            bolus[0:k] * mp.to_g,
                                                            basal[0:k] * mp.to_g,
                                                            rbg_data.t_hour[0:k],
-                                                           k-1,
+                                                           k - 1,
                                                            dss)
                     bo_mgkg = bo * mp.to_mgkg
 
                     # Add the bolus to the input bolus vector.
-                    if(k+mp.tau.__trunc__()) < self.tsteps:
+                    if (k + mp.tau.__trunc__()) < self.tsteps:
                         bolus_delayed[k + mp.tau.__trunc__()] = bolus_delayed[k + mp.tau.__trunc__()] + bo_mgkg
 
                     # Add the bolus to the non-delayed bolus vector.
@@ -715,7 +725,7 @@ class T1DModelMultiMeal:
                                                 bolus[0:k] * mp.to_g,
                                                 basal[0:k] * mp.to_g,
                                                 rbg_data.t_hour[0:k],
-                                                k-1,
+                                                k - 1,
                                                 dss)
                     ba_mgkg = ba * mp.to_mgkg
                     # Add the basal to the input basal vector.
@@ -799,17 +809,20 @@ class T1DModelMultiMeal:
                                                                mp.kabs_S,
                                                                mp.kabs_H,
                                                                mp.alpha,
-                                                               self.previous_Ra[k-1])
+                                                               self.previous_Ra[k - 1])
 
                 self.G[k] = self.x[self.nx - 1, k]
 
                 # Get the cgm
                 if np.mod(k, sensors.cgm.ts) == 0:
-                    if np.mod(k+sensors.cgm.t_offset, sensors.cgm.max_lifetime) == 0:
+                    if np.mod(k + sensors.cgm.t_offset, sensors.cgm.max_lifetime) == 0:
                         # connect new sensor
                         sensors.cgm.connect_new_cgm(connected_at=k)
                         # manage offset
-                    self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k], (k - sensors.cgm.connected_at) / (24 * 60))
+                    self.CGM[int(k / sensors.cgm.ts)] = sensors.cgm.measure(self.x[self.nx - 1, k],
+                                                                            t=(k - sensors.cgm.connected_at) / (
+                                                                                    24 * 60),
+                                                                            past_ig=self.x[self.nx - 1, :k], )
 
             # TODO: add vo2
             return (self.x[0, :].copy(),
@@ -828,46 +841,46 @@ class T1DModelMultiMeal:
             # Run simulation
             if self.extended:
                 self.x = twin_multi_meal_extended(self.tsteps,
-                                         self.x,
-                                         self.A,
-                                         self.B,
-                                         bolus_delayed,
-                                         basal_delayed,
-                                         meal_B_delayed,
-                                         meal_L_delayed,
-                                         meal_D_delayed,
-                                         meal_S_delayed,
-                                         meal_H,
-                                         meal_B2_delayed,
-                                         meal_L2_delayed,
-                                         meal_S2_delayed,
-                                         rbg_data.t_hour,
-                                         self.split_point,
-                                         mp.r1,
-                                         mp.r2,
-                                         mp.kgri,
-                                         mp.kd,
-                                         mp.p2,
-                                         mp.SI_B,
-                                         mp.SI_L,
-                                         mp.SI_D,
-                                         mp.SI_B2,
-                                         mp.VI,
-                                         mp.VG,
-                                         mp.Ipb,
-                                         mp.SG,
-                                         mp.Gb,
-                                         mp.f,
-                                         mp.kabs_B,
-                                         mp.kabs_L,
-                                         mp.kabs_D,
-                                         mp.kabs_S,
-                                         mp.kabs_H,
-                                         mp.kabs_B2,
-                                         mp.kabs_L2,
-                                         mp.kabs_S2,
-                                         mp.alpha,
-                                         self.previous_Ra)
+                                                  self.x,
+                                                  self.A,
+                                                  self.B,
+                                                  bolus_delayed,
+                                                  basal_delayed,
+                                                  meal_B_delayed,
+                                                  meal_L_delayed,
+                                                  meal_D_delayed,
+                                                  meal_S_delayed,
+                                                  meal_H,
+                                                  meal_B2_delayed,
+                                                  meal_L2_delayed,
+                                                  meal_S2_delayed,
+                                                  rbg_data.t_hour,
+                                                  self.split_point,
+                                                  mp.r1,
+                                                  mp.r2,
+                                                  mp.kgri,
+                                                  mp.kd,
+                                                  mp.p2,
+                                                  mp.SI_B,
+                                                  mp.SI_L,
+                                                  mp.SI_D,
+                                                  mp.SI_B2,
+                                                  mp.VI,
+                                                  mp.VG,
+                                                  mp.Ipb,
+                                                  mp.SG,
+                                                  mp.Gb,
+                                                  mp.f,
+                                                  mp.kabs_B,
+                                                  mp.kabs_L,
+                                                  mp.kabs_D,
+                                                  mp.kabs_S,
+                                                  mp.kabs_H,
+                                                  mp.kabs_B2,
+                                                  mp.kabs_L2,
+                                                  mp.kabs_S2,
+                                                  mp.alpha,
+                                                  self.previous_Ra)
             else:
                 self.x = twin_multi_meal(self.tsteps,
                                          self.x,
@@ -1151,19 +1164,19 @@ class T1DModelMultiMeal:
         None
         """
         p = log_prior_multi_meal(self.model_parameters.VG,
-                            self.pos_SI_B, self.model_parameters.SI_B,
-                            self.pos_SI_L, self.model_parameters.SI_L,
-                            self.pos_SI_D, self.model_parameters.SI_D,
-                            self.pos_kabs_B, self.model_parameters.kabs_B,
-                            self.pos_kabs_L, self.model_parameters.kabs_L,
-                            self.pos_kabs_D, self.model_parameters.kabs_D,
-                            self.pos_kabs_S, self.model_parameters.kabs_S,
-                            self.pos_kabs_H, self.model_parameters.kabs_H,
-                            self.pos_beta_B, self.model_parameters.beta_B,
-                            self.pos_beta_L, self.model_parameters.beta_L,
-                            self.pos_beta_D, self.model_parameters.beta_D,
-                            self.pos_beta_S, self.model_parameters.beta_S,
-                            theta)
+                                 self.pos_SI_B, self.model_parameters.SI_B,
+                                 self.pos_SI_L, self.model_parameters.SI_L,
+                                 self.pos_SI_D, self.model_parameters.SI_D,
+                                 self.pos_kabs_B, self.model_parameters.kabs_B,
+                                 self.pos_kabs_L, self.model_parameters.kabs_L,
+                                 self.pos_kabs_D, self.model_parameters.kabs_D,
+                                 self.pos_kabs_S, self.model_parameters.kabs_S,
+                                 self.pos_kabs_H, self.model_parameters.kabs_H,
+                                 self.pos_beta_B, self.model_parameters.beta_B,
+                                 self.pos_beta_L, self.model_parameters.beta_L,
+                                 self.pos_beta_D, self.model_parameters.beta_D,
+                                 self.pos_beta_S, self.model_parameters.beta_S,
+                                 theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood(theta, rbg_data)
 
     def log_posterior_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
@@ -1244,19 +1257,19 @@ class T1DModelMultiMeal:
         None
         """
         return log_prior_multi_meal(self.model_parameters.VG,
-                            self.pos_SI_B, self.model_parameters.SI_B,
-                            self.pos_SI_L, self.model_parameters.SI_L,
-                            self.pos_SI_D, self.model_parameters.SI_D,
-                            self.pos_kabs_B, self.model_parameters.kabs_B,
-                            self.pos_kabs_L, self.model_parameters.kabs_L,
-                            self.pos_kabs_D, self.model_parameters.kabs_D,
-                            self.pos_kabs_S, self.model_parameters.kabs_S,
-                            self.pos_kabs_H, self.model_parameters.kabs_H,
-                            self.pos_beta_B, self.model_parameters.beta_B,
-                            self.pos_beta_L, self.model_parameters.beta_L,
-                            self.pos_beta_D, self.model_parameters.beta_D,
-                            self.pos_beta_S, self.model_parameters.beta_S,
-                            theta) != -np.inf
+                                    self.pos_SI_B, self.model_parameters.SI_B,
+                                    self.pos_SI_L, self.model_parameters.SI_L,
+                                    self.pos_SI_D, self.model_parameters.SI_D,
+                                    self.pos_kabs_B, self.model_parameters.kabs_B,
+                                    self.pos_kabs_L, self.model_parameters.kabs_L,
+                                    self.pos_kabs_D, self.model_parameters.kabs_D,
+                                    self.pos_kabs_S, self.model_parameters.kabs_S,
+                                    self.pos_kabs_H, self.model_parameters.kabs_H,
+                                    self.pos_beta_B, self.model_parameters.beta_B,
+                                    self.pos_beta_L, self.model_parameters.beta_L,
+                                    self.pos_beta_D, self.model_parameters.beta_D,
+                                    self.pos_beta_S, self.model_parameters.beta_S,
+                                    theta) != -np.inf
 
     def check_realization_exercise(self, theta: np.ndarray):
         """
@@ -1285,21 +1298,21 @@ class T1DModelMultiMeal:
         None
         """
         return log_prior_multi_meal_exercise(self.model_parameters.VG,
-                            self.pos_SI_B, self.model_parameters.SI_B,
-                            self.pos_SI_L, self.model_parameters.SI_L,
-                            self.pos_SI_D, self.model_parameters.SI_D,
-                            self.pos_kabs_B, self.model_parameters.kabs_B,
-                            self.pos_kabs_L, self.model_parameters.kabs_L,
-                            self.pos_kabs_D, self.model_parameters.kabs_D,
-                            self.pos_kabs_S, self.model_parameters.kabs_S,
-                            self.pos_kabs_H, self.model_parameters.kabs_H,
-                            self.pos_beta_B, self.model_parameters.beta_B,
-                            self.pos_beta_L, self.model_parameters.beta_L,
-                            self.pos_beta_D, self.model_parameters.beta_D,
-                            self.pos_beta_S, self.model_parameters.beta_S,
-                            self.pos_e1, self.model_parameters.e1,
-                            self.pos_e2, self.model_parameters.e2,
-                            theta) != -np.inf
+                                             self.pos_SI_B, self.model_parameters.SI_B,
+                                             self.pos_SI_L, self.model_parameters.SI_L,
+                                             self.pos_SI_D, self.model_parameters.SI_D,
+                                             self.pos_kabs_B, self.model_parameters.kabs_B,
+                                             self.pos_kabs_L, self.model_parameters.kabs_L,
+                                             self.pos_kabs_D, self.model_parameters.kabs_D,
+                                             self.pos_kabs_S, self.model_parameters.kabs_S,
+                                             self.pos_kabs_H, self.model_parameters.kabs_H,
+                                             self.pos_beta_B, self.model_parameters.beta_B,
+                                             self.pos_beta_L, self.model_parameters.beta_L,
+                                             self.pos_beta_D, self.model_parameters.beta_D,
+                                             self.pos_beta_S, self.model_parameters.beta_S,
+                                             self.pos_e1, self.model_parameters.e1,
+                                             self.pos_e2, self.model_parameters.e2,
+                                             theta) != -np.inf
 
     def check_realization_extended(self, theta: np.ndarray):
         """
@@ -1328,23 +1341,23 @@ class T1DModelMultiMeal:
         None
         """
         return log_prior_multi_meal_extended(self.model_parameters.VG,
-                                          self.pos_SI_B, self.model_parameters.SI_B,
-                                          self.pos_SI_L, self.model_parameters.SI_L,
-                                          self.pos_SI_D, self.model_parameters.SI_D,
-                                          self.pos_kabs_B, self.model_parameters.kabs_B,
-                                          self.pos_kabs_L, self.model_parameters.kabs_L,
-                                          self.pos_kabs_D, self.model_parameters.kabs_D,
-                                          self.pos_kabs_S, self.model_parameters.kabs_S,
-                                          self.pos_kabs_H, self.model_parameters.kabs_H,
-                                          self.pos_beta_B, self.model_parameters.beta_B,
-                                          self.pos_beta_L, self.model_parameters.beta_L,
-                                          self.pos_beta_D, self.model_parameters.beta_D,
-                                          self.pos_beta_S, self.model_parameters.beta_S,
-                                          self.pos_SI_B2, self.model_parameters.SI_B2,
-                                          self.pos_kabs_B2, self.model_parameters.kabs_B2,
-                                          self.pos_kabs_L2, self.model_parameters.kabs_L2,
-                                          self.pos_kabs_S2, self.model_parameters.kabs_S2,
-                                          self.pos_beta_B2, self.model_parameters.beta_B2,
-                                          self.pos_beta_L2, self.model_parameters.beta_L2,
-                                          self.pos_beta_S2, self.model_parameters.beta_S2,
-                                          theta) != -np.inf
+                                             self.pos_SI_B, self.model_parameters.SI_B,
+                                             self.pos_SI_L, self.model_parameters.SI_L,
+                                             self.pos_SI_D, self.model_parameters.SI_D,
+                                             self.pos_kabs_B, self.model_parameters.kabs_B,
+                                             self.pos_kabs_L, self.model_parameters.kabs_L,
+                                             self.pos_kabs_D, self.model_parameters.kabs_D,
+                                             self.pos_kabs_S, self.model_parameters.kabs_S,
+                                             self.pos_kabs_H, self.model_parameters.kabs_H,
+                                             self.pos_beta_B, self.model_parameters.beta_B,
+                                             self.pos_beta_L, self.model_parameters.beta_L,
+                                             self.pos_beta_D, self.model_parameters.beta_D,
+                                             self.pos_beta_S, self.model_parameters.beta_S,
+                                             self.pos_SI_B2, self.model_parameters.SI_B2,
+                                             self.pos_kabs_B2, self.model_parameters.kabs_B2,
+                                             self.pos_kabs_L2, self.model_parameters.kabs_L2,
+                                             self.pos_kabs_S2, self.model_parameters.kabs_S2,
+                                             self.pos_beta_B2, self.model_parameters.beta_B2,
+                                             self.pos_beta_L2, self.model_parameters.beta_L2,
+                                             self.pos_beta_S2, self.model_parameters.beta_S2,
+                                             theta) != -np.inf

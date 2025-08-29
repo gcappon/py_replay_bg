@@ -139,19 +139,9 @@ $
 where $G_{th}$ is the hypoglycemic threshold (set to 60 mg/dl) and $r_1$ (dimensionless) and $r_2$ (dimensionless) 
 are two model parameters, without direct physiological interpretation, set to 1.44 and 0.81, respectively.
 
-#### CGM sensor error
-The subsystem describes the CGM sensor error model of a factory-calibrated CGM sensor with 10-day lifetime.
-Model equations are:
-
-$
-\begin{cases}
-    IG_S(t) = (a_0 + a_1 \cdot t + a_2 \cdot t^2) \cdot IG(t) + b_0 \\
-    CGM(t) = IG_S(t) + v(t) 
-\end{cases}
-$
-
-with $a_0$, $a_1$, $a_2$, and $b_0$ (min$^{-1}$) model coefficients; and $v(t) \sim N(0, \epsilon_v)$ random white 
-noise. Particularly, in order to mimic real CGM systems, $CGM(t)$ is saturated between 40 and 400 mg/dL.
+#### CGM sensor error model
+The subsystem describes the CGM sensor error model. For more details on the CGM error model, please refer to the
+[CGM Error Model](./cgm_model.md) page.
 
 #### Overall model
 
@@ -306,18 +296,8 @@ where $G_{th}$ is the hypoglycemic threshold (set to 60 mg/dl) and $r_1$ (dimens
 are two model parameters, without direct physiological interpretation, set to 1.44 and 0.81, respectively.
 
 #### CGM sensor error
-The subsystem describes the CGM sensor error model of a factory-calibrated CGM sensor with 10-day lifetime.
-Model equations are:
-
-$
-\begin{cases}
-    IG_S(t) = (a_0 + a_1 \cdot t + a_2 \cdot t^2) \cdot IG(t) + b_0 \\
-    CGM(t) = IG_S(t) + v(t) 
-\end{cases}
-$
-
-with $a_0$, $a_1$, $a_2$, and $b_0$ (min$^{-1}$) model coefficients; and $v(t) \sim N(0, \epsilon_v)$ random white 
-noise. Particularly, in order to mimic real CGM systems, $CGM(t)$ is saturated between 40 and 400 mg/dL.
+The subsystem describes the CGM sensor error model. For more details on the CGM error model, please refer to the
+[CGM Error Model](./cgm_model.md) page.
 
 #### Overall model
 

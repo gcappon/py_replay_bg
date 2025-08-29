@@ -48,6 +48,7 @@ class Replayer:
                  u2ss: float,
                  n_replay: int,
                  sensors: list[Sensors] | None,
+                 sensor_cgm: CGM,
                  environment: Environment,
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  dss: DSS,
@@ -107,6 +108,7 @@ class Replayer:
 
         # The list of Sensors objects
         self.sensors = sensors
+        self.sensor_cgm = sensor_cgm
 
         # The environment, model, and dss objects to be used during the replay
         self.environment = environment
@@ -232,7 +234,7 @@ class Replayer:
 
             if new_sensors:
                 # connect a new set of sensors
-                sensors = self.__init_sensors(model=self.model)
+                sensors = self.__init_sensors(model=self.model, sensor_cgm=self.sensor_cgm)
                 sensors.cgm.connect_new_cgm()
                 self.sensors.append(sensors)
 
@@ -282,7 +284,7 @@ class Replayer:
         return results
 
     @staticmethod
-    def __init_sensors(model) -> Sensors:
+    def __init_sensors(model, sensor_cgm) -> Sensors:
         """
         Utility function that initializes the sensor core object.
 
@@ -309,7 +311,7 @@ class Replayer:
         None
         """
         # Init the CGM sensor
-        cgm = CGM(ts=model.yts)
+        cgm = sensor_cgm()
 
         # return the object
         return Sensors(cgm=cgm)

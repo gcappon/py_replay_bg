@@ -16,6 +16,8 @@ description: Docs index
 
 ### [Choosing Blueprint](./choosing_blueprint.md)
 
+### [The CGM error model](./cgm_model.md)
+
 ### [Twinning Procedure](./twinning_procedure.md)
 
 ### [Replaying](./replaying.md)
