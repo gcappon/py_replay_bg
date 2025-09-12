@@ -546,6 +546,8 @@ class T1DModelMultiMeal:
                 k2_old = self.previous_day_draws['kd'] / self.previous_day_draws['ka2'] * k1_old
                 Ipb_old = self.previous_day_draws['ka2'] / mp.ke * k2_old
 
+            self.x0 = self.x0[:17] + [0] * 9 + self.x0[17:] if self.extended and len(self.x0)<30 else self.x0
+
             # Scale as --> initial_old:initial_new = k1old:k1new
             self.x[:, 0] = self.x0
             self.x[self.nx - 4, 0] = k1 * self.x[self.nx - 4, 0] / k1_old
