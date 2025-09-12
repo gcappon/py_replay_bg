@@ -156,6 +156,10 @@ class MCMC:
             sg = model.start_guess
         else:
             sg = np.array(list(start_guess.values()))
+            
+        # Set the initial guess for the extended parameters
+        if model.extended and model.x0 is not None:
+                model.x0 = model.x0[:17] + [0] * 9 + model.x0[17:]
 
         # Set the initial positions of the walkers.
         start = sg + model.start_guess_sigma * np.random.randn(n_walkers, n_dim)
