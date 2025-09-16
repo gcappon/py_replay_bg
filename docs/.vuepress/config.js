@@ -69,6 +69,10 @@ export default defineUserConfig({
             {
                 text: 'Analyzing Replay Results',
                 link: 'documentation/analyzing_replay_results.md'
+            },
+            {
+                text: 'Demo website',
+                link: 'documentation/website.md'
             }
         ],
     }),

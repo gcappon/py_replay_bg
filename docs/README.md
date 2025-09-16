@@ -5,6 +5,9 @@ heroImage: https://i.postimg.cc/gJn8Sy0X/replay-bg-logo.png
 actions:
   - text: Get Started
     link: /documentation/get_started
+    type: secondary
+  - text: Try it out!
+    link: https://replaybg.duckdns.org
     type: primary
 
 features:
