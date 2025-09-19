@@ -31,3 +31,5 @@ description: Docs index
 ### [Analyzing replay results](./analyzing_replay_results.md)
 
 ---
+
+### [Demo website](./website.md)

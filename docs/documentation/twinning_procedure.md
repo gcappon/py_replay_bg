@@ -311,7 +311,7 @@ Example code snippets can be found in `example/code/twin_mcmc_extended.py` and `
 An example of already prepared data is stored in `example/data/data_day_1_extended.csv`.
 :::
 
-### [MCMC](mcmc.md)
+### MCMC
 
 #### Theoretical flavours 
 
@@ -493,7 +493,7 @@ corresponding to the median glucose profile of the confidence interval obtained 
 :::
 
 
-### [MAP](map.md)
+### MAP
 
 #### Theoretical flavours 
 
