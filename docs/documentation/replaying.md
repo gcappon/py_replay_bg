@@ -50,6 +50,9 @@ rbg.replay(data: pd.DataFrame,
    n_replay: int = 1000,
    sensors: list | None = None,
    sensor_cgm: CGM = Vettoretti19CGM,
+   snack_absorption=snack_absorption,
+   snack_absorption_delay=snack_absorption_delay,
+   hypotreatment_absorption=hypotreatment_absorption,
 ) -> Dict:
 ```
 ### Input parameters
@@ -119,6 +122,9 @@ replay simulations. Ignored if twinning_method is 'map'.
 - `sensors`: , optional, default: `None`: A `list[Sensors]` to be used in each of the replay simulations. Its length 
 must coincide with the selected `n_replay`. Used when working with intervals. If `None` new sensors will be used.
 - `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation.
+- `snack_absorption`, optional, default: `None`: A value to override the identified snack absorption rate.
+- `snack_absorption_delay`, optional, default: `None`: A value to override the identified snack absorption delay (between 0 and 60 minutes)
+- `hypotreatment_absorption`, optional, default: `None`: A value to override the identified hypotreatment absorption rate.
 
 ::: tip REMEMBER
 The total length of the simulation, `simulation_length`, is defined in minutes and determined by ReplayBG automatically 

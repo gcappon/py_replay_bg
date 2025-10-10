@@ -300,6 +300,9 @@ class ReplayBG:
                n_replay: int = 1000,
                sensors: list | None = None,
                sensor_cgm: CGM = Vettoretti19CGM,
+               snack_absorption: float = None,
+               snack_absorption_delay: int = None,
+               hypotreatment_absorption: float = None,
                ) -> Dict:
         """
         Runs ReplayBG according to the chosen modality.
@@ -375,6 +378,13 @@ class ReplayBG:
         sensor_cgm: CGM, optional, default: Vettoretti19CGM
             The class representing the sensors to be used in each of the replay simulations.
 
+        snack_absorption: float, optional, default: None
+            The absorption rate to be used for snacks (kabs_S in the model). If None, the value identified during twinning is used.
+        snack_absorption_delay: int, optional, default: None
+            The absorption delay in minutes to be used for snacks (beta_S in the model). If None, the value identified during twinning is used.
+        hypotreatment_absorption: float, optional, default: None
+            The absorption rate to be used for hypotreatments (kabs_H in the model). If None, the value identified during twinning is used.
+
         Returns
         -------
         replay_results: dict
@@ -445,6 +455,9 @@ class ReplayBG:
             sensors=sensors,
             exercise=self.environment.exercise,
             blueprint=self.environment.blueprint,
+            snack_absorption=snack_absorption,
+            snack_absorption_delay=snack_absorption_delay,
+            hypotreatment_absorption=hypotreatment_absorption,
         ).validate()
 
         if self.environment.verbose:
@@ -459,6 +472,13 @@ class ReplayBG:
             twinning_results = pickle.load(file)
         draws = twinning_results['draws']
         u2ss = twinning_results['u2ss']
+
+        if snack_absorption is not None:
+            draws['kabs_S'] = snack_absorption
+        if snack_absorption_delay is not None:
+            draws['beta_S'] = snack_absorption_delay
+        if hypotreatment_absorption is not None:
+            draws['kabs_H'] = hypotreatment_absorption
 
         if self.environment.blueprint == 'single-meal':
             model = T1DModelSingleMeal(data=data, bw=bw, u2ss=u2ss, x0=x0,
