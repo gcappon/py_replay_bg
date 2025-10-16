@@ -17,7 +17,7 @@ from py_replay_bg.sensors.Vettoretti19CGM import Vettoretti19CGM
 
 from py_replay_bg.twinning.mcmc import MCMC
 from py_replay_bg.twinning.map import MAP
-from py_replay_bg.replay import Replayer
+from py_replay_bg.replay import Replayer, ForcingRaBase
 from py_replay_bg.visualizer import Visualizer
 
 from py_replay_bg.input_validation.input_validator_init import InputValidatorInit
@@ -303,6 +303,7 @@ class ReplayBG:
                snack_absorption: float = None,
                snack_absorption_delay: int = None,
                hypotreatment_absorption: float = None,
+               forcing_glucose_input: ForcingRaBase = None,
                ) -> Dict:
         """
         Runs ReplayBG according to the chosen modality.
@@ -384,6 +385,9 @@ class ReplayBG:
             The absorption delay in minutes to be used for snacks (beta_S in the model). If None, the value identified during twinning is used.
         hypotreatment_absorption: float, optional, default: None
             The absorption rate to be used for hypotreatments (kabs_H in the model). If None, the value identified during twinning is used.
+
+        forcing_glucose_input: ForcingRaBase, optional, default: None
+            An object that implements the ForcingRaBase interface to provide a custom glucose absorption rate input.
 
         Returns
         -------
@@ -523,7 +527,7 @@ class ReplayBG:
             environment=self.environment,
             model=model,
             dss=dss,
-            twinning_method=twinning_method, sensor_cgm=sensor_cgm)
+            twinning_method=twinning_method, sensor_cgm=sensor_cgm, forcing_glucose_input=forcing_glucose_input)
         replay_results = replayer.replay_scenario()
 
         # Plot results if plot_mode is enabled

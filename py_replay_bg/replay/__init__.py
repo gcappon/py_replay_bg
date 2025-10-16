@@ -10,6 +10,7 @@ from py_replay_bg.environment import Environment
 from py_replay_bg.model.t1d_model_single_meal import T1DModelSingleMeal
 from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 from py_replay_bg.dss import DSS
+from py_replay_bg.replay.forcing_ra import ForcingRaBase
 from py_replay_bg.sensors import CGM, Sensors
 
 
@@ -42,6 +43,7 @@ class Replayer:
     replay_scenario():
         Replays the given scenario.
     """
+
     def __init__(self,
                  rbg_data: ReplayBGData,
                  draws: Dict,
@@ -52,7 +54,8 @@ class Replayer:
                  environment: Environment,
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  dss: DSS,
-                 twinning_method: str
+                 twinning_method: str,
+                 forcing_glucose_input: ForcingRaBase = None
                  ):
         """
         Constructs all the necessary attributes for the Replayer object.
@@ -77,6 +80,8 @@ class Replayer:
             An object that represents the hyperparameters of the integrated decision support system.
         twinning_method: str, {'mcmc', 'map'}
             The twinning method used to estimate the parameters.
+        forcing_glucose_input: ForcingRaBase, optional
+            An object that represents the forcing glucose input to be used during the replay simulation.
 
         Returns
         -------
@@ -114,6 +119,8 @@ class Replayer:
         self.environment = environment
         self.model = model
         self.dss = dss
+
+        self.forcing_glucose_input = forcing_glucose_input
 
     def replay_scenario(self) -> Dict:
         """
@@ -168,7 +175,7 @@ class Replayer:
         if self.twinning_method == 'map':
             n = 1
         else:
-            n = self.draws[self.model.unknown_parameters[0]]['samples_'+str(self.n_replay)].shape[0]
+            n = self.draws[self.model.unknown_parameters[0]]['samples_' + str(self.n_replay)].shape[0]
 
         # Initialize results
         cgm = dict()
@@ -179,7 +186,7 @@ class Replayer:
 
         x_end = dict()
         x_end['realizations'] = np.zeros(shape=(n, self.model.nx))
-        
+
         insulin_bolus = dict()
         insulin_bolus['realizations'] = np.zeros(shape=(n, self.model.tsteps))
 
@@ -223,7 +230,7 @@ class Replayer:
             if self.twinning_method == 'mcmc':
                 # set the model parameters
                 for p in self.draws:
-                    setattr(self.model.model_parameters, p, self.draws[p]['samples_'+str(self.n_replay)][r])
+                    setattr(self.model.model_parameters, p, self.draws[p]['samples_' + str(self.n_replay)][r])
                 self.model.model_parameters.kgri = self.model.model_parameters.kempt
             else:
                 # set the model parameters
@@ -246,7 +253,7 @@ class Replayer:
                                                                             modality='replay',
                                                                             environment=self.environment,
                                                                             dss=self.dss,
-                                                                            sensors=self.sensors[r])
+                                                                            sensors=self.sensors[r], forcing_Ra = self.forcing_glucose_input)
 
             # Update the t_offset of the cgm sensors
             self.sensors[r].cgm.add_offset((self.model.t - self.sensors[r].cgm.connected_at) / (24 * 60))
