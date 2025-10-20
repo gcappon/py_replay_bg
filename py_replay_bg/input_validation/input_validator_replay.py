@@ -119,6 +119,9 @@ class InputValidatorReplay:
                  sensors: list,
                  blueprint: str,
                  exercise: bool,
+                 snack_absorption: float,
+                 snack_absorption_delay: int,
+                 hypotreatment_absorption: float,
                  ):
         self.data = data
         self.bw = bw
@@ -147,7 +150,9 @@ class InputValidatorReplay:
         self.sensors = sensors
         self.blueprint = blueprint
         self.exercise = exercise
-
+        self.snack_absorption = snack_absorption
+        self.snack_absorption_delay = snack_absorption_delay
+        self.hypotreatment_absorption = hypotreatment_absorption
 
     def validate(self):
         """
@@ -156,7 +161,8 @@ class InputValidatorReplay:
 
         # Validate the 'data' input
         DataValidator(modality='replay', data=self.data, blueprint=self.blueprint, exercise=self.exercise,
-                      bolus_source=self.bolus_source, basal_source=self.basal_source, cho_source=self.cho_source).validate()
+                      bolus_source=self.bolus_source, basal_source=self.basal_source,
+                      cho_source=self.cho_source).validate()
 
         # Validate the 'bw' input
         BWValidator(bw=self.bw).validate()
@@ -192,7 +198,8 @@ class InputValidatorReplay:
         BolusCalculatorHandlerValidator(bolus_calculator_handler=self.bolus_calculator_handler).validate()
 
         # Validate the 'bolus_calculator_handler_params' input
-        BolusCalculatorHandlerParamsValidator(bolus_calculator_handler_params=self.bolus_calculator_handler_params).validate()
+        BolusCalculatorHandlerParamsValidator(
+            bolus_calculator_handler_params=self.bolus_calculator_handler_params).validate()
 
         # Validate the 'basal_handler' input
         BasalHandlerValidator(basal_handler=self.basal_handler).validate()
@@ -207,7 +214,8 @@ class InputValidatorReplay:
         HypotreatmentsHandlerValidator(hypotreatments_handler=self.hypotreatments_handler).validate()
 
         # Validate the 'hypotreatments_handler_params' input
-        HypotreatmentsHandlerParamsValidator(hypotreatments_handler_params=self.hypotreatments_handler_params).validate()
+        HypotreatmentsHandlerParamsValidator(
+            hypotreatments_handler_params=self.hypotreatments_handler_params).validate()
 
         # Validate the 'enable_correction_boluses' input
         EnableCorrectionBolusesValidator(enable_correction_boluses=self.enable_correction_boluses).validate()
@@ -216,7 +224,8 @@ class InputValidatorReplay:
         CorrectionBolusesHandlerValidator(correction_boluses_handler=self.correction_boluses_handler).validate()
 
         # Validate the 'correction_boluses_handler_params' input
-        CorrectionBolusesHandlerParamsValidator(correction_boluses_handler_params=self.correction_boluses_handler_params).validate()
+        CorrectionBolusesHandlerParamsValidator(
+            correction_boluses_handler_params=self.correction_boluses_handler_params).validate()
 
         # Validate the 'save_suffix' input
         SaveSuffixValidator(save_suffix=self.save_suffix).validate()
@@ -229,3 +238,12 @@ class InputValidatorReplay:
 
         # Validate the 'sensors' input
         SensorsValidator(sensors=self.sensors).validate()
+
+        # Validate the 'snack_absorption' input
+        SnackAbsorptionValidator(snack_absorption=self.snack_absorption).validate()
+
+        # Validate the 'snack_absorption_delay' input
+        SnackAbsorptionDelayValidator(snack_absorption_delay=self.snack_absorption_delay).validate()
+
+        # Validate the 'hypotreatment_absorption' input
+        HypotreatmentAbsorptionValidator(hypotreatment_absorption=self.hypotreatment_absorption).validate()

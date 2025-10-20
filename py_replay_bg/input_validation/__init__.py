@@ -609,3 +609,51 @@ class YTSValidator:
     def validate(self):
         if not isinstance(self.yts, int):
             raise Exception("'yts' input must be an integer.'")
+
+
+class SnackAbsorptionValidator:
+    """
+    Validates the 'snack_absorption' parameter.
+    """
+
+    def __init__(self, snack_absorption):
+        self.snack_absorption = snack_absorption
+
+    def validate(self):
+        if self.snack_absorption is not None:
+            if not isinstance(self.snack_absorption, float):
+                raise Exception("'snack_absorption' input must be a float.'")
+            if not (0 <= self.snack_absorption <= 1):
+                raise Exception("'snack_absorption' input must be between 0 and 1.'")
+
+
+class SnackAbsorptionDelayValidator:
+    """
+    Validates the 'snack_absorption_delay' parameter.
+    """
+
+    def __init__(self, snack_absorption_delay):
+        self.snack_absorption_delay = snack_absorption_delay
+
+    def validate(self):
+        if self.snack_absorption_delay is not None:
+            if not isinstance(self.snack_absorption_delay, int):
+                raise Exception("'snack_absorption_delay' input must be a integer.'")
+            if not (0 <= self.snack_absorption_delay <= 60):
+                raise Exception("'snack_absorption_delay' input must be between 0 and 60.'")
+
+
+class HypotreatmentAbsorptionValidator:
+    """
+    Validates the 'hypotreatment_absorption' parameter.
+    """
+
+    def __init__(self, hypotreatment_absorption):
+        self.hypotreatment_absorption = hypotreatment_absorption
+
+    def validate(self):
+        if self.hypotreatment_absorption is not None:
+            if not isinstance(self.hypotreatment_absorption, float):
+                raise Exception("'hypotreatment_absorption' input must be a float.'")
+            if not (0 <= self.hypotreatment_absorption <= 1):
+                raise Exception("'hypotreatment_absorption' input must be between 0 and 1.'")
