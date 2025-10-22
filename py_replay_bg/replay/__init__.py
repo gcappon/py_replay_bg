@@ -10,7 +10,7 @@ from py_replay_bg.environment import Environment
 from py_replay_bg.model.t1d_model_single_meal import T1DModelSingleMeal
 from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 from py_replay_bg.dss import DSS
-from py_replay_bg.replay.forcing_ra import ForcingRaBase
+from py_replay_bg.replay.forcing_ra import CustomRaBase
 from py_replay_bg.sensors import CGM, Sensors
 
 
@@ -55,7 +55,7 @@ class Replayer:
                  model: T1DModelSingleMeal | T1DModelMultiMeal,
                  dss: DSS,
                  twinning_method: str,
-                 forcing_glucose_input: ForcingRaBase = None
+                 forcing_glucose_input: CustomRaBase = None
                  ):
         """
         Constructs all the necessary attributes for the Replayer object.

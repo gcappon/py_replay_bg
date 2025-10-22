@@ -3,18 +3,18 @@ import pickle
 
 import numpy as np
 
-from py_replay_bg.replay import ForcingRaBase
+from py_replay_bg.replay.custom_ra import CustomRaBase
 from utils import load_test_data, load_patient_info
 
 from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 
 
-class CustomRa(ForcingRaBase):
+class CustomRa(CustomRaBase):
     """
-    Example implementation of the ForcingRaBase class to simulate the rate of appearance (Ra) of carbohydrates in the bloodstream
+    Example implementation of the CustomRaBase class to simulate the rate of appearance (Ra) of carbohydrates in the bloodstream
     based on a two-compartment stomach model followed by a gut compartment.
-    This reproduces the model inside ReplaBG.
+    This reproduces the model inside ReplayBG.
     """
     def __init__(self, CHO, k_empt, k_abs, f=1.0, beta=0, bw=70.0):
         super().__init__()
@@ -94,7 +94,7 @@ replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                             twinning_method='map',
                             save_workspace=False,
                             save_suffix='_replay_map',
-                            forcing_glucose_input=snackRa)
+                            custom_ra=snackRa)
 
 # Visualize and analyze results
 Visualizer.plot_replay_results(replay_results, data=data)

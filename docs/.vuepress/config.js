@@ -6,7 +6,7 @@ export default defineUserConfig({
     lang: 'en-US',
 
   title: 'ReplayBG',
-  base: '/py_replay_bg/',
+  base: '/',
   description: 'A digital twin based framework for the development and assessment of new algorithms for type 1 ' +
     'diabetes management',
 
@@ -49,6 +49,10 @@ export default defineUserConfig({
             {
                 text: 'The CGM error model',
                 link: 'documentation/cgm_model.md'
+            },
+            {
+                text: 'Custom Glucose Rate of Appearance Model',
+                link: 'documentation/custom_ra.md'
             },
             {
                 text: 'Twinning Procedure',

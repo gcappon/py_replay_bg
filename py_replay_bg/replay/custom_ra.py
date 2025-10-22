@@ -3,12 +3,12 @@ from abc import abstractmethod, ABC
 import numpy as np
 
 
-class ForcingRaBase(ABC):
+class CustomRaBase(ABC):
 
     @abstractmethod
     def simulate_forcing_ra(self, time: np.ndarray, time_index: int) -> float:
         """
-        This method should be implemented by subclasses to provide the logic for simulating the forcing RA at each time step.
+        This method should be implemented by subclasses to provide the logic for simulating the custom forcing RA at each time step.
         IMPORTANT: This method should maintain the internal state of the object, as it will be called iteratively during the replay simulation.
 
         Parameters

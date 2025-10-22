@@ -1,4 +1,4 @@
----
+from py_replay_bg.replay.forcing_ra import CustomRaBase---
 sidebar: heading
 ---
 
@@ -53,6 +53,7 @@ rbg.replay(data: pd.DataFrame,
    snack_absorption=snack_absorption,
    snack_absorption_delay=snack_absorption_delay,
    hypotreatment_absorption=hypotreatment_absorption,
+   custom_Ra: CustomRaBase = None
 ) -> Dict:
 ```
 ### Input parameters
@@ -121,11 +122,12 @@ in the `results/workspaces` folder or not.
 replay simulations. Ignored if twinning_method is 'map'.
 - `sensors`: , optional, default: `None`: A `list[Sensors]` to be used in each of the replay simulations. Its length 
 must coincide with the selected `n_replay`. Used when working with intervals. If `None` new sensors will be used.
-- `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation.
+- `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation. For more information see the [CGM Error Model](./cgm_model.md) page.
 - `snack_absorption`, optional, default: `None`: A value to override the identified snack absorption rate.
 - `snack_absorption_delay`, optional, default: `None`: A value to override the identified snack absorption delay (between 0 and 60 minutes)
 - `hypotreatment_absorption`, optional, default: `None`: A value to override the identified hypotreatment absorption rate.
-
+- `custom_Ra`, optional, default: `None`: An object that inherits from `CustomRaBase` and implements a custom glucose rate of appearance model to be used during the replay simulation. For more information see the [Custom Ra Models](./custom_ra.md) page.
+- 
 ::: tip REMEMBER
 The total length of the simulation, `simulation_length`, is defined in minutes and determined by ReplayBG automatically 
 using the `t` column of `data` and the `yts` input parameter provided to the `ReplayBG` object builder. 

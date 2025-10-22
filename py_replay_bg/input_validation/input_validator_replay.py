@@ -122,6 +122,7 @@ class InputValidatorReplay:
                  snack_absorption: float,
                  snack_absorption_delay: int,
                  hypotreatment_absorption: float,
+                 custom_ra: CustomRaBase
                  ):
         self.data = data
         self.bw = bw
@@ -153,6 +154,7 @@ class InputValidatorReplay:
         self.snack_absorption = snack_absorption
         self.snack_absorption_delay = snack_absorption_delay
         self.hypotreatment_absorption = hypotreatment_absorption
+        self.custom_ra = custom_ra
 
     def validate(self):
         """
@@ -247,3 +249,6 @@ class InputValidatorReplay:
 
         # Validate the 'hypotreatment_absorption' input
         HypotreatmentAbsorptionValidator(hypotreatment_absorption=self.hypotreatment_absorption).validate()
+
+        # Validate the 'custom_ra' input
+        CustomRaValidator(custom_ra=self.custom_ra).validate()
