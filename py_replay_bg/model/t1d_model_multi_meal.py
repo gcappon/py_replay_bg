@@ -19,7 +19,7 @@ from py_replay_bg.model.model_step_equations_t1d import model_step_equations_mul
 from py_replay_bg.data import ReplayBGData
 from py_replay_bg.environment import Environment
 from py_replay_bg.dss import DSS
-from py_replay_bg.replay.forcing_ra import ForcingRaBase
+from py_replay_bg.replay.custom_ra import CustomRaBase
 from py_replay_bg.sensors import Sensors
 
 
@@ -414,7 +414,7 @@ class T1DModelMultiMeal:
                  environment: Environment | None,
                  dss: DSS | None,
                  sensors: Sensors = None,
-                 forcing_Ra: ForcingRaBase = None
+                 forcing_Ra: CustomRaBase = None
                  ) -> np.ndarray | tuple[
         np.ndarray,
         np.ndarray,
