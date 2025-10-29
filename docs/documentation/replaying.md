@@ -356,12 +356,12 @@ referred to as "handlers", that will handle the real-time generation of specific
 As such, event handlers allow users to decide whether to use the meal/insulin inputs defined offline by the `data` 
 parameter of `rbg.replay()` or those generated online, during simulation, by custom algorithms. 
 
-### Implemented handlers and logic
+### Implemented handlers and logicw
 The following scheme defines the logic followed by ReplayBG to decide the input source to use during simulation. Yellow
 boxes represent input parameters of `rbg.replay()`, green boxes represent the input data actually used during 
 simulation.
 
-!["Input source"](https://i.ibb.co/J2Z8KSw/replaybg-input-source.jpg "Input source")
+!["Input source"](images/replaybg-input-source.jpg "Input source")
 
 As showed in the figure, five different handlers can be defined:
 - `meal_generator_handler`: a function that will replace the carbohydrates of `data.cho` with meal data generated according to a
@@ -859,7 +859,7 @@ def ada_hypotreatments_handler(
 
 ### The `dss` parameter
 
-!["dss variable flow"](https://i.ibb.co/LvzS371/replaybg-dss-variable.jpg "dss variable flow")
+!["dss variable flow"](images/replaybg-dss-variable.jpg "dss variable flow")
 
 Each of the handler has the `dss` parameter as input/output. 
 

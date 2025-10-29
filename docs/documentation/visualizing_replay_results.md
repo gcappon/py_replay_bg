@@ -43,7 +43,7 @@ Visualizer.plot_replay_results(replay_results=replay_results)
 
 Will produce:
 
-!["Visualized results"](https://i.postimg.cc/sgV8XCQ8/Figure-2.png "Visualized results")
+!["Visualized results"](images/Figure-2.png "Visualized results")
 
 The full code can be found in `/example/code/analysis_example.py`.
 
@@ -83,6 +83,6 @@ Visualizer.plot_replay_results_interval(replay_results_interval=replay_results_i
 
 Will produce:
 
-!["Visualized results"](https://i.postimg.cc/LXqGpkY8/Figure-1.png "Visualized results")
+!["Visualized results"](images/Figure-1.png "Visualized results")
 
 The full code can be found in `/example/code/analysis_example_intervals.py`.

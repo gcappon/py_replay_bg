@@ -251,7 +251,7 @@ Practically speaking, one has to follow three steps.
 
 #### Step 1. Prepare the input data appropriately
 
-!["Extended data"](https://i.postimg.cc/bNdYRtMv/replaybg-Extended.jpg "Extended data")
+!["Extended data"](images/replaybg-Extended.jpg "Extended data")
 
 As shown in the figure, data must be prepared before running the twinning procedure if `extended=True`. 
 
