@@ -1,3 +1,9 @@
+# This fixes circular imports for type checking
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from py_replay_bg.replay.custom_ra import CustomRaBase
+
 import numpy as np
 import pandas as pd
 
@@ -412,7 +418,8 @@ class T1DModelMultiMeal:
                  modality: str,
                  environment: Environment | None,
                  dss: DSS | None,
-                 sensors: Sensors = None
+                 sensors: Sensors = None,
+                 forcing_Ra: CustomRaBase | None = None
                  ) -> np.ndarray | tuple[
         np.ndarray,
         np.ndarray,
@@ -441,6 +448,8 @@ class T1DModelMultiMeal:
             An object that represents the hyperparameters of the dss. Unused during twinning.
         sensors: Sensors
             An object that represents the sensors used during simulation.
+        forcing_Ra: ForcingRaBase
+            An object that represents the forcing Ra input to be used during simulation. Default is None.
 
         Returns
         -------
@@ -546,7 +555,7 @@ class T1DModelMultiMeal:
                 k2_old = self.previous_day_draws['kd'] / self.previous_day_draws['ka2'] * k1_old
                 Ipb_old = self.previous_day_draws['ka2'] / mp.ke * k2_old
 
-            self.x0 = self.x0[:17] + [0] * 9 + self.x0[17:] if self.extended and len(self.x0)<30 else self.x0
+            self.x0 = self.x0[:17] + [0] * 9 + self.x0[17:] if self.extended and len(self.x0) < 30 else self.x0
 
             # Scale as --> initial_old:initial_new = k1old:k1new
             self.x[:, 0] = self.x0
@@ -780,6 +789,11 @@ class T1DModelMultiMeal:
                     # Update the correction_bolus event vectors
                     correction_bolus[k - 1] = correction_bolus[k - 1] + cb
 
+                if forcing_Ra is not None:
+                    current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
+                else:
+                    current_forcing_Ra = 0
+
                 # Integration step
                 self.x[:, k] = model_step_equations_multi_meal(self.A,
                                                                bolus_delayed[k - 1] + basal_delayed[k - 1],
@@ -811,7 +825,7 @@ class T1DModelMultiMeal:
                                                                mp.kabs_S,
                                                                mp.kabs_H,
                                                                mp.alpha,
-                                                               self.previous_Ra[k - 1])
+                                                               self.previous_Ra[k - 1], current_forcing_Ra)
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -825,6 +839,10 @@ class T1DModelMultiMeal:
                                                                             t=(k - sensors.cgm.connected_at) / (
                                                                                     24 * 60),
                                                                             past_ig=self.x[self.nx - 1, :k], )
+
+            # Add the list of events that generated the forcing Ra to the meal vector for logging purposes
+            if forcing_Ra is not None:
+                meal = np.array([m + f for m, f in zip(meal, forcing_Ra.get_events())])
 
             # TODO: add vo2
             return (self.x[0, :].copy(),

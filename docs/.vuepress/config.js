@@ -51,6 +51,10 @@ export default defineUserConfig({
                 link: 'documentation/cgm_model.md'
             },
             {
+                text: 'Custom Glucose Rate of Appearance Model',
+                link: 'documentation/custom_ra.md'
+            },
+            {
                 text: 'Twinning Procedure',
                 link: 'documentation/twinning_procedure.md'
             },

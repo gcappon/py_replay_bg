@@ -1,5 +1,6 @@
 import pandas as pd
 
+from py_replay_bg.replay import CustomRaBase
 from py_replay_bg.sensors import CGM
 
 
@@ -657,3 +658,29 @@ class HypotreatmentAbsorptionValidator:
                 raise Exception("'hypotreatment_absorption' input must be a float.'")
             if not (0 <= self.hypotreatment_absorption <= 1):
                 raise Exception("'hypotreatment_absorption' input must be between 0 and 1.'")
+
+
+class CustomRaValidator:
+    """
+    Validates the 'custom_ra' parameter.
+    """
+
+    def __init__(self, custom_ra):
+        self.custom_ra = custom_ra
+
+    def validate(self):
+        if self.custom_ra is not None:
+            # Accept either a class or an instance
+            cls = self.custom_ra if isinstance(self.custom_ra, type) else type(self.custom_ra)
+            if not issubclass(cls, CustomRaBase):
+                raise Exception("'custom_ra' input must be a subclass or instance of CustomRaBase.'")
+
+            # Ensure required abstract methods from CustomRaBase are implemented
+            required = getattr(CustomRaBase, '__abstractmethods__', set())
+            missing = []
+            for name in required:
+                attr = getattr(cls, name, None)
+                if not callable(attr):
+                    missing.append(name)
+            if missing:
+                raise Exception(f"'custom_ra' implementation must override methods: {', '.join(missing)}")

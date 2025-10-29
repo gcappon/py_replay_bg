@@ -281,7 +281,7 @@ def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, x
 @njit
 def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1, B,
                                     r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
-                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
+                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra, forcing_Ra):
     """
     Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
@@ -321,7 +321,7 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16]) / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        16]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
     xk[20] = (xkm1[20] + alpha * xk[0]) / (1 + alpha)
 
     return xk

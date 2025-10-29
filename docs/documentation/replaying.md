@@ -1,4 +1,4 @@
----
+from py_replay_bg.replay.forcing_ra import CustomRaBase---
 sidebar: heading
 ---
 
@@ -53,6 +53,7 @@ rbg.replay(data: pd.DataFrame,
    snack_absorption=snack_absorption,
    snack_absorption_delay=snack_absorption_delay,
    hypotreatment_absorption=hypotreatment_absorption,
+   custom_Ra: CustomRaBase = None
 ) -> Dict:
 ```
 ### Input parameters
@@ -121,11 +122,12 @@ in the `results/workspaces` folder or not.
 replay simulations. Ignored if twinning_method is 'map'.
 - `sensors`: , optional, default: `None`: A `list[Sensors]` to be used in each of the replay simulations. Its length 
 must coincide with the selected `n_replay`. Used when working with intervals. If `None` new sensors will be used.
-- `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation.
+- `sensor_cgm`, optional, default: `Vettoretti19CGM`: The class of the CGM error model to be used during the replay simulation. For more information see the [CGM Error Model](./cgm_model.md) page.
 - `snack_absorption`, optional, default: `None`: A value to override the identified snack absorption rate.
 - `snack_absorption_delay`, optional, default: `None`: A value to override the identified snack absorption delay (between 0 and 60 minutes)
 - `hypotreatment_absorption`, optional, default: `None`: A value to override the identified hypotreatment absorption rate.
-
+- `custom_Ra`, optional, default: `None`: An object that inherits from `CustomRaBase` and implements a custom glucose rate of appearance model to be used during the replay simulation. For more information see the [Custom Ra Models](./custom_ra.md) page.
+- 
 ::: tip REMEMBER
 The total length of the simulation, `simulation_length`, is defined in minutes and determined by ReplayBG automatically 
 using the `t` column of `data` and the `yts` input parameter provided to the `ReplayBG` object builder. 
@@ -354,12 +356,12 @@ referred to as "handlers", that will handle the real-time generation of specific
 As such, event handlers allow users to decide whether to use the meal/insulin inputs defined offline by the `data` 
 parameter of `rbg.replay()` or those generated online, during simulation, by custom algorithms. 
 
-### Implemented handlers and logic
+### Implemented handlers and logicw
 The following scheme defines the logic followed by ReplayBG to decide the input source to use during simulation. Yellow
 boxes represent input parameters of `rbg.replay()`, green boxes represent the input data actually used during 
 simulation.
 
-!["Input source"](https://i.ibb.co/J2Z8KSw/replaybg-input-source.jpg "Input source")
+!["Input source"](images/replaybg-input-source.jpg "Input source")
 
 As showed in the figure, five different handlers can be defined:
 - `meal_generator_handler`: a function that will replace the carbohydrates of `data.cho` with meal data generated according to a
@@ -857,7 +859,7 @@ def ada_hypotreatments_handler(
 
 ### The `dss` parameter
 
-!["dss variable flow"](https://i.ibb.co/LvzS371/replaybg-dss-variable.jpg "dss variable flow")
+!["dss variable flow"](images/replaybg-dss-variable.jpg "dss variable flow")
 
 Each of the handler has the `dss` parameter as input/output. 
 

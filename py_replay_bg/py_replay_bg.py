@@ -17,7 +17,7 @@ from py_replay_bg.sensors.Vettoretti19CGM import Vettoretti19CGM
 
 from py_replay_bg.twinning.mcmc import MCMC
 from py_replay_bg.twinning.map import MAP
-from py_replay_bg.replay import Replayer
+from py_replay_bg.replay import Replayer, CustomRaBase
 from py_replay_bg.visualizer import Visualizer
 
 from py_replay_bg.input_validation.input_validator_init import InputValidatorInit
@@ -303,6 +303,7 @@ class ReplayBG:
                snack_absorption: float = None,
                snack_absorption_delay: int = None,
                hypotreatment_absorption: float = None,
+               custom_ra: CustomRaBase = None,
                ) -> Dict:
         """
         Runs ReplayBG according to the chosen modality.
@@ -385,6 +386,9 @@ class ReplayBG:
         hypotreatment_absorption: float, optional, default: None
             The absorption rate to be used for hypotreatments (kabs_H in the model). If None, the value identified during twinning is used.
 
+        custom_ra: CustomRaBase, optional, default: None
+            An object that implements the CustomRaBase interface to provide a custom glucose absorption rate input.
+
         Returns
         -------
         replay_results: dict
@@ -458,6 +462,7 @@ class ReplayBG:
             snack_absorption=snack_absorption,
             snack_absorption_delay=snack_absorption_delay,
             hypotreatment_absorption=hypotreatment_absorption,
+            custom_ra=custom_ra,
         ).validate()
 
         if self.environment.verbose:
@@ -523,7 +528,7 @@ class ReplayBG:
             environment=self.environment,
             model=model,
             dss=dss,
-            twinning_method=twinning_method, sensor_cgm=sensor_cgm)
+            twinning_method=twinning_method, sensor_cgm=sensor_cgm, forcing_glucose_input=custom_ra)
         replay_results = replayer.replay_scenario()
 
         # Plot results if plot_mode is enabled

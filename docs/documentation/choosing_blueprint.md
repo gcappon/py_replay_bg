@@ -53,7 +53,7 @@ More details can be found in [The ReplayBG Object](./replaybg_object.md) page.
 The single-meal blueprint is composed of four main subsystems: subcutaneous insulin absorption, oral
 glucose absorption, glucose-insulin kinetics, CGM sensor error.  
 
-!["Single-meal blueprint"](https://i.postimg.cc/QtJ6zd2x/replaybg-single-meal.jpg "Single-meal blueprint")
+!["Single-meal blueprint"](images/single-meal.jpg "Single-meal blueprint")
 
 #### Subcutaneous Insulin Absorption Subsystem
 The subsystem of subcutaneous insulin absorption system is composed of three compartments and describes the 
@@ -192,7 +192,7 @@ More details can be found in [The ReplayBG object](./replaybg_object.md) page.
 The multi-meal blueprint is an expanded version of the single-meal one. It is composed of four main subsystems: 
 subcutaneous insulin absorption, oral glucose absorption, glucose-insulin kinetics, CGM sensor error.  
 
-!["Multi-meal blueprint"](https://i.postimg.cc/fy3wKpPC/replaybg-multi-meal.jpg "Multi-meal blueprint")
+!["Multi-meal blueprint"](images/multi-meal.jpg "Multi-meal blueprint")
 
 
 #### Subcutaneous Insulin Absorption Subsystem
