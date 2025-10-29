@@ -1,3 +1,9 @@
+# This fixes circular imports for type checking
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from py_replay_bg.replay.custom_ra import CustomRaBase
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +25,6 @@ from py_replay_bg.model.model_step_equations_t1d import model_step_equations_mul
 from py_replay_bg.data import ReplayBGData
 from py_replay_bg.environment import Environment
 from py_replay_bg.dss import DSS
-from py_replay_bg.replay.custom_ra import CustomRaBase
 from py_replay_bg.sensors import Sensors
 
 
@@ -414,7 +419,7 @@ class T1DModelMultiMeal:
                  environment: Environment | None,
                  dss: DSS | None,
                  sensors: Sensors = None,
-                 forcing_Ra: CustomRaBase = None
+                 forcing_Ra: CustomRaBase | None = None
                  ) -> np.ndarray | tuple[
         np.ndarray,
         np.ndarray,
