@@ -137,7 +137,7 @@ def twin_multi_meal(tsteps, x, A, B,
         Ra = (f * (kabs_B * x[4, k] + kabs_L * x[7, k] + kabs_D * x[10, k] + kabs_S * x[13, k] + kabs_H * x[16, k])
               + previous_Ra[k-1]) / VG
 
-        denom = 1.0 + SG + (1.0 + r1 * risk) * x[1, k]
+        denom = 1.0 + SG + risk * x[1, k]
         x[0, k] = (xkm1[0] + SG * Gb + Ra) / denom
 
         x[20, k] = (xkm1[20] + alpha * x[0, k]) / (1.0 + alpha)
@@ -228,7 +228,7 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
     xk[2:8] = A @ C + B
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-    xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+    xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
     xk[8] = (xkm1[8] + alpha * xk[0]) / (1 + alpha)
 
     return xk
@@ -272,7 +272,7 @@ def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, x
     xk[2:8] = A @ C + B
 
     xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-    xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+    xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
     xk[9] = (xkm1[9] + alpha * xk[0]) / (1 + alpha)
 
     return xk
@@ -321,7 +321,7 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        16]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + risk * xk[1])
     xk[20] = (xkm1[20] + alpha * xk[0]) / (1 + alpha)
 
     return xk
@@ -373,7 +373,7 @@ def model_step_equations_multi_meal_extended(A, I, cho_b, cho_l, cho_d, cho_s, c
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[28] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25]) / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25]) / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
     xk[29] = (xkm1[29] + alpha * xk[0]) / (1 + alpha)
 
     return xk
@@ -433,7 +433,7 @@ def model_step_equations_multi_meal_exercise(A, I, cho_b, cho_l, cho_d, cho_s, c
     xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16]) / VG + previous_Ra / VG) / (1 + SG + (1 + r1 * risk) * xk[1])
+        16]) / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
     xk[21] = (xkm1[21] + alpha * xk[0]) / (1 + alpha)
 
     return xk
