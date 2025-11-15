@@ -4,10 +4,11 @@ from numba import njit
 
 
 @njit
-def twin_single_meal(tsteps, x, A, B,
+def twin_single_meal(tsteps, x,
                      bolus_delayed, basal_delayed,
                      meal_delayed, t_hour,
-                     r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
+                     logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                     r2, kempt, kd, ka2, ke, p2, SI, VI, VG, Ipb, SG, Gb,
                      f, kabs, alpha, previous_Ra):
     """
     Internal function that simulates the single-meal model using backward-euler method. Optimized for
@@ -17,201 +18,64 @@ def twin_single_meal(tsteps, x, A, B,
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
-        x[:, k] = model_step_equations_single_meal(A, bolus_delayed[k - 1] + basal_delayed[k - 1],
-                                                   meal_delayed[k - 1], t_hour[k - 1],
-                                                   x[:, k - 1], B,
-                                                   r1, r2, kgri, kd, p2, SI, VI,
-                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k - 1])
+        x[:, k] = model_step_equations_single_meal(bolus_delayed[k] + basal_delayed[k],
+                                                   meal_delayed[k], t_hour[k],
+                                                   x[:, k - 1],
+                                                   logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                                   r2, kempt, kd, ka2, ke, p2, SI, VI,
+                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k])
     return x
 
-
-@njit
-def twin_single_meal_exercise(tsteps, x, A, B,
-                              bolus_delayed, basal_delayed,
-                              meal_delayed, t_hour,
-                              r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
-                              f, kabs, alpha, vo2rest, vo2max, e1, e2, previous_Ra):
-    """
-    Internal function that simulates the single-meal + exercise model using backward-euler method.
-    """
-    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
-    # Run simulation
-    for k in np.arange(1, tsteps):
-        # Integration step
-        x[:, k] = model_step_equations_single_meal_exercise(A, bolus_delayed[k - 1] + basal_delayed[k - 1],
-                                                            meal_delayed[k - 1], t_hour[k - 1],
-                                                            x[:, k - 1], B,
-                                                            r1, r2, kgri, kd, p2, SI, VI,
-                                                            VG, Ipb, SG, Gb, f, kabs, alpha, vo2rest, vo2max, e1, e2,
-                                                            previous_Ra[k - 1])
-    return x
-
-
-# @njit
-# def twin_multi_meal(tsteps, x, A, B,
-#                         bolus_delayed, basal_delayed,
-#                         meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
-#                         r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
-#                         f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
-#     """
-#     Internal function that simulates the multi-meal model using backward-euler method.
-#     """
-#     # TODO: further optimize knowing that the input never changes. Consider using something already existing.
-#     # Run simulation
-#     for k in np.arange(1, tsteps):
-#         # Integration step
-#         x[:, k] = model_step_equations_multi_meal(A, bolus_delayed[k - 1] + basal_delayed[k - 1],
-#                                                        meal_B_delayed[k - 1], meal_L_delayed[k - 1],
-#                                                        meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1],
-#                                                        t_hour[k - 1], x[:, k - 1], B,
-#                                                        r1, r2, kgri, kd, p2, SI_B, SI_L,
-#                                                        SI_D, VI,
-#                                                        VG, Ipb, SG, Gb, f, kabs_B, kabs_L,
-#                                                        kabs_D,
-#                                                        kabs_S, kabs_H, alpha, previous_Ra[k-1])
-#     return x
 
 @njit(fastmath=True, cache=True)
-def twin_multi_meal(tsteps, x, A, B,
+def twin_multi_meal(tsteps, x,
                     bolus_delayed, basal_delayed,
                     meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
-                    r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
+                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                    r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                     f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra):
-    logGb = np.log(Gb)
-    log60 = np.log(60.0)
-    kc = 1.0 / (1.0 + kgri)
-    kd_fac = 1.0 / (1.0 + kd)
-
-    A = np.ascontiguousarray(A)
-    B = np.ascontiguousarray(B)
-    tmp = np.empty(18, dtype=x.dtype)
-
-    # assume B is shape (18,) passed in; will mutate in-place each step
-    # indices for readability
-    # B structure: [B0, B1, B2,  L0,L1,L2,  D0,D1,D2,  S0,S1,S2,  H0,H1,H2,  I0,I1,I2]
-    for k in range(1, tsteps):
-        I = bolus_delayed[k - 1] + basal_delayed[k - 1]
-
-        # SI by day-part
-        hour = t_hour[k - 1]
-        if (hour < 4.0) or (hour >= 17.0):
-            SI = SI_D
-        elif hour < 11.0:
-            SI = SI_B
-        else:
-            SI = SI_L
-
-        # risk
-        risk = 1
-        if Gb > x[0, k - 1] >= 60:
-            risk = risk + 10 * r1 * (np.log(x[0, k - 1]) ** r2 - logGb ** r2) ** 2
-        elif x[0, k - 1] < 60:
-            risk = risk + 10 * r1 * (log60 ** r2 - logGb ** r2) ** 2
-
-        # Build B in place (no Python lists, no allocations)
-        B[0] = meal_B_delayed[k - 1] * kc
-        B[1] = 0.0;
-        B[2] = 0.0
-        B[3] = meal_L_delayed[k - 1] * kc
-        B[4] = 0.0;
-        B[5] = 0.0
-        B[6] = meal_D_delayed[k - 1] * kc
-        B[7] = 0.0;
-        B[8] = 0.0
-        B[9] = meal_S_delayed[k - 1] * kc
-        B[10] = 0.0;
-        B[11] = 0.0
-        B[12] = meal_H[k - 1] * kc
-        B[13] = 0.0;
-        B[14] = 0.0
-        B[15] = I * kd_fac
-        B[16] = 0.0;
-        B[17] = 0.0
-
-        # shorthand previous state
-        xkm1 = x[:, k - 1]
-        # C is just a view; np.dot can consume non-contiguous in Numba/BLAS without us allocating
-        C = xkm1[2:20]
-
-        # state update
-        # xk[2:20] = A @ C + B
-        tmp[:] = x[2:20, k - 1]  # makes a contiguous copy without realloc
-        x[2:20, k] = A.dot(tmp) + B
-
-        x[1, k] = (xkm1[1] + p2 * (SI / VI) * (x[19, k] - Ipb)) / (1.0 + p2)
-
-        Ra = (f * (kabs_B * x[4, k] + kabs_L * x[7, k] + kabs_D * x[10, k] + kabs_S * x[13, k] + kabs_H * x[16, k])
-              + previous_Ra[k - 1]) / VG
-
-        denom = 1.0 + SG + risk * x[1, k]
-        x[0, k] = (xkm1[0] + SG * Gb + Ra) / denom
-
-        x[20, k] = (alpha * xkm1[20] + x[0, k]) / (1.0 + alpha)
-
-    return x
-
-
-@njit
-def twin_multi_meal_extended(tsteps, x, A, B,
-                             bolus_delayed, basal_delayed,
-                             meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H,
-                             meal_B2_delayed, meal_L2_delayed, meal_S2_delayed,
-                             t_hour, split_point,
-                             r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
-                             f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha, previous_Ra):
-    """
-    Internal function that simulates the multi-meal model using backward-euler method.
-    """
-    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
-        x[:, k] = model_step_equations_multi_meal_extended(A, bolus_delayed[k - 1] + basal_delayed[k - 1],
-                                                           meal_B_delayed[k - 1], meal_L_delayed[k - 1],
-                                                           meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1],
-                                                           meal_B2_delayed[k - 1], meal_L2_delayed[k - 1],
-                                                           meal_S2_delayed[k - 1],
-                                                           t_hour[k - 1], k > split_point, x[:, k - 1], B,
-                                                           r1, r2, kgri, kd, p2, SI_B, SI_L,
-                                                           SI_D, SI_B2, VI,
-                                                           VG, Ipb, SG, Gb, f, kabs_B, kabs_L,
-                                                           kabs_D,
-                                                           kabs_S, kabs_H,
-                                                           kabs_B2, kabs_L2, kabs_S2,
-                                                           alpha, previous_Ra[k - 1])
+        x[:, k] = model_step_equations_multi_meal(bolus_delayed[k] + basal_delayed[k],
+                                                  meal_B_delayed[k], meal_L_delayed[k], meal_D_delayed[k],
+                                                  meal_S_delayed[k], meal_H[k], t_hour[k], x[:, k - 1],
+                                                  logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                                  r2, kempt, kd, ka2, ke,
+                                                  p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
+                                                  f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha,
+                                                  previous_Ra[k], 0)
+
     return x
 
+@njit(fastmath=True, cache=True)
+def twin_multi_meal_extended(tsteps, x,
+                    bolus_delayed, basal_delayed,
+                    meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H,
+                    meal_B2_delayed, meal_L2_delayed, meal_S2_delayed,
+                    t_hour, split_point,
+                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                    r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
+                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha, previous_Ra):
 
-@njit
-def twin_multi_meal_exercise(tsteps, x, A, B,
-                             bolus_delayed, basal_delayed,
-                             meal_B_delayed, meal_L_delayed, meal_D_delayed, meal_S_delayed, meal_H, t_hour,
-                             r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
-                             f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, vo2rest, vo2max, e1, e2, previous_Ra):
-    """
-    Internal function that simulates the multi-meal + exercise model using backward-euler method.
-    """
-    # TODO: further optimize knowing that the input never changes. Consider using something already existing.
     # Run simulation
     for k in np.arange(1, tsteps):
         # Integration step
-        x[:, k] = model_step_equations_multi_meal_exercise(A, bolus_delayed[k - 1] + basal_delayed[k - 1],
-                                                           meal_B_delayed[k - 1], meal_L_delayed[k - 1],
-                                                           meal_D_delayed[k - 1], meal_S_delayed[k - 1], meal_H[k - 1],
-                                                           t_hour[k - 1], x[:, k - 1], B,
-                                                           r1, r2, kgri, kd, p2, SI_B, SI_L,
-                                                           SI_D, VI,
-                                                           VG, Ipb, SG, Gb, f, kabs_B, kabs_L,
-                                                           kabs_D,
-                                                           kabs_S, kabs_H, alpha,
-                                                           vo2rest, vo2max, e1, e2,
-                                                           previous_Ra[k - 1])
+        x[:, k] = model_step_equations_multi_meal_extended(bolus_delayed[k] + basal_delayed[k],
+                                                  meal_B_delayed[k], meal_L_delayed[k], meal_D_delayed[k],
+                                                  meal_S_delayed[k], meal_H[k], meal_B2_delayed[k], meal_L2_delayed[k], meal_S2_delayed[k], t_hour[k], k > split_point, x[:, k - 1],
+                                                  logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                                  r2, kempt, kd, ka2, ke,
+                                                  p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
+                                                  f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha,
+                                                  previous_Ra[k], 0)
+
     return x
 
-
-@njit
-def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
-                                     r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
+@njit(fastmath=True, cache=True)
+def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
+                                     logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                     r2, kempt, kd, ka2, ke, p2, SI, VI, VG, Ipb, SG, Gb,
                                      f, kabs, alpha, previous_Ra):
     """
     Internal function that simulates a step of the single-meal model using backward-euler method.
@@ -219,19 +83,26 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
     xk = xkm1.copy()
 
     # Compute glucose risk
-    risk = 1
-
-    # Compute the risk
-    if Gb > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
-    elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
+    g_prev = xkm1[0]
+    if (g_prev < Gb) and (g_prev >= 60.0):
+        lg = np.log(g_prev)
+        diff = lg ** r2 - logGb_r2
+        risk = 1.0 + risk_coeff * diff * diff
+    elif g_prev < 60.0:
+        diff = log60_r2 - logGb_r2  # constant
+        risk = 1.0 + risk_coeff * diff * diff
+    else:
+        risk = 1.0
 
     # Compute the model state at time k using backward Euler method
-    B[:] = [cho / (1 + kgri), 0, 0,
-            I / (1 + kd), 0, 0]
-    C = np.ascontiguousarray(xkm1[2:8])
-    xk[2:8] = A @ C + B
+
+    xk[2] = (xkm1[2] + cho) * k1
+    xk[3] = (xkm1[3] + kempt * xk[2]) * k2
+    xk[4] = (xkm1[4] + kempt * xk[3]) / (1 + kabs)
+
+    xk[5] = (xkm1[5] + I) * kd_fac
+    xk[6] = (xkm1[6] + kd * xk[5]) / (1 + ka2)
+    xk[7] = (xkm1[7] + ka2 * xk[6]) / (1 + ke)
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
@@ -240,58 +111,14 @@ def model_step_equations_single_meal(A, I, cho, hour_of_the_day, xkm1, B,
     return xk
 
 
-@njit
-def model_step_equations_single_meal_exercise(A, I, cho, vo2, hour_of_the_day, xkm1, B,
-                                              r1, r2, kgri, kd, p2, SI, VI, VG, Ipb, SG, Gb,
-                                              f, kabs, alpha,
-                                              vo2rest, vo2max, e1, e2,
-                                              previous_Ra):
-    """
-    Internal function that simulates a step of the single-meal + exercise model using backward-euler method.
-    """
-
-    xk = xkm1.copy()
-
-    # Compute glucose risk
-    risk = 1
-
-    # Compute the risk
-    if Gb > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
-    elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
-
-    if vo2 == 0:
-        xk[8] = 0
-    else:
-        xk[8] = xk[8] + 1 / 60
-
-    # Compute exercise model terms
-    pvo2 = (vo2 - vo2rest) / (vo2max - vo2rest)
-    inc1 = e1 * pvo2
-    inc2 = e2 * (pvo2 + xk[8])
-
-    # Compute the model state at time k using backward Euler method
-    B[:] = [cho / (1 + kgri), 0, 0,
-            I / (1 + kd), 0, 0]
-    C = np.ascontiguousarray(xkm1[2:8])
-    xk[2:8] = A @ C + B
-
-    xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-    xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
-    xk[9] = (alpha * xkm1[9] + xk[0]) / (1 + alpha)
-
-    return xk
-
-
-@njit
-def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1, B,
-                                    r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
+@njit(fastmath=True, cache=True)
+def model_step_equations_multi_meal(I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1,
+                                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                    r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                                     f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra, forcing_Ra):
     """
     Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
-
     xk = xkm1.copy()
 
     # Set the insulin sensitivity based on the time of the day
@@ -304,26 +131,43 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
     # Compute glucose risk
 
     # Set default risk
-    risk = 1
-
-    # Compute the risk
-    if Gb > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
-    elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
+    g_prev = xkm1[0]
+    if (g_prev < Gb) and (g_prev >= 60.0):
+        lg = np.log(g_prev)
+        diff = lg ** r2 - logGb_r2
+        risk = 1.0 + risk_coeff * diff * diff
+    elif g_prev < 60.0:
+        diff = log60_r2 - logGb_r2  # constant
+        risk = 1.0 + risk_coeff * diff * diff
+    else:
+        risk = 1.0
 
     # Compute the model state at time k using backward Euler method
 
-    kc = 1 / (1 + kgri)
-    B[:] = [cho_b * kc, 0, 0,
-            cho_l * kc, 0, 0,
-            cho_d * kc, 0, 0,
-            cho_s * kc, 0, 0,
-            cho_h * kc, 0, 0,
-            I / (1 + kd), 0, 0]
+    xk[2] = (xkm1[2] + cho_b) * k1
+    xk[3] = (xkm1[3] + kempt * xk[2]) * k2
+    xk[4] = (xkm1[4] + kempt * xk[3]) / (1 + kabs_B)
 
-    C = np.ascontiguousarray(xkm1[2:20])
-    xk[2:20] = A @ C + B
+    xk[5] = (xkm1[5] + cho_l) * k1
+    xk[6] = (xkm1[6] + kempt * xk[5]) * k2
+    xk[7] = (xkm1[7] + kempt * xk[6]) / (1 + kabs_L)
+
+    xk[8] = (xkm1[8] + cho_d) * k1
+    xk[9] = (xkm1[9] + kempt * xk[8]) * k2
+    xk[10] = (xkm1[10] + kempt * xk[9]) / (1 + kabs_D)
+
+    xk[11] = (xkm1[11] + cho_s) * k1
+    xk[12] = (xkm1[12] + kempt * xk[11]) * k2
+    xk[13] = (xkm1[13] + kempt * xk[12]) / (1 + kabs_S)
+
+    xk[14] = (xkm1[14] + cho_h) * k1
+    xk[15] = (xkm1[15] + kempt * xk[14]) * k2
+    xk[16] = (xkm1[16] + kempt * xk[15]) / (1 + kabs_H)
+
+    xk[17] = (xkm1[17] + I) * kd_fac
+    xk[18] = (xkm1[18] + kd * xk[17]) / (1 + ka2)
+    xk[19] = (xkm1[19] + ka2 * xk[18]) / (1 + ke)
+
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
@@ -332,116 +176,80 @@ def model_step_equations_multi_meal(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, hou
 
     return xk
 
-
-@njit
-def model_step_equations_multi_meal_extended(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, cho_b2, cho_l2, cho_s2,
-                                             hour_of_the_day, is_second_day, xkm1, B,
-                                             r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
-                                             f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2,
-                                             alpha, previous_Ra):
+@njit(fastmath=True, cache=True)
+def model_step_equations_multi_meal_extended(I, cho_b, cho_l, cho_d, cho_s, cho_h, cho_b2, cho_l2, cho_s2, hour_of_the_day, is_second_day, xkm1,
+                                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
+                                    r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
+                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha, previous_Ra, forcing_Ra):
     """
     Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
-
     xk = xkm1.copy()
 
-    # Set the insulin sensitivity based on the time of the day
-    if hour_of_the_day < 4 or hour_of_the_day >= 17:
+    # SI by day-part
+    if (hour_of_the_day < 4.0) or (hour_of_the_day >= 17.0):
         SI = SI_D
-    elif 4 <= hour_of_the_day < 11:
+    elif hour_of_the_day < 11.0:
         SI = SI_B2 if is_second_day else SI_B
     else:
         SI = SI_L
+
     # Compute glucose risk
 
     # Set default risk
-    risk = 1
-
-    # Compute the risk
-    if Gb > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
-    elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
+    g_prev = xkm1[0]
+    if (g_prev < Gb) and (g_prev >= 60.0):
+        lg = np.log(g_prev)
+        diff = lg ** r2 - logGb_r2
+        risk = 1.0 + risk_coeff * diff * diff
+    elif g_prev < 60.0:
+        diff = log60_r2 - logGb_r2  # constant
+        risk = 1.0 + risk_coeff * diff * diff
+    else:
+        risk = 1.0
 
     # Compute the model state at time k using backward Euler method
 
-    kc = 1 / (1 + kgri)
-    B[:] = [cho_b * kc, 0, 0,
-            cho_l * kc, 0, 0,
-            cho_d * kc, 0, 0,
-            cho_s * kc, 0, 0,
-            cho_h * kc, 0, 0,
-            cho_b2 * kc, 0, 0,
-            cho_l2 * kc, 0, 0,
-            cho_s2 * kc, 0, 0,
-            I / (1 + kd), 0, 0]
+    xk[2] = (xkm1[2] + cho_b) * k1
+    xk[3] = (xkm1[3] + kempt * xk[2]) * k2
+    xk[4] = (xkm1[4] + kempt * xk[3]) / (1 + kabs_B)
 
-    C = np.ascontiguousarray(xkm1[2:29])
-    xk[2:29] = A @ C + B
+    xk[5] = (xkm1[5] + cho_l) * k1
+    xk[6] = (xkm1[6] + kempt * xk[5]) * k2
+    xk[7] = (xkm1[7] + kempt * xk[6]) / (1 + kabs_L)
+
+    xk[8] = (xkm1[8] + cho_d) * k1
+    xk[9] = (xkm1[9] + kempt * xk[8]) * k2
+    xk[10] = (xkm1[10] + kempt * xk[9]) / (1 + kabs_D)
+
+    xk[11] = (xkm1[11] + cho_s) * k1
+    xk[12] = (xkm1[12] + kempt * xk[11]) * k2
+    xk[13] = (xkm1[13] + kempt * xk[12]) / (1 + kabs_S)
+
+    xk[14] = (xkm1[14] + cho_h) * k1
+    xk[15] = (xkm1[15] + kempt * xk[14]) * k2
+    xk[16] = (xkm1[16] + kempt * xk[15]) / (1 + kabs_H)
+
+    xk[17] = (xkm1[17] + cho_b2) * k1
+    xk[18] = (xkm1[18] + kempt * xk[17]) * k2
+    xk[19] = (xkm1[19] + kempt * xk[18]) / (1 + kabs_B2)
+
+    xk[20] = (xkm1[20] + cho_l2) * k1
+    xk[21] = (xkm1[21] + kempt * xk[20]) * k2
+    xk[22] = (xkm1[22] + kempt * xk[21]) / (1 + kabs_L2)
+
+    xk[23] = (xkm1[23] + cho_s2) * k1
+    xk[24] = (xkm1[24] + kempt * xk[23]) * k2
+    xk[25] = (xkm1[25] + kempt * xk[24]) / (1 + kabs_S2)
+
+    xk[26] = (xkm1[26] + I) * kd_fac
+    xk[27] = (xkm1[27] + kd * xk[26]) / (1 + ka2)
+    xk[28] = (xkm1[28] + ka2 * xk[27]) / (1 + ke)
+
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[28] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25]) / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
+        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + risk * xk[1])
     xk[29] = (alpha * xkm1[29] + xk[0]) / (1 + alpha)
-
-    return xk
-
-
-@njit
-def model_step_equations_multi_meal_exercise(A, I, cho_b, cho_l, cho_d, cho_s, cho_h, vo2, hour_of_the_day, xkm1, B,
-                                             r1, r2, kgri, kd, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
-                                             f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha,
-                                             vo2rest, vo2max, e1, e2,
-                                             previous_Ra):
-    """
-    Internal function that simulates a step of the multi-meal + exercise model using backward-euler method.
-    """
-
-    xk = xkm1.copy()
-
-    # Set the insulin sensitivity based on the time of the day
-    if hour_of_the_day < 4 or hour_of_the_day >= 17:
-        SI = SI_D
-    elif 4 <= hour_of_the_day < 11:
-        SI = SI_B
-    else:
-        SI = SI_L
-    # Compute glucose risk
-
-    # Set default risk
-    risk = 1
-
-    # Compute the risk
-    if Gb > xkm1[0] >= 60:
-        risk = risk + 10 * r1 * (np.log(xkm1[0]) ** r2 - np.log(Gb) ** r2) ** 2
-    elif xkm1[0] < 60:
-        risk = risk + 10 * r1 * (np.log(60) ** r2 - np.log(Gb) ** r2) ** 2
-
-    if vo2 == 0:
-        xk[20] = 0
-    else:
-        xk[20] = xk[20] + 1 / 60
-
-    # Compute exercise model terms
-    pvo2 = (vo2 - vo2rest) / (vo2max - vo2rest)
-    inc1 = e1 * pvo2
-    inc2 = e2 * (pvo2 + xk[8])
-
-    # Compute the model state at time k using backward Euler method
-    kc = 1 / (1 + kgri)
-    B[:] = [cho_b * kc, 0, 0,
-            cho_l * kc, 0, 0,
-            cho_d * kc, 0, 0,
-            cho_s * kc, 0, 0,
-            cho_h * kc, 0, 0,
-            I / (1 + kd), 0, 0]
-
-    C = np.ascontiguousarray(xkm1[2:20])
-    xk[2:20] = A @ C + B
-    xk[1] = (xkm1[1] + p2 * (1 + inc2) * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
-    xk[0] = (xkm1[0] + SG * (1 + inc1) * Gb + f * (
-            kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16]) / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
-    xk[21] = (alpha * xkm1[21] + xk[0]) / (1 + alpha)
 
     return xk

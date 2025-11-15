@@ -207,6 +207,7 @@ class ReplayBG:
         # If we are twinning, override initial conditions of glucose if they are not None. This allows to avoid
         # "jumps" of glucose values during twinning.
         if x0 is not None:
+            x0 = x0.copy()
             idx = np.where(data.glucose.isnull().values == False)[0][0]
             x0[0] = data.glucose.values[idx]
             x0[-1] = data.glucose.values[idx]

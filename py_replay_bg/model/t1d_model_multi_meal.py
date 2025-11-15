@@ -305,8 +305,6 @@ class T1DModelMultiMeal:
         self.G = np.empty([self.tsteps, ])
         self.x = np.zeros([self.nx, self.tsteps])
         self.CGM = np.empty([self.tysteps, ])
-        self.A = np.empty([self.nx - 3, self.nx - 3])
-        self.B = np.empty([self.nx - 3, ])
 
         # If previous_data_name is not None load previous_day_draws otherwise set it to None
         self.previous_data_name = previous_data_name
@@ -321,7 +319,7 @@ class T1DModelMultiMeal:
         self.twinning_method = twinning_method
 
         # Set initial conditions
-        self.x0 = x0
+        self.x0 = None if x0 is None else x0.copy()
 
         # IMPORTANT: manage the "remaining" rate of appearance due to meals in the previous portion of data.
         #   The rationale is to compute the Ra signal according to the "free" evolution of the meal system using x0 as
@@ -505,7 +503,7 @@ class T1DModelMultiMeal:
 
         # Shift the insulin vectors according to the delays
         bolus_delayed = np.append(np.zeros(shape=(mp.tau.__trunc__(),)), bolus)
-        basal_delayed = np.append(np.ones(shape=(mp.tau.__trunc__(),)) * basal[0], basal)
+        basal_delayed = np.append(np.ones(shape=(mp.tau.__trunc__(),)) * mp.u2ss, basal)
 
         # Shift the meal vector according to the delays
         meal_B_delayed = np.append(np.zeros(shape=(mp.beta_B.__trunc__(),)), rbg_data.meal_B)
@@ -521,133 +519,57 @@ class T1DModelMultiMeal:
             meal_L2_delayed = np.append(np.zeros(shape=(mp.beta_L2.__trunc__(),)), rbg_data.meal_L2)
             meal_S2_delayed = np.append(np.zeros(shape=(mp.beta_S2.__trunc__(),)), rbg_data.meal_S2)
 
+        # Set constant model coefficients
+        logGb = np.log(mp.Gb)
+        log60 = np.log(60.0)
+        logGb_r2 = logGb ** mp.r2
+        log60_r2 = log60 ** mp.r2
+        risk_coeff = 10.0 * mp.r1
+        k1 = 1.0 / (1.0 + mp.kgri)
+        k2 = 1.0 / (1.0 + mp.kempt)
+        kd_fac = 1.0 / (1.0 + mp.kd)
+
         # Get the initial conditions
-        k1 = mp.u2ss / mp.kd
-        k2 = mp.kd / mp.ka2 * k1
-        mp.Ipb = mp.ka2 / mp.ke * k2
+        ki1 = mp.u2ss / mp.kd
+        ki2 = mp.kd / mp.ka2 * ki1
+        mp.Ipb = mp.ka2 / mp.ke * ki2
 
         # If initial model conditions are None, set the default initial conditions, i.e., steady-state
         if self.x0 is None:
             if self.extended:
                 self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0,
-                                mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+                                mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, ki1, ki2, mp.Ipb, mp.G0]
             else:
                 self.x[:, 0] = [mp.G0, mp.Xpb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0, mp.Qgutb, 0, 0,
-                                mp.Qgutb, k1, k2, mp.Ipb, mp.G0]
+                                mp.Qgutb, ki1, ki2, mp.Ipb, mp.G0]
 
         # otherwise, set the initial model condition appropriately.
         else:
             # IMPORTANT: Scale the initial conditions of the insulin compartment to avoid "fake meal/bolus" effects
 
-            # First, compute the k1, k2, and Ipb, macro parameters, using the model parameters associated to the current portion of data
-            k1 = mp.u2ss / mp.kd
-            k2 = mp.kd / mp.ka2 * k1
-            mp.Ipb = mp.ka2 / mp.ke * k2
-
-            # Second, do the same thing, but using the model parameters of the previous portion of data (i.e., the one that "generated" the provided x0)
+            # Compute the k1, k2, and Ipb, macro parameters, using the model parameters of the previous portion of data
+            # (i.e., the one that "generated" the provided x0)
             if self.twinning_method == 'mcmc':
-                k1_old = mp.u2ss / self.previous_day_draws['kd']['samples_1'][0]
-                k2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][
-                    0] * k1_old
-                Ipb_old = self.previous_day_draws['ka2']['samples_1'][0] / mp.ke * k2_old
+                ki1_old = mp.u2ss / self.previous_day_draws['kd']['samples_1'][0]
+                ki2_old = self.previous_day_draws['kd']['samples_1'][0] / self.previous_day_draws['ka2']['samples_1'][
+                    0] * ki1_old
+                Ipb_old = self.previous_day_draws['ka2']['samples_1'][0] / mp.ke * ki2_old
             else:
-                k1_old = mp.u2ss / self.previous_day_draws['kd']
-                k2_old = self.previous_day_draws['kd'] / self.previous_day_draws['ka2'] * k1_old
-                Ipb_old = self.previous_day_draws['ka2'] / mp.ke * k2_old
+                ki1_old = mp.u2ss / self.previous_day_draws['kd']
+                ki2_old = self.previous_day_draws['kd'] / self.previous_day_draws['ka2'] * ki1_old
+                Ipb_old = self.previous_day_draws['ka2'] / mp.ke * ki2_old
 
             self.x0 = self.x0[:17] + [0] * 9 + self.x0[17:] if self.extended and len(self.x0) < 30 else self.x0
 
-            # Scale as --> initial_old:initial_new = k1old:k1new
+            # Scale as --> initial_old:initial_new = ki1old:ki1new
             self.x[:, 0] = self.x0
-            self.x[self.nx - 4, 0] = k1 * self.x[self.nx - 4, 0] / k1_old
-            self.x[self.nx - 3, 0] = k2 * self.x[self.nx - 3, 0] / k2_old
+            self.x[self.nx - 4, 0] = ki1 * self.x[self.nx - 4, 0] / ki1_old
+            self.x[self.nx - 3, 0] = ki2 * self.x[self.nx - 3, 0] / ki2_old
             self.x[self.nx - 2, 0] = mp.Ipb * self.x[
                 self.nx - 2, 0] / Ipb_old  # Ipb and Ipb_old are always the same (= ka2 / ke * kd / ka2 * u2ss / kd = u2ss / ke)
 
         # Set the initial glucose value
         self.G[0] = self.x[self.nx - 1, 0]
-
-        # Set the input state-space matrix
-        k1 = 1 / (1 + mp.kgri)
-        k2 = mp.kgri / (1 + mp.kempt)
-        k3 = 1 / (1 + mp.kempt)
-        kb = 1 / (1 + mp.kabs_B)
-        kl = 1 / (1 + mp.kabs_L)
-        kd = 1 / (1 + mp.kabs_D)
-        ks = 1 / (1 + mp.kabs_S)
-        kh = 1 / (1 + mp.kabs_H)
-        ki1 = 1 / (1 + mp.kd)
-        ki2 = 1 / (1 + mp.ka2)
-        kie = 1 / (1 + mp.ke)
-        if self.extended:
-            kb2 = 1 / (1 + mp.kabs_B2)
-            kl2 = 1 / (1 + mp.kabs_L2)
-            ks2 = 1 / (1 + mp.kabs_S2)
-            self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, mp.kempt * kb, kb, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, mp.kempt * kl, kl, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd, kd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks, ks, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh, kh, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kb2, kb2, 0, 0, 0, 0, 0, 0, 0, 0,
-                          0],
-
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kl2, kl2, 0, 0, 0, 0, 0,
-                          0],
-
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks2, ks2, 0, 0,
-                          0],
-
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
-                          ki2, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                          mp.ka2 * kie, kie]]
-        else:
-            self.A[:] = [[k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [k2, k3, 0, 0, 0, 0, 0, 0,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, mp.kempt * kb, kb, 0, 0, 0, 0,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, k2, k3, 0, 0, 0,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, mp.kempt * kl, kl, 0,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, k2, k3,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, mp.kempt * kd,
-                          kd, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * ks,
-                          ks, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k1, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, k2, k3, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kempt * kh,
-                          kh, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ki1, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mp.kd * ki2,
-                          ki2, 0],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                          mp.ka2 * kie, kie]]
 
         # Run simulation in two ways depending on the modality to speed up the twinning process
         if is_replay:
@@ -763,7 +685,7 @@ class T1DModelMultiMeal:
                     meal_H[k] = meal_H[k] + ht_mgkg
 
                     # Update the hypotreatments event vectors
-                    hypotreatments[k - 1] = hypotreatments[k - 1] + ht
+                    hypotreatments[k] = hypotreatments[k] + ht
 
                 # Correction bolus delivery module if it is enabled
                 if dss.enable_correction_boluses:
@@ -787,7 +709,7 @@ class T1DModelMultiMeal:
                     bolus[k] = bolus[k] + cb_mgkg
 
                     # Update the correction_bolus event vectors
-                    correction_bolus[k - 1] = correction_bolus[k - 1] + cb
+                    correction_bolus[k] = correction_bolus[k] + cb
 
                 if forcing_Ra is not None:
                     current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
@@ -795,20 +717,20 @@ class T1DModelMultiMeal:
                     current_forcing_Ra = 0
 
                 # Integration step
-                self.x[:, k] = model_step_equations_multi_meal(self.A,
-                                                               bolus_delayed[k - 1] + basal_delayed[k - 1],
-                                                               meal_B_delayed[k - 1],
-                                                               meal_L_delayed[k - 1],
-                                                               meal_D_delayed[k - 1],
-                                                               meal_S_delayed[k - 1],
-                                                               meal_H[k - 1],
-                                                               rbg_data.t_hour[k - 1],
+                self.x[:, k] = model_step_equations_multi_meal(bolus_delayed[k] + basal_delayed[k],
+                                                               meal_B_delayed[k],
+                                                               meal_L_delayed[k],
+                                                               meal_D_delayed[k],
+                                                               meal_S_delayed[k],
+                                                               meal_H[k],
+                                                               rbg_data.t_hour[k],
                                                                self.x[:, k - 1],
-                                                               self.B,
-                                                               mp.r1,
+                                                               logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                                                mp.r2,
-                                                               mp.kgri,
+                                                               mp.kempt,
                                                                mp.kd,
+                                                               mp.ka2,
+                                                               mp.ke,
                                                                mp.p2,
                                                                mp.SI_B,
                                                                mp.SI_L,
@@ -825,7 +747,7 @@ class T1DModelMultiMeal:
                                                                mp.kabs_S,
                                                                mp.kabs_H,
                                                                mp.alpha,
-                                                               self.previous_Ra[k - 1], current_forcing_Ra)
+                                                               self.previous_Ra[k], current_forcing_Ra)
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -860,10 +782,9 @@ class T1DModelMultiMeal:
 
             # Run simulation
             if self.extended:
+
                 self.x = twin_multi_meal_extended(self.tsteps,
                                                   self.x,
-                                                  self.A,
-                                                  self.B,
                                                   bolus_delayed,
                                                   basal_delayed,
                                                   meal_B_delayed,
@@ -876,10 +797,12 @@ class T1DModelMultiMeal:
                                                   meal_S2_delayed,
                                                   rbg_data.t_hour,
                                                   self.split_point,
-                                                  mp.r1,
+                                                  logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                                   mp.r2,
-                                                  mp.kgri,
+                                                  mp.kempt,
                                                   mp.kd,
+                                                  mp.ka2,
+                                                  mp.ke,
                                                   mp.p2,
                                                   mp.SI_B,
                                                   mp.SI_L,
@@ -901,11 +824,11 @@ class T1DModelMultiMeal:
                                                   mp.kabs_S2,
                                                   mp.alpha,
                                                   self.previous_Ra)
+
             else:
+
                 self.x = twin_multi_meal(self.tsteps,
                                          self.x,
-                                         self.A,
-                                         self.B,
                                          bolus_delayed,
                                          basal_delayed,
                                          meal_B_delayed,
@@ -914,10 +837,12 @@ class T1DModelMultiMeal:
                                          meal_S_delayed,
                                          meal_H,
                                          rbg_data.t_hour,
-                                         mp.r1,
+                                         logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                          mp.r2,
-                                         mp.kgri,
+                                         mp.kempt,
                                          mp.kd,
+                                         mp.ka2,
+                                         mp.ke,
                                          mp.p2,
                                          mp.SI_B,
                                          mp.SI_L,

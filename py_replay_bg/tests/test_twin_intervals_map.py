@@ -26,6 +26,7 @@ def test_replay_bg():
     u2ss = float(patient_info.u2ss.values[p])
     x0 = None
     previous_data_name = None
+    sensors = None
 
     # Initialize the list of results
     replay_results_interval = []
@@ -61,7 +62,8 @@ def test_replay_bg():
                                     twinning_method='map',
                                     save_workspace=True,
                                     x0=x0, previous_data_name=previous_data_name,
-                                    save_suffix='_twin_map')
+                                    save_suffix='_twin_map',
+                                    sensors=sensors)
 
         # Append results
         replay_results_interval.append(replay_results)
@@ -69,6 +71,9 @@ def test_replay_bg():
 
         # Set initial conditions for next day equal to the "ending conditions" of the current day
         x0 = replay_results['x_end']['realizations'][0].tolist()
+
+        # Set sensors to use the same sensors during the next portion of data
+        sensors = replay_results['sensors']
 
         # Set previous_data_name
         previous_data_name = save_name
