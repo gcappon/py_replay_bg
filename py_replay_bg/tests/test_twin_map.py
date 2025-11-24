@@ -7,7 +7,8 @@ from py_replay_bg.py_replay_bg import ReplayBG
 from py_replay_bg.visualizer import Visualizer
 from py_replay_bg.analyzer import Analyzer
 
-def test_replay_bg():
+
+def test_twin_map():
 
     # Set verbosity
     verbose = True
@@ -28,7 +29,7 @@ def test_replay_bg():
     # Instantiate ReplayBG
     rbg = ReplayBG(blueprint=blueprint, save_folder=save_folder,
                    yts=5, exercise=False,
-                   seed=1,
+                   seed=42,
                    verbose=verbose, plot_mode=plot_mode)
 
     # Load data and set save_name

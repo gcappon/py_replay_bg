@@ -16,8 +16,7 @@ import copy
 
 from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DMultiMeal
 
-from py_replay_bg.model.logpriors_t1d import (log_prior_multi_meal, log_prior_multi_meal_exercise,
-                                              log_prior_multi_meal_extended)
+from py_replay_bg.model.logpriors_t1d import log_prior_multi_meal, log_prior_multi_meal_extended
 
 from py_replay_bg.model.model_step_equations_t1d import twin_multi_meal, twin_multi_meal_extended
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_multi_meal
@@ -27,6 +26,7 @@ from py_replay_bg.environment import Environment
 from py_replay_bg.dss import DSS
 from py_replay_bg.sensors import Sensors
 
+from py_replay_bg.utils.stats import square, sigmoid, safe_exp
 
 class T1DModelMultiMeal:
     """
@@ -148,11 +148,11 @@ class T1DModelMultiMeal:
 
         # initial guess for unknown parameter
         self.start_guess = np.array(
-            [self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.p2,
-             self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt])
+            [self.model_parameters.Gb, self.model_parameters.SG_log, self.model_parameters.p2_sqrt,
+             self.model_parameters.ka2_log, self.model_parameters.delta_k_log, self.model_parameters.kempt_log])
 
         # initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3])
+        self.start_guess_sigma = np.array([1, 5e-3, 1e-4, 1e-3, 1e-2, 1e-4])
 
         # Get the hour of the day for each data point
         t = np.array(data.t.dt.hour.values).astype(int)
@@ -167,24 +167,24 @@ class T1DModelMultiMeal:
             if np.any(np.logical_and(t >= 4, t < 11)):
                 self.pos_SI_B = self.start_guess.shape[0]
                 self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B')
-                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B)
-                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B_log)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 5e-3)
 
             # Attach lunch SI if data between 11:00 - 17:00 are available
             self.pos_SI_L = 0
             if np.any(np.logical_and(t >= 11, t < 17)):
                 self.pos_SI_L = self.start_guess.shape[0]
                 self.unknown_parameters = np.append(self.unknown_parameters, 'SI_L')
-                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_L)
-                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_L_log)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 5e-3)
 
             # Attach dinner SI if data between 0:00 - 4:00 or 17:00 - 24:00 are available
             self.pos_SI_D = 0
             if np.any(np.logical_or(t < 4, t >= 17)):
                 self.pos_SI_D = self.start_guess.shape[0]
                 self.unknown_parameters = np.append(self.unknown_parameters, 'SI_D')
-                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_D)
-                self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+                self.start_guess = np.append(self.start_guess, self.model_parameters.SI_D_log)
+                self.start_guess_sigma = np.append(self.start_guess_sigma, 5e-3)
 
             # Attach kabs and beta breakfast if there is a breakfast
             self.pos_kabs_B = 0
@@ -258,8 +258,8 @@ class T1DModelMultiMeal:
                 if np.any(np.logical_and(t[idx_355:] >= 4, t[idx_355:] < 11)):
                     self.pos_SI_B2 = self.start_guess.shape[0]
                     self.unknown_parameters = np.append(self.unknown_parameters, 'SI_B2')
-                    self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B2)
-                    self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+                    self.start_guess = np.append(self.start_guess, self.model_parameters.SI_B2_log)
+                    self.start_guess_sigma = np.append(self.start_guess_sigma, 5e-3)
 
                 # Attach kabs and beta breakfast 2 if there is a breakfast 2
                 self.pos_kabs_B2 = 0
@@ -529,7 +529,7 @@ class T1DModelMultiMeal:
         k2 = 1.0 / (1.0 + mp.kempt)
         kd_fac = 1.0 / (1.0 + mp.kd)
 
-        # Get the initial conditions
+        # Get the insulin subsystem initial conditions
         ki1 = mp.u2ss / mp.kd
         ki2 = mp.kd / mp.ka2 * ki1
         mp.Ipb = mp.ka2 / mp.ke * ki2
@@ -895,107 +895,77 @@ class T1DModelMultiMeal:
 
         # Set model parameters to current guess
         (self.model_parameters.Gb,
-         self.model_parameters.SG,
-         self.model_parameters.p2,
-         self.model_parameters.ka2,
-         self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:6]
+         self.model_parameters.SG_log,
+         self.model_parameters.p2_sqrt,
+         self.model_parameters.ka2_log,
+         self.model_parameters.delta_k_log,
+         self.model_parameters.kempt_log) = theta[0:6]
 
-        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
-        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
-        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
+        self.model_parameters.Gb = 70.0 + 110.0 * sigmoid(self.model_parameters.Gb)
+        self.model_parameters.SG = safe_exp(self.model_parameters.SG_log)
+        self.model_parameters.p2 = square(self.model_parameters.p2_sqrt)
+        self.model_parameters.ka2 = safe_exp(self.model_parameters.ka2_log)
+        self.model_parameters.kd = self.model_parameters.ka2 + safe_exp(self.model_parameters.delta_k_log)
+        self.model_parameters.kempt = safe_exp(self.model_parameters.kempt_log)
 
-        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
-        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
-        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
-        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
-        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
+        if self.pos_SI_B:
+            self.model_parameters.SI_B_log = theta[self.pos_SI_B]
+            self.model_parameters.SI_B = safe_exp(self.model_parameters.SI_B_log)
 
-        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
-        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
-        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
+        if self.pos_SI_L:
+            self.model_parameters.SI_L_log = theta[self.pos_SI_L]
+            self.model_parameters.SI_L = safe_exp(self.model_parameters.SI_L_log)
+
+        if self.pos_SI_D:
+            self.model_parameters.SI_D_log = theta[self.pos_SI_D]
+            self.model_parameters.SI_D = safe_exp(self.model_parameters.SI_D_log)
+
+        if self.pos_kabs_B:
+            self.model_parameters.kabs_B = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_B])
+
+        if self.pos_kabs_L:
+            self.model_parameters.kabs_L = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_L])
+
+        if self.pos_kabs_D:
+            self.model_parameters.kabs_D = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_D])
+
+        if self.pos_kabs_S:
+            self.model_parameters.kabs_S = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_S])
+
+        if self.pos_kabs_H:
+            self.model_parameters.kabs_H = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_H])
+
+        if self.pos_beta_B:
+            self.model_parameters.beta_B = 60.0 * sigmoid(theta[self.pos_beta_B])
+
+        if self.pos_beta_L:
+            self.model_parameters.beta_L = 60.0 * sigmoid(theta[self.pos_beta_L])
+
+        if self.pos_beta_D:
+            self.model_parameters.beta_D = 60.0 * sigmoid(theta[self.pos_beta_D])
+
+        if self.pos_beta_S:
+            self.model_parameters.beta_S = 60.0 * sigmoid(theta[self.pos_beta_S])
 
         # Enforce constraints
         self.model_parameters.kgri = self.model_parameters.kempt
 
-        # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
+        # Simulate the model (with safety walls)
+        try:
+            G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
+        except Exception:
+            return -1e20
+        if np.any(np.isnan(G)) or np.any(np.isinf(G)):
+            return -1e20
 
         # Sample the simulation
         G = G[0::self.yts]
 
         # Compute and return the log likelihood
-        return -0.5 * np.sum(
-            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
-
-    def __log_likelihood_exercise(self, theta: np.ndarray, rbg_data: ReplayBGData):
-        """
-        Internal function that computes the log likelihood of unknown parameters.
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The current guess of unknown model parameters.
-        rbg_data : ReplayBGData
-            The data to be used by ReplayBG during simulation.
-
-        Returns
-        -------
-        log_likelihood: float
-            The value of the log likelihood of current unknown model parameters guess.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # Set model parameters to current guess
-        (self.model_parameters.Gb,
-         self.model_parameters.SG,
-         self.model_parameters.p2,
-         self.model_parameters.ka2,
-         self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:6]
-
-        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
-        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
-        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
-
-        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
-        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
-        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
-        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
-        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
-
-        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
-        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
-        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
-
-        self.model_parameters.e1 = theta[self.pos_e1] if self.pos_e1 else self.model_parameters.e1
-        self.model_parameters.e2 = theta[self.pos_e2] if self.pos_e2 else self.model_parameters.e2
-
-        # Enforce constraints
-        self.model_parameters.kgri = self.model_parameters.kempt
-
-        # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
-
-        # Sample the simulation
-        G = G[0::self.yts]
-
-        # Compute and return the log likelihood
-        return -0.5 * np.sum(
-            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
+        max_res = 1e10
+        diff = np.clip((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn,
+                       -max_res, max_res)
+        return -0.5 * np.sum(diff * diff)
 
     def __log_likelihood_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
         """
@@ -1028,49 +998,98 @@ class T1DModelMultiMeal:
 
         # Set model parameters to current guess
         (self.model_parameters.Gb,
-         self.model_parameters.SG,
-         self.model_parameters.p2,
-         self.model_parameters.ka2,
-         self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:6]
+         self.model_parameters.SG_log,
+         self.model_parameters.p2_sqrt,
+         self.model_parameters.ka2_log,
+         self.model_parameters.delta_k_log,
+         self.model_parameters.kempt_log) = theta[0:6]
 
-        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
-        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
-        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
+        self.model_parameters.Gb = 70.0 + 110.0 * sigmoid(self.model_parameters.Gb)
+        self.model_parameters.SG = safe_exp(self.model_parameters.SG_log)
+        self.model_parameters.p2 = square(self.model_parameters.p2_sqrt)
+        self.model_parameters.ka2 = safe_exp(self.model_parameters.ka2_log)
+        self.model_parameters.kd = self.model_parameters.ka2 + safe_exp(self.model_parameters.delta_k_log)
+        self.model_parameters.kempt = safe_exp(self.model_parameters.kempt_log)
 
-        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
-        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
-        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
-        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
-        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
+        if self.pos_SI_B:
+            self.model_parameters.SI_B_log = theta[self.pos_SI_B]
+            self.model_parameters.SI_B = safe_exp(self.model_parameters.SI_B_log)
 
-        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
-        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
-        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
+        if self.pos_SI_L:
+            self.model_parameters.SI_L_log = theta[self.pos_SI_L]
+            self.model_parameters.SI_L = safe_exp(self.model_parameters.SI_L_log)
 
-        self.model_parameters.SI_B2 = theta[self.pos_SI_B2] if self.pos_SI_B2 else self.model_parameters.SI_B2
+        if self.pos_SI_D:
+            self.model_parameters.SI_D_log = theta[self.pos_SI_D]
+            self.model_parameters.SI_D = safe_exp(self.model_parameters.SI_D_log)
 
-        self.model_parameters.kabs_B2 = theta[self.pos_kabs_B2] if self.pos_kabs_B2 else self.model_parameters.kabs_B2
-        self.model_parameters.kabs_L2 = theta[self.pos_kabs_L2] if self.pos_kabs_L2 else self.model_parameters.kabs_L2
-        self.model_parameters.kabs_S2 = theta[self.pos_kabs_S2] if self.pos_kabs_S2 else self.model_parameters.kabs_S2
+        if self.pos_SI_B2:
+            self.model_parameters.SI_B2_log = theta[self.pos_SI_B2]
+            self.model_parameters.SI_B2 = safe_exp(self.model_parameters.SI_B2_log)
 
-        self.model_parameters.beta_B2 = theta[self.pos_beta_B2] if self.pos_beta_B2 else self.model_parameters.beta_B2
-        self.model_parameters.beta_L2 = theta[self.pos_beta_L2] if self.pos_beta_L2 else self.model_parameters.beta_L2
-        self.model_parameters.beta_S2 = theta[self.pos_beta_S2] if self.pos_beta_S2 else self.model_parameters.beta_S2
+        if self.pos_kabs_B:
+            self.model_parameters.kabs_B = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_B])
+
+        if self.pos_kabs_L:
+            self.model_parameters.kabs_L = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_L])
+
+        if self.pos_kabs_D:
+            self.model_parameters.kabs_D = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_D])
+
+        if self.pos_kabs_S:
+            self.model_parameters.kabs_S = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_S])
+
+        if self.pos_kabs_H:
+            self.model_parameters.kabs_H = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_H])
+
+        if self.pos_kabs_B2:
+            self.model_parameters.kabs_B2 = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_B2])
+
+        if self.pos_kabs_L2:
+            self.model_parameters.kabs_L2 = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_L2])
+
+        if self.pos_kabs_S2:
+            self.model_parameters.kabs_S2 = self.model_parameters.kempt * sigmoid(theta[self.pos_kabs_S2])
+
+        if self.pos_beta_B:
+            self.model_parameters.beta_B = 60.0 * sigmoid(theta[self.pos_beta_B])
+
+        if self.pos_beta_L:
+            self.model_parameters.beta_L = 60.0 * sigmoid(theta[self.pos_beta_L])
+
+        if self.pos_beta_D:
+            self.model_parameters.beta_D = 60.0 * sigmoid(theta[self.pos_beta_D])
+
+        if self.pos_beta_S:
+            self.model_parameters.beta_S = 60.0 * sigmoid(theta[self.pos_beta_S])
+
+        if self.pos_beta_B2:
+            self.model_parameters.beta_B2 = 60.0 * sigmoid(theta[self.pos_beta_B2])
+
+        if self.pos_beta_L2:
+            self.model_parameters.beta_L2 = 60.0 * sigmoid(theta[self.pos_beta_L2])
+
+        if self.pos_beta_S2:
+            self.model_parameters.beta_S2 = 60.0 * sigmoid(theta[self.pos_beta_S2])
 
         # Enforce constraints
         self.model_parameters.kgri = self.model_parameters.kempt
 
         # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
+        try:
+            G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
+        except Exception:
+            return -1e20
+        if np.any(np.isnan(G)) or np.any(np.isinf(G)):
+            return -1e20
 
         # Sample the simulation
         G = G[0::self.yts]
 
         # Compute and return the log likelihood
-        return -0.5 * np.sum(
-            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
+        max_res = 1e10
+        diff = np.clip((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn, -max_res, max_res)
+        return -0.5 * np.sum(diff * diff)
 
     def neg_log_posterior(self, theta: np.ndarray, rbg_data: ReplayBGData):
         res = - self.log_posterior(theta, rbg_data)
@@ -1174,135 +1193,3 @@ class T1DModelMultiMeal:
                                           self.pos_beta_S2, self.model_parameters.beta_S2,
                                           theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood_extended(theta, rbg_data)
-
-    def check_realization(self, theta: np.ndarray):
-        """
-        Function that checks if a copula extraction is valid or not depending on the prior constraints.
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The copula extraction of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the extraction is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_multi_meal(self.model_parameters.VG,
-                                    self.pos_SI_B, self.model_parameters.SI_B,
-                                    self.pos_SI_L, self.model_parameters.SI_L,
-                                    self.pos_SI_D, self.model_parameters.SI_D,
-                                    self.pos_kabs_B, self.model_parameters.kabs_B,
-                                    self.pos_kabs_L, self.model_parameters.kabs_L,
-                                    self.pos_kabs_D, self.model_parameters.kabs_D,
-                                    self.pos_kabs_S, self.model_parameters.kabs_S,
-                                    self.pos_kabs_H, self.model_parameters.kabs_H,
-                                    self.pos_beta_B, self.model_parameters.beta_B,
-                                    self.pos_beta_L, self.model_parameters.beta_L,
-                                    self.pos_beta_D, self.model_parameters.beta_D,
-                                    self.pos_beta_S, self.model_parameters.beta_S,
-                                    theta) != -np.inf
-
-    def check_realization_exercise(self, theta: np.ndarray):
-        """
-        Function that checks if a copula extraction is valid or not depending on the prior constraints (exercise model).
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The copula extraction of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the extraction is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_multi_meal_exercise(self.model_parameters.VG,
-                                             self.pos_SI_B, self.model_parameters.SI_B,
-                                             self.pos_SI_L, self.model_parameters.SI_L,
-                                             self.pos_SI_D, self.model_parameters.SI_D,
-                                             self.pos_kabs_B, self.model_parameters.kabs_B,
-                                             self.pos_kabs_L, self.model_parameters.kabs_L,
-                                             self.pos_kabs_D, self.model_parameters.kabs_D,
-                                             self.pos_kabs_S, self.model_parameters.kabs_S,
-                                             self.pos_kabs_H, self.model_parameters.kabs_H,
-                                             self.pos_beta_B, self.model_parameters.beta_B,
-                                             self.pos_beta_L, self.model_parameters.beta_L,
-                                             self.pos_beta_D, self.model_parameters.beta_D,
-                                             self.pos_beta_S, self.model_parameters.beta_S,
-                                             self.pos_e1, self.model_parameters.e1,
-                                             self.pos_e2, self.model_parameters.e2,
-                                             theta) != -np.inf
-
-    def check_realization_extended(self, theta: np.ndarray):
-        """
-        Function that checks if a copula extraction is valid or not depending on the prior constraints. (extended model)
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The copula extraction of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the extraction is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_multi_meal_extended(self.model_parameters.VG,
-                                             self.pos_SI_B, self.model_parameters.SI_B,
-                                             self.pos_SI_L, self.model_parameters.SI_L,
-                                             self.pos_SI_D, self.model_parameters.SI_D,
-                                             self.pos_kabs_B, self.model_parameters.kabs_B,
-                                             self.pos_kabs_L, self.model_parameters.kabs_L,
-                                             self.pos_kabs_D, self.model_parameters.kabs_D,
-                                             self.pos_kabs_S, self.model_parameters.kabs_S,
-                                             self.pos_kabs_H, self.model_parameters.kabs_H,
-                                             self.pos_beta_B, self.model_parameters.beta_B,
-                                             self.pos_beta_L, self.model_parameters.beta_L,
-                                             self.pos_beta_D, self.model_parameters.beta_D,
-                                             self.pos_beta_S, self.model_parameters.beta_S,
-                                             self.pos_SI_B2, self.model_parameters.SI_B2,
-                                             self.pos_kabs_B2, self.model_parameters.kabs_B2,
-                                             self.pos_kabs_L2, self.model_parameters.kabs_L2,
-                                             self.pos_kabs_S2, self.model_parameters.kabs_S2,
-                                             self.pos_beta_B2, self.model_parameters.beta_B2,
-                                             self.pos_beta_L2, self.model_parameters.beta_L2,
-                                             self.pos_beta_S2, self.model_parameters.beta_S2,
-                                             theta) != -np.inf

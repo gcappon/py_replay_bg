@@ -35,11 +35,21 @@ def test_replay_bg():
 
     print("Replaying " + save_name)
 
+    data.basal[:] = 0.03
+
     # Replay the twin with the same input data to get the initial conditions for the subsequent day
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,
                                 twinning_method='map',
                                 save_workspace=True,
                                 save_suffix='_replay_map')
+
+    replay_results_2 = rbg.replay(data=data, bw=bw, save_name=save_name,
+                                twinning_method='map',
+                                save_workspace=True,
+                                basal_source='dss',
+                                save_suffix='_replay_map')
+    a = replay_results_2['glucose']['median'] - replay_results['glucose']['median']
+    b = replay_results_2['insulin_basal']['realizations'][0] - replay_results['insulin_basal']['realizations'][0]
 
     # Visualize and analyze results
     Visualizer.plot_replay_results(replay_results, data=data)

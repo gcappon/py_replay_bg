@@ -23,9 +23,8 @@ def twin_single_meal(tsteps, x,
                                                    x[:, k - 1],
                                                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                                    r2, kempt, kd, ka2, ke, p2, SI, VI,
-                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k])
+                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k], 0)
     return x
-
 
 @njit(fastmath=True, cache=True)
 def twin_multi_meal(tsteps, x,
@@ -76,7 +75,7 @@ def twin_multi_meal_extended(tsteps, x,
 def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
                                      logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                      r2, kempt, kd, ka2, ke, p2, SI, VI, VG, Ipb, SG, Gb,
-                                     f, kabs, alpha, previous_Ra):
+                                     f, kabs, alpha, previous_Ra, forcing_Ra):
     """
     Internal function that simulates a step of the single-meal model using backward-euler method.
     """

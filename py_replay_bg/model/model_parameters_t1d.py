@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+from py_replay_bg.utils.stats import sigmoid
 
 class ModelParametersT1D:
     def __init__(self,
@@ -48,11 +48,13 @@ class ModelParametersT1D:
         # Glucose-insulin submodel parameters
         self.VG = 1.45  # dl/kg
         self.SG = 2.5e-2  # 1/min
+        self.SG_log = np.log(self.SG)
         self.Gb = 119.13  # mg/dL
         self.r1 = 1.4407  # unitless
         self.r2 = 0.8124  # unitless
         self.alpha = 7  # 1/min
         self.p2 = 0.012  # 1/min
+        self.p2_sqrt = np.sqrt(self.p2)
 
         if u2ss is None:
             self.u2ss = np.mean(data.basal) * 1000 / bw  # mU/(kg*min)
@@ -60,12 +62,14 @@ class ModelParametersT1D:
             self.u2ss = u2ss
 
         # Subcutaneous insulin absorption submodel parameters
-        self.VI = 0.126  # L/kg
+        self.VI = 0.135  # L/kg
         self.ke = 0.127  # 1/min
         self.kd = 0.026  # 1/min
         # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)
         # self.ka1 = 0.0
         self.ka2 = 0.014  # 1/min
+        self.ka2_log = np.log(self.ka2)
+        self.delta_k_log = np.log(self.kd - self.ka2)
         self.tau = 8  # min
         self.Ipb = self.u2ss / self.ke  # from eq. 5 steady-state
 
@@ -73,6 +77,7 @@ class ModelParametersT1D:
         # Oral glucose absorption submodel parameters
         self.kgri = 0.18  # = kmax % 1/min
         self.kempt = 0.18  # 1/min
+        self.kempt_log = np.log(self.kempt)
         self.f = 0.9  # dimensionless
 
         # Exercise submodel parameters
@@ -144,9 +149,13 @@ class ModelParametersT1DMultiMeal(ModelParametersT1D):
         self.SI_B = 10.35e-4 / self.VG  # mL/(uU*min)
         self.SI_L = 10.35e-4 / self.VG  # mL/(uU*min)
         self.SI_D = 10.35e-4 / self.VG  # mL/(uU*min)
+        self.SI_B_log = np.log(self.SI_B)
+        self.SI_L_log = np.log(self.SI_L)
+        self.SI_D_log = np.log(self.SI_D)
 
         if extended:
             self.SI_B2 = 10.35e-4 / self.VG  # mL/(uU*min)
+            self.SI_B2_log = np.log(self.SI_B2)
 
         # Oral glucose absorption submodel parameters
         self.kabs_B = 0.012  # 1/min
@@ -210,6 +219,7 @@ class ModelParametersT1DSingleMeal(ModelParametersT1D):
 
         # Glucose-insulin submodel parameters
         self.SI = 10.35e-4 / self.VG  # mL/(uU*min)
+        self.SI_log = np.log(self.SI)
 
         # Oral glucose absorption submodel parameters
         self.kabs = 0.012  # 1/min

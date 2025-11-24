@@ -1,3 +1,9 @@
+# This fixes circular imports for type checking
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from py_replay_bg.replay.custom_ra import CustomRaBase
+
 import numpy as np
 
 import os
@@ -11,7 +17,7 @@ import pandas as pd
 
 from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DSingleMeal
 
-from py_replay_bg.model.logpriors_t1d import log_prior_single_meal, log_prior_single_meal_exercise
+from py_replay_bg.model.logpriors_t1d import log_prior_single_meal
 
 from py_replay_bg.model.model_step_equations_t1d import twin_single_meal
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_single_meal
@@ -22,6 +28,7 @@ from py_replay_bg.environment import Environment
 from py_replay_bg.sensors import Sensors
 from py_replay_bg.dss import DSS
 
+from py_replay_bg.utils.stats import safe_exp, square, sigmoid
 
 class T1DModelSingleMeal:
     """
@@ -138,18 +145,18 @@ class T1DModelSingleMeal:
 
         # initial guess for unknown parameter
         self.start_guess = np.array(
-            [self.model_parameters.Gb, self.model_parameters.SG, self.model_parameters.p2,
-             self.model_parameters.ka2, self.model_parameters.kd, self.model_parameters.kempt])
+            [self.model_parameters.Gb, self.model_parameters.SG_log, self.model_parameters.p2_sqrt,
+             self.model_parameters.ka2_log, self.model_parameters.delta_k_log, self.model_parameters.kempt_log])
 
         # initial guess for the SD of each parameter
-        self.start_guess_sigma = np.array([1, 5e-4, 1e-3, 1e-3, 1e-3, 1e-3])
+        self.start_guess_sigma = np.array([1, 5e-2, 5e-3, 5e-2, 1e-1, 1e-3])
 
         if is_twin:
             # Attach SI
             self.pos_SI = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'SI')
-            self.start_guess = np.append(self.start_guess, self.model_parameters.SI)
-            self.start_guess_sigma = np.append(self.start_guess_sigma, 1e-6)
+            self.start_guess = np.append(self.start_guess, self.model_parameters.SI_log)
+            self.start_guess_sigma = np.append(self.start_guess_sigma, 5e-2)
             # Attach kabs
             self.pos_kabs = self.start_guess.shape[0]
             self.unknown_parameters = np.append(self.unknown_parameters, 'kabs')
@@ -216,13 +223,17 @@ class T1DModelSingleMeal:
         if self.x0 is not None:
             self.x0[2:5] = [0, 0, 0]
 
+        # If single-meal, no need to use extended mode
+        self.extended = False
+
     def simulate(self,
                  rbg_data: ReplayBGData,
                  modality: str,
                  environment: Environment | None,
                  dss: DSS | None,
-                 sensors: Sensors = None
-                 ) -> np.ndarray | tuple[
+                 sensors: Sensors = None,
+                 forcing_Ra: CustomRaBase | None = None
+    ) -> np.ndarray | tuple[
         np.ndarray,
         np.ndarray,
         np.ndarray,
@@ -250,6 +261,8 @@ class T1DModelSingleMeal:
             An object that represents the hyperparameters of the dss. Unused during twinning.
         sensors: Sensors
             An object that represents the sensors used during simulation.
+        forcing_Ra: ForcingRaBase
+            An object that represents the forcing Ra input to be used during simulation. Default is None.
 
         Returns
         -------
@@ -473,6 +486,11 @@ class T1DModelSingleMeal:
                     # Update the correction_bolus event vectors
                     correction_bolus[k] = correction_bolus[k] + cb
 
+                if forcing_Ra is not None:
+                    current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
+                else:
+                    current_forcing_Ra = 0
+
                 # Integration step
                 self.x[:, k] = model_step_equations_single_meal(bolus_delayed[k] + basal_delayed[k],
                                                                 meal_delayed[k],
@@ -483,7 +501,7 @@ class T1DModelSingleMeal:
                                                                 mp.kempt,
                                                                 mp.kd,
                                                                 mp.ka2,
-                                                                mp.kd,
+                                                                mp.ke,
                                                                 mp.p2,
                                                                 mp.SI,
                                                                 mp.VI,
@@ -494,7 +512,7 @@ class T1DModelSingleMeal:
                                                                 mp.f,
                                                                 mp.kabs,
                                                                 mp.alpha,
-                                                                self.previous_Ra[k])
+                                                                self.previous_Ra[k], current_forcing_Ra)
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -508,6 +526,10 @@ class T1DModelSingleMeal:
                                                                             t=(k - sensors.cgm.connected_at) / (
                                                                                         24 * 60),
                                                                             past_ig=self.x[self.nx - 1, :k], )
+
+            # Add the list of events that generated the forcing Ra to the meal vector for logging purposes
+            if forcing_Ra is not None:
+                meal = np.array([m + f for m, f in zip(meal, forcing_Ra.get_events())])
 
             # TODO: add vo2
             return (self.x[0, :].copy(),
@@ -588,14 +610,24 @@ class T1DModelSingleMeal:
 
         # Set model parameters to current guess
         (self.model_parameters.Gb,
-         self.model_parameters.SG,
-         self.model_parameters.p2,
-         self.model_parameters.ka2,
-         self.model_parameters.kd,
-         self.model_parameters.kempt,
-         self.model_parameters.SI,
+         self.model_parameters.SG_log,
+         self.model_parameters.p2_sqrt,
+         self.model_parameters.ka2_log,
+         self.model_parameters.delta_k_log,
+         self.model_parameters.kempt_log,
+         self.model_parameters.SI_log,
          self.model_parameters.kabs,
          self.model_parameters.beta) = theta
+
+        self.model_parameters.Gb = 70.0 + 110.0 * sigmoid(self.model_parameters.Gb)
+        self.model_parameters.SG = safe_exp(self.model_parameters.SG_log)
+        self.model_parameters.p2 = square(self.model_parameters.p2_sqrt)
+        self.model_parameters.ka2 = safe_exp(self.model_parameters.ka2_log)
+        self.model_parameters.kd = self.model_parameters.ka2 + safe_exp(self.model_parameters.delta_k_log)
+        self.model_parameters.kempt = safe_exp(self.model_parameters.kempt_log)
+        self.model_parameters.SI = safe_exp(self.model_parameters.SI_log)
+        self.model_parameters.kabs = self.model_parameters.kempt * sigmoid(self.model_parameters.kabs)
+        self.model_parameters.beta = 60.0 * sigmoid(self.model_parameters.beta)
 
         # Enforce constraints
         self.model_parameters.kgri = self.model_parameters.kempt
@@ -607,8 +639,10 @@ class T1DModelSingleMeal:
         G = G[0::self.yts]
 
         # Compute and return the log likelihood
-        return -0.5 * np.sum(
-            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
+        max_res = 1e10
+        diff = np.clip((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn,
+                       -max_res, max_res)
+        return -0.5 * np.sum(diff * diff)
 
     def neg_log_posterior(
             self,
@@ -678,65 +712,3 @@ class T1DModelSingleMeal:
         """
         p = log_prior_single_meal(self.model_parameters.VG, theta)
         return -np.inf if p == -np.inf else p + self.__log_likelihood(theta, rbg_data)
-
-    def check_realization(
-            self,
-            theta: np.ndarray
-    ):
-        """
-        Function that checks if a realization is valid or not depending on the prior constraints.
-
-        Parameters
-        ----------
-        theta: np.ndarray
-            A realization of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the realization is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_single_meal(self.model_parameters.VG, theta) != -np.inf
-
-    def check_realization_exercise(
-            self,
-            theta: np.ndarray
-    ):
-        """
-        Function that checks if a realization is valid or not depending on the prior constraints (exercise model).
-
-        Parameters
-        ----------
-        theta: np.ndarray
-            A realization of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the realization is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_single_meal_exercise(self.model_parameters.VG, theta) != -np.inf

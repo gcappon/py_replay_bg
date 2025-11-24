@@ -259,7 +259,10 @@ class ReplayBGData:
                     data['basal'][time] * model.model_parameters.to_mgkg  # mU/(kg*min)
 
         if self.basal_source == 'u2ss':
-            self.basal[:] = model.model_parameters['u2ss']
+            self.basal[:] = model.model_parameters.u2ss
+
+        if self.basal_source == 'dss':
+            self.basal[0] = model.model_parameters.u2ss
 
     def __meal_setup(self,
                      data: pd.DataFrame,

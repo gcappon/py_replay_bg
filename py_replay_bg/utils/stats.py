@@ -1,6 +1,49 @@
 import math
 import numpy as np
 from numba import njit
+from math import lgamma, pi, log
+
+
+@njit(fastmath=True)
+def sigmoid(x: float) -> float:
+    return 1.0 / (1.0 + safe_exp(-x))
+
+
+@njit(fastmath=True, cache=True)
+def logit(x: float) -> float:
+    return np.log(x / (1 - x))
+
+
+@njit(fastmath=True)
+def my_log(x: float) -> float:
+    return np.log(x)
+
+
+@njit(fastmath=True)
+def my_clip(x, lower, upper):
+    xx = float(x)    # force scalar
+    if xx < lower:
+        return lower
+    elif xx > upper:
+        return upper
+    return xx
+
+@njit(fastmath=True)
+def my_exp(x: float) -> float:
+    return np.exp(x)
+
+@njit(fastmath=True)
+def square(x: float) -> float:
+    return x*x
+
+
+@njit(fastmath=True)
+def safe_exp(x):
+    if x > 60.0:
+        x = 60.0
+    elif x < -60.0:
+        x = -60.0
+    return math.exp(x)
 
 
 @njit(fastmath=True)
@@ -68,7 +111,8 @@ def log_norm(x, mu, sigma):
     --------
     None
     """
-    return np.log(1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- 0.5 * ((x - mu) / sigma) ** 2))
+    z = (x - mu) / sigma
+    return -0.5 * z * z - np.log(sigma) - 0.5 * np.log(2.0 * np.pi)
 
 
 @njit(fastmath=True)
@@ -102,4 +146,12 @@ def log_gamma(x, alpha, beta):
     --------
     None
     """
-    return -np.inf if x < 0 else np.log((beta ** alpha * x ** (alpha - 1) * math.exp(-beta * x)) / math.gamma(alpha))
+    if x <= 0:
+        return -np.inf
+
+    return (
+            alpha * log(beta)
+            + (alpha - 1) * log(x)
+            - beta * x
+            - lgamma(alpha)
+    )

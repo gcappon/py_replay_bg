@@ -20,6 +20,8 @@ from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
 from py_replay_bg.environment import Environment
 
+from py_replay_bg.model.logpriors_t1d import sample_from_prior_physical, physical_to_theta, theta_to_physical
+
 
 class MCMC:
     """
@@ -161,9 +163,12 @@ class MCMC:
         if model.extended and model.x0 is not None:
                 model.x0 = model.x0[:17] + [0] * 9 + model.x0[17:]
 
-        # Set the initial positions of the walkers.
-        start = sg + model.start_guess_sigma * np.random.randn(n_walkers, n_dim)
-        start[start < 0] = 0
+        # Set the initial positions of the walkers by sampling for the re-parametrized prior
+        rng = np.random.default_rng(environment.seed)
+        start = [sg]
+        for i in range(n_walkers - 1):
+            params = sample_from_prior_physical(model.model_parameters.VG, rng)
+            start.append(physical_to_theta(params, model))
 
         # Initialize the sampler
         pool = None
@@ -222,6 +227,7 @@ class MCMC:
             print('Extracting samples from posterior - ' + str(to_sample) + ' realizations')
 
         to_be_sampled = [True] * to_sample
+        # TODO: future improvement -> technically this is done just once.
         while any(to_be_sampled):
 
             # Get the idxs of the missing samples
@@ -234,18 +240,16 @@ class MCMC:
             # For each sample...
             for i in range(0, len(tbs)):
 
-                # ...check if it is ok. If so...
-                if model.check_realization(samples[i]):
+                # Convert the samples to the actual values
+                physical = theta_to_physical(samples[i], model)
 
-                    # ...flag it and fill the final vector
-                    to_be_sampled[tbs[i]] = False
-                    for up in range(len(model.unknown_parameters)):
-                        draws[model.unknown_parameters[up]]['samples_'+str(to_sample)][tbs[i]] = samples[i, up]
+                # Fill the final vector
+                to_be_sampled[tbs[i]] = False
+                for up in range(len(model.unknown_parameters)):
+                    draws[model.unknown_parameters[up]]['samples_'+str(to_sample)][tbs[i]] = physical[model.unknown_parameters[up]]
 
         # Subsample realizations
         draws = self.__subsample(draws=draws, rbg_data=rbg_data, environment=environment, model=model)
-
-        # TODO: Check physiological plausibility
 
         # Clean-up draws from "extended" parameters
         if model.extended:
@@ -460,13 +464,14 @@ class MCMC:
 
 def plot_progress(sampler, environment, model, rbg_data):
     last_sample = sampler.get_chain(flat=True)[-1]
+    last_sample_physical = theta_to_physical(last_sample, model)
 
     model = copy.copy(model)
     environment = copy.copy(environment)
 
     # set the model parameters
     for p in range(len(model.unknown_parameters)):
-        setattr(model.model_parameters, model.unknown_parameters[p], last_sample[p])
+        setattr(model.model_parameters, model.unknown_parameters[p], last_sample_physical[model.unknown_parameters[p]])
     model.model_parameters.kgri = model.model_parameters.kempt
 
     g = model.simulate(rbg_data=rbg_data, modality='twinning', environment=environment, dss=None)
