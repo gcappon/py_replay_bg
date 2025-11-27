@@ -23,7 +23,7 @@ def twin_single_meal(tsteps, x,
                                                    x[:, k - 1],
                                                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                                    r2, kempt, kd, ka2, ke, p2, SI, VI,
-                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k])
+                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k], 0)
     return x
 
 
@@ -76,7 +76,7 @@ def twin_multi_meal_extended(tsteps, x,
 def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
                                      logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                      r2, kempt, kd, ka2, ke, p2, SI, VI, VG, Ipb, SG, Gb,
-                                     f, kabs, alpha, previous_Ra):
+                                     f, kabs, alpha, previous_Ra, forcing_Ra):
     """
     Internal function that simulates a step of the single-meal model using backward-euler method.
     """
@@ -105,7 +105,7 @@ def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
     xk[7] = (xkm1[7] + ka2 * xk[6]) / (1 + ke)
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
-    xk[0] = (xkm1[0] + SG * Gb + f * kabs * xk[4] / VG + previous_Ra / VG) / (1 + SG + risk * xk[1])
+    xk[0] = (xkm1[0] + SG * Gb + f * (kabs * xk[4] + previous_Ra + forcing_Ra) / VG) / (1 + SG + risk * xk[1])
     xk[8] = (alpha * xkm1[8] + xk[0]) / (1 + alpha)
 
     return xk
@@ -171,7 +171,7 @@ def model_step_equations_multi_meal(I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_o
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + risk * xk[1])
+        16] + previous_Ra + forcing_Ra) / VG) / (1 + SG + risk * xk[1])
     xk[20] = (alpha * xkm1[20] + xk[0]) / (1 + alpha)
 
     return xk
@@ -249,7 +249,7 @@ def model_step_equations_multi_meal_extended(I, cho_b, cho_l, cho_d, cho_s, cho_
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[28] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
             kabs_B * xk[4] + kabs_L * xk[7] + kabs_D * xk[10] + kabs_S * xk[13] + kabs_H * xk[
-        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25]) / VG + previous_Ra / VG + forcing_Ra / VG) / (1 + SG + risk * xk[1])
+        16] + kabs_B2 * xk[19] + kabs_L2 * xk[22] + kabs_S2 * xk[25] + previous_Ra + forcing_Ra) / VG) / (1 + SG + risk * xk[1])
     xk[29] = (alpha * xkm1[29] + xk[0]) / (1 + alpha)
 
     return xk

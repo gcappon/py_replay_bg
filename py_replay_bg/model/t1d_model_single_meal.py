@@ -1,3 +1,10 @@
+# This fixes circular imports for type checking
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from py_replay_bg.replay.custom_ra import CustomRaBase
+
 import numpy as np
 
 import os
@@ -11,7 +18,7 @@ import pandas as pd
 
 from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DSingleMeal
 
-from py_replay_bg.model.logpriors_t1d import log_prior_single_meal, log_prior_single_meal_exercise
+from py_replay_bg.model.logpriors_t1d import log_prior_single_meal
 
 from py_replay_bg.model.model_step_equations_t1d import twin_single_meal
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_single_meal
@@ -216,12 +223,16 @@ class T1DModelSingleMeal:
         if self.x0 is not None:
             self.x0[2:5] = [0, 0, 0]
 
+        # If single-meal, extended mode is not defined
+        self.extended = False
+
     def simulate(self,
                  rbg_data: ReplayBGData,
                  modality: str,
                  environment: Environment | None,
                  dss: DSS | None,
-                 sensors: Sensors = None
+                 sensors: Sensors = None,
+                 forcing_Ra: CustomRaBase | None = None
                  ) -> np.ndarray | tuple[
         np.ndarray,
         np.ndarray,
@@ -250,6 +261,8 @@ class T1DModelSingleMeal:
             An object that represents the hyperparameters of the dss. Unused during twinning.
         sensors: Sensors
             An object that represents the sensors used during simulation.
+        forcing_Ra: ForcingRaBase
+            An object that represents the forcing Ra input to be used during simulation. Default is None.
 
         Returns
         -------
@@ -473,6 +486,11 @@ class T1DModelSingleMeal:
                     # Update the correction_bolus event vectors
                     correction_bolus[k] = correction_bolus[k] + cb
 
+                if forcing_Ra is not None:
+                    current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
+                else:
+                    current_forcing_Ra = 0
+
                 # Integration step
                 self.x[:, k] = model_step_equations_single_meal(bolus_delayed[k] + basal_delayed[k],
                                                                 meal_delayed[k],
@@ -483,7 +501,7 @@ class T1DModelSingleMeal:
                                                                 mp.kempt,
                                                                 mp.kd,
                                                                 mp.ka2,
-                                                                mp.kd,
+                                                                mp.ke,
                                                                 mp.p2,
                                                                 mp.SI,
                                                                 mp.VI,
@@ -494,7 +512,7 @@ class T1DModelSingleMeal:
                                                                 mp.f,
                                                                 mp.kabs,
                                                                 mp.alpha,
-                                                                self.previous_Ra[k])
+                                                                self.previous_Ra[k], current_forcing_Ra)
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -508,6 +526,9 @@ class T1DModelSingleMeal:
                                                                             t=(k - sensors.cgm.connected_at) / (
                                                                                         24 * 60),
                                                                             past_ig=self.x[self.nx - 1, :k], )
+
+            if forcing_Ra is not None:
+                meal = np.array([m + f for m, f in zip(meal, forcing_Ra.get_events())])
 
             # TODO: add vo2
             return (self.x[0, :].copy(),

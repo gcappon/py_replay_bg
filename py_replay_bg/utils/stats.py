@@ -103,3 +103,17 @@ def log_gamma(x, alpha, beta):
     None
     """
     return -np.inf if x < 0 else np.log((beta ** alpha * x ** (alpha - 1) * math.exp(-beta * x)) / math.gamma(alpha))
+
+
+@njit(fastmath=True)
+def sigmoid(x: float) -> float:
+    return 1.0 / (1.0 + safe_exp(-x))
+
+
+@njit(fastmath=True)
+def safe_exp(x):
+    if x > 60.0:
+        x = 60.0
+    elif x < -60.0:
+        x = -60.0
+    return math.exp(x)

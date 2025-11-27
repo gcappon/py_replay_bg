@@ -18,6 +18,8 @@ from py_replay_bg.data import ReplayBGData
 from py_replay_bg.model.t1d_model_single_meal import T1DModelSingleMeal
 from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
+from py_replay_bg.model.logpriors_t1d import sample_from_prior, physical_to_theta
+
 from py_replay_bg.environment import Environment
 
 
@@ -162,8 +164,12 @@ class MCMC:
                 model.x0 = model.x0[:17] + [0] * 9 + model.x0[17:]
 
         # Set the initial positions of the walkers.
-        start = sg + model.start_guess_sigma * np.random.randn(n_walkers, n_dim)
-        start[start < 0] = 0
+        # Set the initial positions of the walkers by sampling from the prior
+        rng = np.random.default_rng(environment.seed)
+        start = [sg]
+        for i in range(n_walkers - 1):
+            params = sample_from_prior(model.model_parameters.VG, rng)
+            start.append(physical_to_theta(params, model))
 
         # Initialize the sampler
         pool = None

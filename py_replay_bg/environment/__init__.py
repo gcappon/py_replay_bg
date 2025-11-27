@@ -37,7 +37,7 @@ class Environment:
                  save_folder: str = '',
                  yts: int = 5,
                  exercise: bool = False,
-                 seed: int = 1,
+                 seed: int = 42,
                  plot_mode: bool = True,
                  verbose: bool = True
                  ):

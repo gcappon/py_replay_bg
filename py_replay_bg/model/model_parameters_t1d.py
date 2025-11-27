@@ -60,7 +60,7 @@ class ModelParametersT1D:
             self.u2ss = u2ss
 
         # Subcutaneous insulin absorption submodel parameters
-        self.VI = 0.126  # L/kg
+        self.VI = 0.135  # L/kg
         self.ke = 0.127  # 1/min
         self.kd = 0.026  # 1/min
         # model_parameters['ka1'] = 0.0034  # 1/min (virtually 0 in 77% of the cases)

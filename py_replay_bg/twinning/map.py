@@ -15,6 +15,8 @@ from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
 from py_replay_bg.environment import Environment
 
+from py_replay_bg.model.logpriors_t1d import sample_from_prior, physical_to_theta
+
 # Suppress all RuntimeWarnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -73,13 +75,13 @@ class MAP:
         """
 
         # Number of times to re-run the procedure
-        self.n_rerun = 64
+        self.n_rerun = 128
 
         # Maximum number of iterations
         self.max_iter = max_iter
 
         # Maximum number of function evaluations
-        self.max_fev = 1000000
+        self.max_fev = 100000
 
         # Parallelization options
         self.parallelize = parallelize
@@ -131,7 +133,7 @@ class MAP:
 
         # If this is being used to find the start_guess, do /4 less reruns
         if for_start_guess:
-            self.n_rerun = int(self.n_rerun/16)
+            self.n_rerun = 16
 
         # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)
@@ -145,9 +147,12 @@ class MAP:
         if model.extended and model.x0 is not None:
                 model.x0 = model.x0[:17] + [0] * 9 + model.x0[17:]
 
-        # Set the initial positions of the walkers.
-        start = sg + model.start_guess_sigma * np.random.randn(self.n_rerun, n_dim)
-        start[start < 0] = 0
+        # Set the initial positions of the walkers by sampling from the prior
+        rng = np.random.default_rng(environment.seed)
+        start = [sg]
+        for i in range(self.n_rerun - 1):
+            params = sample_from_prior(model.model_parameters.VG, rng)
+            start.append(physical_to_theta(params, model))
 
         # Set the pooler
         pool = None
@@ -203,6 +208,8 @@ class MAP:
         draws = dict()
         for up in range(n_dim):
             draws[model.unknown_parameters[up]] = results[best]['x'][up]
+        # If reparametrized, substitue with the following
+        # draws = theta_to_physical(results[best]['x'], model)
 
         # If twin is being used just to find the start guess, just return draws without saving
         if for_start_guess:

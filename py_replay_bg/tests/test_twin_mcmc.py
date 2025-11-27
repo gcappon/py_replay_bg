@@ -20,7 +20,7 @@ def test_replay_bg():
     # Set other parameters for twinning
     blueprint = 'multi-meal'
     save_folder = os.path.join(os.path.abspath(''))
-    parallelize = True
+    parallelize = False
 
     # load patient_info
     patient_info = load_patient_info()

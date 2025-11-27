@@ -16,8 +16,7 @@ import copy
 
 from py_replay_bg.model.model_parameters_t1d import ModelParametersT1DMultiMeal
 
-from py_replay_bg.model.logpriors_t1d import (log_prior_multi_meal, log_prior_multi_meal_exercise,
-                                              log_prior_multi_meal_extended)
+from py_replay_bg.model.logpriors_t1d import log_prior_multi_meal, log_prior_multi_meal_extended
 
 from py_replay_bg.model.model_step_equations_t1d import twin_multi_meal, twin_multi_meal_extended
 from py_replay_bg.model.model_step_equations_t1d import model_step_equations_multi_meal
@@ -901,70 +900,8 @@ class T1DModelMultiMeal:
          self.model_parameters.kd,
          self.model_parameters.kempt) = theta[0:6]
 
-        self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
-        self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
-        self.model_parameters.SI_D = theta[self.pos_SI_D] if self.pos_SI_D else self.model_parameters.SI_D
-
-        self.model_parameters.kabs_B = theta[self.pos_kabs_B] if self.pos_kabs_B else self.model_parameters.kabs_B
-        self.model_parameters.kabs_L = theta[self.pos_kabs_L] if self.pos_kabs_L else self.model_parameters.kabs_L
-        self.model_parameters.kabs_D = theta[self.pos_kabs_D] if self.pos_kabs_D else self.model_parameters.kabs_D
-        self.model_parameters.kabs_S = theta[self.pos_kabs_S] if self.pos_kabs_S else self.model_parameters.kabs_S
-        self.model_parameters.kabs_H = theta[self.pos_kabs_H] if self.pos_kabs_H else self.model_parameters.kabs_H
-
-        self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
-        self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
-        self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
-
-        # Enforce constraints
-        self.model_parameters.kgri = self.model_parameters.kempt
-
-        # Simulate the model
-        G = self.simulate(rbg_data=rbg_data, modality='twinning', environment=None, dss=None)
-
-        # Sample the simulation
-        G = G[0::self.yts]
-
-        # Compute and return the log likelihood
-        return -0.5 * np.sum(
-            ((G[rbg_data.glucose_idxs] - rbg_data.glucose[rbg_data.glucose_idxs]) / self.model_parameters.SDn) ** 2)
-
-    def __log_likelihood_exercise(self, theta: np.ndarray, rbg_data: ReplayBGData):
-        """
-        Internal function that computes the log likelihood of unknown parameters.
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The current guess of unknown model parameters.
-        rbg_data : ReplayBGData
-            The data to be used by ReplayBG during simulation.
-
-        Returns
-        -------
-        log_likelihood: float
-            The value of the log likelihood of current unknown model parameters guess.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-
-        # Set model parameters to current guess
-        (self.model_parameters.Gb,
-         self.model_parameters.SG,
-         self.model_parameters.p2,
-         self.model_parameters.ka2,
-         self.model_parameters.kd,
-         self.model_parameters.kempt) = theta[0:6]
+        if self.model_parameters.beta_S < 0:
+            print("BETA < 0 - LL")
 
         self.model_parameters.SI_B = theta[self.pos_SI_B] if self.pos_SI_B else self.model_parameters.SI_B
         self.model_parameters.SI_L = theta[self.pos_SI_L] if self.pos_SI_L else self.model_parameters.SI_L
@@ -979,10 +916,8 @@ class T1DModelMultiMeal:
         self.model_parameters.beta_B = theta[self.pos_beta_B] if self.pos_beta_B else self.model_parameters.beta_B
         self.model_parameters.beta_L = theta[self.pos_beta_L] if self.pos_beta_L else self.model_parameters.beta_L
         self.model_parameters.beta_D = theta[self.pos_beta_D] if self.pos_beta_D else self.model_parameters.beta_D
-        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
 
-        self.model_parameters.e1 = theta[self.pos_e1] if self.pos_e1 else self.model_parameters.e1
-        self.model_parameters.e2 = theta[self.pos_e2] if self.pos_e2 else self.model_parameters.e2
+        self.model_parameters.beta_S = theta[self.pos_beta_S] if self.pos_beta_S else self.model_parameters.beta_S
 
         # Enforce constraints
         self.model_parameters.kgri = self.model_parameters.kempt
@@ -1122,7 +1057,10 @@ class T1DModelMultiMeal:
                                  self.pos_beta_D, self.model_parameters.beta_D,
                                  self.pos_beta_S, self.model_parameters.beta_S,
                                  theta)
-        return -np.inf if p == -np.inf else p + self.__log_likelihood(theta, rbg_data)
+
+        if p == -np.inf:
+            return -np.inf
+        return p + self.__log_likelihood(theta, rbg_data)
 
     def log_posterior_extended(self, theta: np.ndarray, rbg_data: ReplayBGData):
         """
@@ -1173,7 +1111,9 @@ class T1DModelMultiMeal:
                                           self.pos_beta_L2, self.model_parameters.beta_L2,
                                           self.pos_beta_S2, self.model_parameters.beta_S2,
                                           theta)
-        return -np.inf if p == -np.inf else p + self.__log_likelihood_extended(theta, rbg_data)
+        if p == -np.inf:
+            return -np.inf
+        return p + self.__log_likelihood_extended(theta, rbg_data)
 
     def check_realization(self, theta: np.ndarray):
         """
@@ -1215,49 +1155,6 @@ class T1DModelMultiMeal:
                                     self.pos_beta_D, self.model_parameters.beta_D,
                                     self.pos_beta_S, self.model_parameters.beta_S,
                                     theta) != -np.inf
-
-    def check_realization_exercise(self, theta: np.ndarray):
-        """
-        Function that checks if a copula extraction is valid or not depending on the prior constraints (exercise model).
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The copula extraction of unknown model parameters.
-
-        Returns
-        -------
-        is_ok: bool
-            The flag indicating if the extraction is ok or not.
-
-        Raises
-        ------
-        None
-
-        See Also
-        --------
-        None
-
-        Examples
-        --------
-        None
-        """
-        return log_prior_multi_meal_exercise(self.model_parameters.VG,
-                                             self.pos_SI_B, self.model_parameters.SI_B,
-                                             self.pos_SI_L, self.model_parameters.SI_L,
-                                             self.pos_SI_D, self.model_parameters.SI_D,
-                                             self.pos_kabs_B, self.model_parameters.kabs_B,
-                                             self.pos_kabs_L, self.model_parameters.kabs_L,
-                                             self.pos_kabs_D, self.model_parameters.kabs_D,
-                                             self.pos_kabs_S, self.model_parameters.kabs_S,
-                                             self.pos_kabs_H, self.model_parameters.kabs_H,
-                                             self.pos_beta_B, self.model_parameters.beta_B,
-                                             self.pos_beta_L, self.model_parameters.beta_L,
-                                             self.pos_beta_D, self.model_parameters.beta_D,
-                                             self.pos_beta_S, self.model_parameters.beta_S,
-                                             self.pos_e1, self.model_parameters.e1,
-                                             self.pos_e2, self.model_parameters.e2,
-                                             theta) != -np.inf
 
     def check_realization_extended(self, theta: np.ndarray):
         """
