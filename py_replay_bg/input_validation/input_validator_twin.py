@@ -37,6 +37,8 @@ class InputValidatorTwin:
 
     n_steps: int
         Number of steps to use for the main chain. This is ignored if modality is 'replay'.
+    n_walkers: int
+        Number of walkers to use during the MCMC procedure. This is ignored if modality is 'replay'.
     save_chains: bool, optional, default : False
         A flag that specifies whether to save the resulting mcmc chains and copula samplers.
 
@@ -64,6 +66,7 @@ class InputValidatorTwin:
                  extended: bool,
                  find_start_guess_first: bool,
                  n_steps: int,
+                 n_walkers: int,
                  save_chains: bool,
                  u2ss: float | None,
                  x0: np.ndarray | None,
@@ -80,6 +83,7 @@ class InputValidatorTwin:
         self.extended = extended
         self.find_start_guess_first = find_start_guess_first
         self.n_steps = n_steps
+        self.n_walkers = n_walkers
         self.save_chains = save_chains
         self.u2ss = u2ss
         self.x0 = x0
@@ -115,6 +119,9 @@ class InputValidatorTwin:
 
         # Validate the 'n_steps' input
         NStepsValidator(n_steps=self.n_steps).validate()
+        
+        # Validate the 'n_walkers' input
+        NWalkersValidator(n_walkers=self.n_walkers).validate()
 
         # Validate the 'u2ss' input
         U2SSValidator(u2ss=self.u2ss).validate()
