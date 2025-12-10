@@ -42,6 +42,8 @@ class MCMC:
         Whether to parallelize the twinning procedure.
     n_processes: int
         Number of parallel processes to run.
+    n_walkers: int
+        Number of walkers to use during the MCMC procedure.
 
     Methods
     -------
@@ -55,7 +57,8 @@ class MCMC:
                  callback_ncheck: int = 1000,
                  n_burn_in: int = 10000,
                  parallelize: bool = True,
-                 n_processes: None | int = None
+                 n_processes: None | int = None,
+                 n_walkers: int = 50
                  ):
         """
         Constructs all the necessary attributes for the MCMC object.
@@ -74,6 +77,8 @@ class MCMC:
             Whether to parallelize the twinning procedure.
         n_processes: int
             Number of parallel processes to run.
+        n_walkers: int
+            Number of walkers to use during the MCMC procedure.
 
         Returns
         -------
@@ -92,6 +97,9 @@ class MCMC:
         None
         """
 
+        # Number of walkers
+        self.n_walkers = n_walkers
+        
         # Number of steps to use for the main chain
         self.n_steps = n_steps
 
@@ -151,8 +159,8 @@ class MCMC:
         # Number of unknown parameters to twin
         n_dim = len(model.unknown_parameters)
 
-        # Number of walkers to use. It should be at least twice the number of dimensions (here 50 times).
-        n_walkers = 50 * n_dim
+        # Number of walkers to use. It should be at least twice the number of dimensions.
+        n_walkers = self.n_walkers * n_dim
 
         if start_guess is None:
             sg = model.start_guess
