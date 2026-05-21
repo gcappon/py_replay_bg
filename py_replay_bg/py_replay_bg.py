@@ -123,7 +123,7 @@ class ReplayBG:
     def twin(self, data: pd.DataFrame, bw: float, save_name: str,
              twinning_method: str = 'mcmc',
              extended: bool = False, find_start_guess_first: bool = False,
-             n_steps: int = 50000, save_chains: bool = False,
+             n_steps: int = 50000, n_walkers: int = 50, save_chains: bool = False,
              u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
              parallelize: bool = False, n_processes: int | None = None,
              ) -> None:
@@ -189,6 +189,7 @@ class ReplayBG:
             save_name=save_name,
             twinning_method=twinning_method,
             n_steps=n_steps,
+            n_walkers=n_walkers,
             save_chains=save_chains,
             u2ss=u2ss,
             x0=x0,

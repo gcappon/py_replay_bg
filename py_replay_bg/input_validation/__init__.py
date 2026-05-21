@@ -395,6 +395,19 @@ class NStepsValidator:
     def validate(self):
         if not isinstance(self.n_steps, int):
             raise Exception("'n_steps' input must be an integer.'")
+        
+
+class NWalkersValidator:
+    """
+    Class for validating the 'n_walkers' input parameter of ReplayBG.
+    """
+
+    def __init__(self, n_walkers):
+        self.n_walkers = n_walkers
+
+    def validate(self):
+        if not isinstance(self.n_walkers, int):
+            raise Exception("'n_walkers' input must be an integer.'")
 
 
 class ParallelizeValidator:
