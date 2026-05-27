@@ -158,6 +158,7 @@ class Visualizer:
         bolus_events = np.sum(replay_results['insulin_bolus']['realizations'], axis=0) / replay_results['insulin_bolus']['realizations'].shape[0]
         cb_events = np.sum(replay_results['correction_bolus']['realizations'], axis=0) / replay_results['correction_bolus']['realizations'].shape[0]
         basal_rate = np.sum(replay_results['insulin_basal']['realizations'], axis=0) / replay_results['insulin_basal']['realizations'].shape[0]
+        forcing_ip = np.sum(replay_results['forcing_ip']['realizations'], axis=0) / replay_results['forcing_ip']['realizations'].shape[0]
 
         markerline, stemlines, baseline = ax[2].stem(t, bolus_events, basefmt='k:',
                                                      label='Bolus insulin replay (Mean) [U/min]')
@@ -170,6 +171,8 @@ class Visualizer:
         plt.setp(markerline, 'color', (51.0 / 255, 102.0 / 255, 0.0 / 255))
 
         ax[2].plot(t, basal_rate * 60, color='black', linewidth=2, label='Basal insulin replay (Mean) [U/h]')
+
+        ax[2].plot(t, forcing_ip, color='grey', linewidth=2, label='Forcing Ip [U/h]')
 
         ax[2].grid()
         ax[2].legend()

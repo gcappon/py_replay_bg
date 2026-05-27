@@ -205,6 +205,9 @@ class Replayer:
         meal_announcement = dict()
         meal_announcement['realizations'] = np.zeros(shape=(n, self.model.tsteps))
 
+        forcing_ip = dict()
+        forcing_ip['realizations'] = np.zeros(shape=(n, self.model.tsteps))
+
         vo2 = dict()
         vo2['realizations'] = np.zeros(shape=(n, self.model.tsteps))
 
@@ -249,7 +252,7 @@ class Replayer:
             (glucose['realizations'][r], x_end['realizations'][r], cgm['realizations'][r],
              insulin_bolus['realizations'][r], correction_bolus['realizations'][r],
              insulin_basal['realizations'][r], cho['realizations'][r], hypotreatments['realizations'][r],
-             meal_announcement['realizations'][r], x) = self.model.simulate(rbg_data=self.rbg_data,
+             meal_announcement['realizations'][r], forcing_ip['realizations'][r], x) = self.model.simulate(rbg_data=self.rbg_data,
                                                                             modality='replay',
                                                                             environment=self.environment,
                                                                             dss=self.dss,
@@ -283,6 +286,7 @@ class Replayer:
         results['cho'] = cho
         results['hypotreatments'] = hypotreatments
         results['meal_announcement'] = meal_announcement
+        results['forcing_ip'] = forcing_ip
         results['vo2'] = vo2
         results['sensors'] = copy.copy(self.sensors)
         results['rbg_data'] = copy.copy(self.rbg_data)

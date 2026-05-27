@@ -9,7 +9,7 @@ from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
 from py_replay_bg.dss import DSS
 from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
-    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
+    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler, no_ip_handler
 
 from py_replay_bg.data import ReplayBGData
 from py_replay_bg.sensors import CGM
@@ -297,6 +297,9 @@ class ReplayBG:
                enable_correction_boluses: bool = False,
                correction_boluses_handler: Callable = corrects_above_250_handler,
                correction_boluses_handler_params: Dict | None = None,
+               enable_forcing_ip: bool = False,
+               forcing_ip_handler: Callable = no_ip_handler,
+               forcing_ip_handler_params: Dict | None = None,
                save_suffix: str = '',
                save_workspace: bool = False,
                n_replay: int = 1000,
@@ -352,22 +355,29 @@ class ReplayBG:
         basal_handler: Callable, optional, default : default_basal_handler
             A callback function that implements a basal controller to be used during the replay of a given scenario.
         basal_handler_params: dict, optional, default : None
-            A dictionary that contains the parameters to pass to the basalHandler function. It also serves as memory
-            area for the basalHandler function.
-        enable_hypotreatments: boolean
+            A dictionary that contains the parameters to pass to the basal_handler function. It also serves as memory
+            area for the basal_handler function.
+        enable_hypotreatments: boolean, optional, default : False
             A flag that specifies whether to enable hypotreatments during the replay of a given scenario.
         hypotreatments_handler: Callable, optional, default : ada_hypotreatments_handler
             A callback function that implements a hypotreatment strategy during the replay of a given scenario.
         hypotreatments_handler_params: dict, optional, default : None
-            A dictionary that contains the parameters to pass to the hypoTreatmentsHandler function. It also serves
-            as memory area for the hypoTreatmentsHandler function.
-        enable_correction_boluses: boolean
+            A dictionary that contains the parameters to pass to the hypotreatments_handler function. It also serves
+            as memory area for the hypotreatments_handler function.
+        enable_correction_boluses: boolean, optional, default : False
             A flag that specifies whether to enable correction boluses during the replay of a given scenario.
         correction_boluses_handler: Callable, optional, default : corrects_above_250_handler
             A callback function that implements a corrective bolus strategy during the replay of a given scenario.
         correction_boluses_handler_params: dict, optional, default : None
-            A dictionary that contains the parameters to pass to the correctionBolusesHandler function. It also serves
-            as memory area for the correctionBolusesHandler function.
+            A dictionary that contains the parameters to pass to the correction_boluses_handler function. It also serves
+            as memory area for the correction_boluses_handler function.
+        enable_forcing_ip: boolean, optional, default : False
+            A flag that specifies whether to enable forcing ip during the replay of a given scenario.
+        forcing_ip_handler: Callable, optional, default : corrects_above_250_handler
+            A callback function that implements a forcing ip delivery strategy during the replay of a given scenario.
+        forcing_ip_handler_params: dict, optional, default : None
+            A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
+            as memory area for the forcing_ip_handler function.
 
         save_suffix : string
             A string to be attached as suffix to the resulting output files' name.
@@ -455,6 +465,9 @@ class ReplayBG:
             enable_correction_boluses=enable_correction_boluses,
             correction_boluses_handler=correction_boluses_handler,
             correction_boluses_handler_params=correction_boluses_handler_params,
+            enable_forcing_ip=enable_forcing_ip,
+            forcing_ip_handler=forcing_ip_handler,
+            forcing_ip_handler_params=forcing_ip_handler_params,
             save_suffix=save_suffix,
             save_workspace=save_workspace,
             n_replay=n_replay,
@@ -499,7 +512,6 @@ class ReplayBG:
                                       twinning_method=twinning_method,
                                       environment=self.environment,
                                       is_twin=False)
-
         # Initialize DSS
         dss = DSS(bw=bw,
                   meal_generator_handler=meal_generator_handler,
@@ -511,7 +523,11 @@ class ReplayBG:
                   hypotreatments_handler_params=hypotreatments_handler_params,
                   enable_correction_boluses=enable_correction_boluses,
                   correction_boluses_handler=correction_boluses_handler,
-                  correction_boluses_handler_params=correction_boluses_handler_params)
+                  correction_boluses_handler_params=correction_boluses_handler_params,
+                  enable_forcing_ip=enable_forcing_ip,
+                  forcing_ip_handler=forcing_ip_handler,
+                  forcing_ip_handler_params=forcing_ip_handler_params,
+                  )
 
         # Unpack data to optimize performance
         rbg_data = ReplayBGData(data=data, model=model,

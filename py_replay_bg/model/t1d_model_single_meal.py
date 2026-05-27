@@ -243,6 +243,7 @@ class T1DModelSingleMeal:
         np.ndarray,
         np.ndarray,
         np.ndarray,
+        np.ndarray,
         np.ndarray
     ]:
         """
@@ -315,6 +316,8 @@ class T1DModelSingleMeal:
         meal_announcement = rbg_data.meal_announcement * 1
         correction_bolus = bolus * 0
         hypotreatments = meal * 0
+
+        forcing_ip = bolus * 0
 
         # Shift the insulin vectors according to the delays
         bolus_delayed = np.append(np.zeros(shape=(mp.tau.__trunc__(),)), bolus)
@@ -486,6 +489,21 @@ class T1DModelSingleMeal:
                     # Update the correction_bolus event vectors
                     correction_bolus[k] = correction_bolus[k] + cb
 
+                if dss.enable_forcing_ip:
+                    # Call the hypotreatment handler
+                    fi, dss = dss.forcing_ip_handler(self.G[0:k],
+                                                         meal_announcement[0:k],
+                                                         meal_type[0:k],
+                                                         hypotreatments[0:k],
+                                                         bolus[0:k] * mp.to_g,
+                                                         basal[0:k] * mp.to_g,
+                                                         rbg_data.t_hour[0:k],
+                                                         forcing_ip[0:k],
+                                                         k - 1,
+                                                         dss)
+                    fi_mgkg = fi * mp.to_mgkg # to mU/kg
+                    forcing_ip[k] = forcing_ip[k] + fi_mgkg
+
                 if forcing_Ra is not None:
                     current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
                 else:
@@ -512,7 +530,7 @@ class T1DModelSingleMeal:
                                                                 mp.f,
                                                                 mp.kabs,
                                                                 mp.alpha,
-                                                                self.previous_Ra[k], current_forcing_Ra)
+                                                                self.previous_Ra[k], current_forcing_Ra, forcing_ip[k])
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -540,6 +558,7 @@ class T1DModelSingleMeal:
                     meal * mp.to_g,
                     hypotreatments,
                     meal_announcement,
+                    forcing_ip * mp.to_g,
                     self.x.copy())
 
         else:

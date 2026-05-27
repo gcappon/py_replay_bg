@@ -1,7 +1,7 @@
 from typing import Callable, Dict
 
 from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
-    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler
+    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler, no_ip_handler
 
 
 class DSS:
@@ -41,6 +41,13 @@ class DSS:
     correction_boluses_handler_params: dict
         A mutable dictionary that contains the parameters to pass to the correctionBolusesHandler function. It also
         serves as memory area for the correctionBolusesHandler function.
+    enable_forcing_ip: boolean, optional, default : False
+            A flag that specifies whether to enable forcing ip during the replay of a given scenario.
+    forcing_ip_handler: Callable, optional, default : corrects_above_250_handler
+        A callback function that implements a forcing ip delivery strategy during the replay of a given scenario.
+    forcing_ip_handler_params: dict, optional, default : None
+        A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
+        as memory area for the forcing_ip_handler function.
 
     Methods
     -------
@@ -61,6 +68,9 @@ class DSS:
                  enable_correction_boluses: bool = False,
                  correction_boluses_handler: Callable = corrects_above_250_handler,
                  correction_boluses_handler_params: Dict | None = None,
+                 enable_forcing_ip: bool = False,
+                 forcing_ip_handler: Callable = no_ip_handler,
+                 forcing_ip_handler_params: Dict | None = None,
                  ):
         """
         Constructs all the necessary attributes for the DSS object.
@@ -97,6 +107,13 @@ class DSS:
         correction_boluses_handler_params: dict, optional, default : None
             A mutable dictionary that contains the parameters to pass to the correctionBolusesHandler function.
             It also serves as memory area for the correctionBolusesHandler function.
+        enable_forcing_ip: boolean, optional, default : False
+            A flag that specifies whether to enable forcing ip during the replay of a given scenario.
+        forcing_ip_handler: Callable, optional, default : corrects_above_250_handler
+            A callback function that implements a forcing ip delivery strategy during the replay of a given scenario.
+        forcing_ip_handler_params: dict, optional, default : None
+            A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
+            as memory area for the forcing_ip_handler function.
         """
 
         # Patient's body weight
@@ -123,3 +140,8 @@ class DSS:
         self.enable_correction_boluses = enable_correction_boluses
         self.correction_boluses_handler = correction_boluses_handler
         self.correction_boluses_handler_params = correction_boluses_handler_params if correction_boluses_handler_params is not None else {}
+
+        # Forcing IP module parameters
+        self.enable_forcing_ip = enable_forcing_ip
+        self.forcing_ip_handler = forcing_ip_handler
+        self.forcing_ip_handler_params = forcing_ip_handler_params if forcing_ip_handler_params is not None else {}

@@ -69,6 +69,13 @@ class InputValidatorReplay:
     correction_boluses_handler_params: dict
         A dictionary that contains the parameters to pass to the correctionBolusesHandler function. It also serves
         as memory area for the correctionBolusesHandler function.
+    enable_forcing_ip: boolean
+            A flag that specifies whether to enable forcing ip during the replay of a given scenario.
+    forcing_ip_handler: Callable, optional, default : corrects_above_250_handler
+        A callback function that implements a forcing ip delivery strategy during the replay of a given scenario.
+    forcing_ip_handler_params: dict, optional, default : None
+        A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
+        as memory area for the forcing_ip_handler function.
 
     save_suffix : string
         A string to be attached as suffix to the resulting output files' name.
@@ -113,6 +120,9 @@ class InputValidatorReplay:
                  enable_correction_boluses: bool,
                  correction_boluses_handler: Callable,
                  correction_boluses_handler_params: Dict,
+                 enable_forcing_ip: bool,
+                 forcing_ip_handler: Callable,
+                 forcing_ip_handler_params: Dict,
                  save_suffix: str,
                  save_workspace: bool,
                  n_replay: int,
@@ -145,6 +155,9 @@ class InputValidatorReplay:
         self.enable_correction_boluses = enable_correction_boluses
         self.correction_boluses_handler = correction_boluses_handler
         self.correction_boluses_handler_params = correction_boluses_handler_params
+        self.enable_forcing_ip = enable_forcing_ip
+        self.forcing_ip_handler = forcing_ip_handler
+        self.forcing_ip_handler_params = forcing_ip_handler_params
         self.save_suffix = save_suffix
         self.save_workspace = save_workspace
         self.n_replay = n_replay
@@ -228,6 +241,16 @@ class InputValidatorReplay:
         # Validate the 'correction_boluses_handler_params' input
         CorrectionBolusesHandlerParamsValidator(
             correction_boluses_handler_params=self.correction_boluses_handler_params).validate()
+
+        # Validate the 'enable_forcing_ip' input
+        EnableForcingIPValidator(enable_forcing_ip=self.enable_forcing_ip).validate()
+
+        # Validate the 'forcing_ip_handler' input
+        ForcingIPHandlerValidator(forcing_ip_handler=self.forcing_ip_handler).validate()
+
+        # Validate the 'forcing_ip_handler_params' input
+        ForcingIPHandlerParamsValidator(
+            forcing_ip_handler_params=self.forcing_ip_handler_params).validate()
 
         # Validate the 'save_suffix' input
         SaveSuffixValidator(save_suffix=self.save_suffix).validate()

@@ -23,7 +23,7 @@ def twin_single_meal(tsteps, x,
                                                    x[:, k - 1],
                                                    logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                                    r2, kempt, kd, ka2, ke, p2, SI, VI,
-                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k], 0)
+                                                   VG, Ipb, SG, Gb, f, kabs, alpha, previous_Ra[k], 0, 0)
     return x
 
 
@@ -44,7 +44,7 @@ def twin_multi_meal(tsteps, x,
                                                   r2, kempt, kd, ka2, ke,
                                                   p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
                                                   f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha,
-                                                  previous_Ra[k], 0)
+                                                  previous_Ra[k], 0, 0)
 
     return x
 
@@ -68,7 +68,7 @@ def twin_multi_meal_extended(tsteps, x,
                                                   r2, kempt, kd, ka2, ke,
                                                   p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
                                                   f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha,
-                                                  previous_Ra[k], 0)
+                                                  previous_Ra[k], 0, 0)
 
     return x
 
@@ -76,7 +76,7 @@ def twin_multi_meal_extended(tsteps, x,
 def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
                                      logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                      r2, kempt, kd, ka2, ke, p2, SI, VI, VG, Ipb, SG, Gb,
-                                     f, kabs, alpha, previous_Ra, forcing_Ra):
+                                     f, kabs, alpha, previous_Ra, forcing_Ra, forcing_ip):
     """
     Internal function that simulates a step of the single-meal model using backward-euler method.
     """
@@ -102,7 +102,7 @@ def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
 
     xk[5] = (xkm1[5] + I) * kd_fac
     xk[6] = (xkm1[6] + kd * xk[5]) / (1 + ka2)
-    xk[7] = (xkm1[7] + ka2 * xk[6]) / (1 + ke)
+    xk[7] = (xkm1[7] + ka2 * xk[6] + forcing_ip) / (1 + ke)
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[7] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (kabs * xk[4] + previous_Ra + forcing_Ra) / VG) / (1 + SG + risk * xk[1])
@@ -115,7 +115,7 @@ def model_step_equations_single_meal(I, cho, hour_of_the_day, xkm1,
 def model_step_equations_multi_meal(I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_of_the_day, xkm1,
                                     logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                     r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, VI, VG, Ipb, SG, Gb,
-                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra, forcing_Ra):
+                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, alpha, previous_Ra, forcing_Ra, forcing_ip):
     """
     Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
@@ -166,7 +166,7 @@ def model_step_equations_multi_meal(I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_o
 
     xk[17] = (xkm1[17] + I) * kd_fac
     xk[18] = (xkm1[18] + kd * xk[17]) / (1 + ka2)
-    xk[19] = (xkm1[19] + ka2 * xk[18]) / (1 + ke)
+    xk[19] = (xkm1[19] + ka2 * xk[18] + forcing_ip) / (1 + ke)
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[19] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
@@ -180,7 +180,7 @@ def model_step_equations_multi_meal(I, cho_b, cho_l, cho_d, cho_s, cho_h, hour_o
 def model_step_equations_multi_meal_extended(I, cho_b, cho_l, cho_d, cho_s, cho_h, cho_b2, cho_l2, cho_s2, hour_of_the_day, is_second_day, xkm1,
                                     logGb_r2, log60_r2, risk_coeff, k1, k2, kd_fac,
                                     r2, kempt, kd, ka2, ke, p2, SI_B, SI_L, SI_D, SI_B2, VI, VG, Ipb, SG, Gb,
-                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha, previous_Ra, forcing_Ra):
+                                    f, kabs_B, kabs_L, kabs_D, kabs_S, kabs_H, kabs_B2, kabs_L2, kabs_S2, alpha, previous_Ra, forcing_Ra, forcing_ip):
     """
     Internal function that simulates a step of the multi-meal model using backward-euler method.
     """
@@ -244,7 +244,7 @@ def model_step_equations_multi_meal_extended(I, cho_b, cho_l, cho_d, cho_s, cho_
 
     xk[26] = (xkm1[26] + I) * kd_fac
     xk[27] = (xkm1[27] + kd * xk[26]) / (1 + ka2)
-    xk[28] = (xkm1[28] + ka2 * xk[27]) / (1 + ke)
+    xk[28] = (xkm1[28] + ka2 * xk[27] + forcing_ip) / (1 + ke)
 
     xk[1] = (xkm1[1] + p2 * (SI / VI) * (xk[28] - Ipb)) / (1 + p2)
     xk[0] = (xkm1[0] + SG * Gb + f * (
