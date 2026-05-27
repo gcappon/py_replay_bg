@@ -141,6 +141,7 @@ class Visualizer:
 
         cho_events = np.sum(replay_results['cho']['realizations'], axis=0) / replay_results['cho']['realizations'].shape[0]
         ht_events = np.sum(replay_results['hypotreatments']['realizations'], axis=0) / replay_results['hypotreatments']['realizations'].shape[0]
+        forcing_ra = np.sum(replay_results['forcing_ra']['realizations'], axis=0) / replay_results['forcing_ra']['realizations'].shape[0]
 
         markerline, stemlines, baseline = ax[1].stem(t, cho_events, basefmt='k:', label='CHO replay (Mean) [g/min]')
         plt.setp(stemlines, 'color', (70.0 / 255, 130.0 / 255, 180.0 / 255))
@@ -150,6 +151,7 @@ class Visualizer:
         plt.setp(stemlines, 'color', (0.0 / 255, 204.0 / 255, 204.0 / 255))
         plt.setp(markerline, 'color', (0.0 / 255, 204.0 / 255, 204.0 / 255))
 
+        ax[1].plot(t, forcing_ra, color='grey', linewidth=2, label='Forcing Ra [mg/kg/min]')
         ax[1].grid()
         ax[1].legend()
 

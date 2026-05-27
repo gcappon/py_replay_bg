@@ -207,6 +207,8 @@ class Replayer:
 
         forcing_ip = dict()
         forcing_ip['realizations'] = np.zeros(shape=(n, self.model.tsteps))
+        forcing_ra = dict()
+        forcing_ra['realizations'] = np.zeros(shape=(n, self.model.tsteps))
 
         vo2 = dict()
         vo2['realizations'] = np.zeros(shape=(n, self.model.tsteps))
@@ -252,11 +254,11 @@ class Replayer:
             (glucose['realizations'][r], x_end['realizations'][r], cgm['realizations'][r],
              insulin_bolus['realizations'][r], correction_bolus['realizations'][r],
              insulin_basal['realizations'][r], cho['realizations'][r], hypotreatments['realizations'][r],
-             meal_announcement['realizations'][r], forcing_ip['realizations'][r], x) = self.model.simulate(rbg_data=self.rbg_data,
+             meal_announcement['realizations'][r], forcing_ip['realizations'][r], forcing_ra['realizations'][r], x) = self.model.simulate(rbg_data=self.rbg_data,
                                                                             modality='replay',
                                                                             environment=self.environment,
                                                                             dss=self.dss,
-                                                                            sensors=self.sensors[r], forcing_Ra = self.forcing_glucose_input)
+                                                                            sensors=self.sensors[r], custom_forcing_Ra= self.forcing_glucose_input)
 
             # Update the t_offset of the cgm sensors
             self.sensors[r].cgm.add_offset((self.model.t - self.sensors[r].cgm.connected_at) / (24 * 60))
@@ -287,6 +289,7 @@ class Replayer:
         results['hypotreatments'] = hypotreatments
         results['meal_announcement'] = meal_announcement
         results['forcing_ip'] = forcing_ip
+        results['forcing_ra'] = forcing_ra
         results['vo2'] = vo2
         results['sensors'] = copy.copy(self.sensors)
         results['rbg_data'] = copy.copy(self.rbg_data)

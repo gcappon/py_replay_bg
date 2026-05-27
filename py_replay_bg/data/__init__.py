@@ -268,7 +268,7 @@ class ReplayBGData:
             self.basal[:] = model.model_parameters.u2ss
 
         if self.basal_source == 'dss':
-            self.basal[0] = self.basal_handler_start if self.basal_handler_start is not None else model.model_parameters.u2ss
+            self.basal[0] = self.basal_handler_start * model.model_parameters.to_mgkg if self.basal_handler_start  is not None else model.model_parameters.u2ss
 
     def __meal_setup(self,
                      data: pd.DataFrame,

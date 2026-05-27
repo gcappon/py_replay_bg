@@ -232,8 +232,9 @@ class T1DModelSingleMeal:
                  environment: Environment | None,
                  dss: DSS | None,
                  sensors: Sensors = None,
-                 forcing_Ra: CustomRaBase | None = None
+                 custom_forcing_Ra: CustomRaBase | None = None
                  ) -> np.ndarray | tuple[
+        np.ndarray,
         np.ndarray,
         np.ndarray,
         np.ndarray,
@@ -262,7 +263,7 @@ class T1DModelSingleMeal:
             An object that represents the hyperparameters of the dss. Unused during twinning.
         sensors: Sensors
             An object that represents the sensors used during simulation.
-        forcing_Ra: ForcingRaBase
+        custom_forcing_Ra: ForcingRaBase
             An object that represents the forcing Ra input to be used during simulation. Default is None.
 
         Returns
@@ -318,6 +319,7 @@ class T1DModelSingleMeal:
         hypotreatments = meal * 0
 
         forcing_ip = bolus * 0
+        forcing_ra = hypotreatments * 0
 
         # Shift the insulin vectors according to the delays
         bolus_delayed = np.append(np.zeros(shape=(mp.tau.__trunc__(),)), bolus)
@@ -490,7 +492,7 @@ class T1DModelSingleMeal:
                     correction_bolus[k] = correction_bolus[k] + cb
 
                 if dss.enable_forcing_ip:
-                    # Call the hypotreatment handler
+                    # Call the forcing ra handler
                     fi, dss = dss.forcing_ip_handler(self.G[0:k],
                                                          meal_announcement[0:k],
                                                          meal_type[0:k],
@@ -504,8 +506,23 @@ class T1DModelSingleMeal:
                     fi_mgkg = fi * mp.to_mgkg # to mU/kg
                     forcing_ip[k] = forcing_ip[k] + fi_mgkg
 
-                if forcing_Ra is not None:
-                    current_forcing_Ra = forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
+                if dss.enable_forcing_ra:
+                    # Call the forcing ra handler
+                    fa, dss = dss.forcing_ra_handler(self.G[0:k],
+                                                         meal_announcement[0:k],
+                                                         meal_type[0:k],
+                                                         hypotreatments[0:k],
+                                                         bolus[0:k] * mp.to_g,
+                                                         basal[0:k] * mp.to_g,
+                                                         rbg_data.t_hour[0:k],
+                                                         forcing_ra[0:k],
+                                                         k - 1,
+                                                         dss)
+                    forcing_ra[k] = forcing_ra[k] + fa # Unit is already ok
+
+
+                if custom_forcing_Ra is not None:
+                    current_forcing_Ra = custom_forcing_Ra.simulate_forcing_ra(rbg_data.t_hour[0:k], k)
                 else:
                     current_forcing_Ra = 0
 
@@ -530,7 +547,8 @@ class T1DModelSingleMeal:
                                                                 mp.f,
                                                                 mp.kabs,
                                                                 mp.alpha,
-                                                                self.previous_Ra[k], current_forcing_Ra, forcing_ip[k])
+                                                                self.previous_Ra[k], current_forcing_Ra, forcing_ip[k],
+                                                                forcing_ra[k])
 
                 self.G[k] = self.x[self.nx - 1, k]
 
@@ -545,8 +563,8 @@ class T1DModelSingleMeal:
                                                                                         24 * 60),
                                                                             past_ig=self.x[self.nx - 1, :k], )
 
-            if forcing_Ra is not None:
-                meal = np.array([m + f for m, f in zip(meal, forcing_Ra.get_events())])
+            if custom_forcing_Ra is not None:
+                meal = np.array([m + f for m, f in zip(meal, custom_forcing_Ra.get_events())])
 
             # TODO: add vo2
             return (self.x[0, :].copy(),
@@ -559,6 +577,7 @@ class T1DModelSingleMeal:
                     hypotreatments,
                     meal_announcement,
                     forcing_ip * mp.to_g,
+                    forcing_ra,
                     self.x.copy())
 
         else:

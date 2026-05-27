@@ -78,6 +78,13 @@ class InputValidatorReplay:
     forcing_ip_handler_params: dict, optional, default : None
         A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
         as memory area for the forcing_ip_handler function.
+    enable_forcing_ra: boolean
+            A flag that specifies whether to enable forcing ra during the replay of a given scenario.
+    forcing_ra_handler: Callable
+        A callback function that implements a forcing ra delivery strategy during the replay of a given scenario.
+    forcing_ra_handler_params: dict
+        A dictionary that contains the parameters to pass to the forcing_ra_handler function. It also serves
+        as memory area for the forcing_ra_handler function.
 
     save_suffix : string
         A string to be attached as suffix to the resulting output files' name.
@@ -126,6 +133,9 @@ class InputValidatorReplay:
                  enable_forcing_ip: bool,
                  forcing_ip_handler: Callable,
                  forcing_ip_handler_params: Dict,
+                 enable_forcing_ra: bool,
+                 forcing_ra_handler: Callable,
+                 forcing_ra_handler_params: Dict,
                  save_suffix: str,
                  save_workspace: bool,
                  n_replay: int,
@@ -162,6 +172,9 @@ class InputValidatorReplay:
         self.enable_forcing_ip = enable_forcing_ip
         self.forcing_ip_handler = forcing_ip_handler
         self.forcing_ip_handler_params = forcing_ip_handler_params
+        self.enable_forcing_ra = enable_forcing_ra
+        self.forcing_ra_handler = forcing_ra_handler
+        self.forcing_ra_handler_params = forcing_ra_handler_params
         self.save_suffix = save_suffix
         self.save_workspace = save_workspace
         self.n_replay = n_replay
@@ -258,6 +271,16 @@ class InputValidatorReplay:
         # Validate the 'forcing_ip_handler_params' input
         ForcingIPHandlerParamsValidator(
             forcing_ip_handler_params=self.forcing_ip_handler_params).validate()
+
+        # Validate the 'enable_forcing_ra' input
+        EnableForcingRaValidator(enable_forcing_ra=self.enable_forcing_ra).validate()
+
+        # Validate the 'forcing_ra_handler' input
+        ForcingRaHandlerValidator(forcing_ra_handler=self.forcing_ra_handler).validate()
+
+        # Validate the 'forcing_ra_handler_params' input
+        ForcingRaHandlerParamsValidator(
+            forcing_ra_handler_params=self.forcing_ra_handler_params).validate()
 
         # Validate the 'save_suffix' input
         SaveSuffixValidator(save_suffix=self.save_suffix).validate()

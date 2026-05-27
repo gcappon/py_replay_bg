@@ -248,6 +248,19 @@ class EnableForcingIPValidator:
             raise Exception("'enable_forcing_ip' input must be a boolean.'")
 
 
+class EnableForcingRaValidator:
+    """
+    Class for validating the 'enable_forcing_ra' input parameter of ReplayBG.
+    """
+
+    def __init__(self, enable_forcing_ra):
+        self.enable_forcing_ra = enable_forcing_ra
+
+    def validate(self):
+        if not isinstance(self.enable_forcing_ra, bool):
+            raise Exception("'enable_forcing_ra' input must be a boolean.'")
+
+
 class EnableHypotreatmentsValidator:
     """
     Class for validating the 'enable_hypotreatments' input parameter of ReplayBG.
@@ -325,6 +338,33 @@ class ForcingIPHandlerParamsValidator:
         if self.forcing_ip_handler_params is not None:
             if not isinstance(self.forcing_ip_handler_params, dict):
                 raise Exception("'forcing_ip_handler_params' input must be a dict.'")
+
+
+class ForcingRaHandlerValidator:
+    """
+    Class for validating the 'forcing_ra_handler' input parameter of ReplayBG.
+    """
+
+    def __init__(self, forcing_ra_handler):
+        self.forcing_ra_handler = forcing_ra_handler
+
+    def validate(self):
+        if not callable(self.forcing_ra_handler):
+            raise Exception("'forcing_ra_handler' input must be a function.'")
+
+
+class ForcingRaHandlerParamsValidator:
+    """
+    Class for validating the 'forcing_ra_handler_params' input parameter of ReplayBG.
+    """
+
+    def __init__(self, forcing_ra_handler_params):
+        self.forcing_ra_handler_params = forcing_ra_handler_params
+
+    def validate(self):
+        if self.forcing_ra_handler_params is not None:
+            if not isinstance(self.forcing_ra_handler_params, dict):
+                raise Exception("'forcing_ra_handler_params' input must be a dict.'")
 
 
 class HypotreatmentsHandlerValidator:

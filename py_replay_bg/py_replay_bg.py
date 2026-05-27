@@ -9,7 +9,7 @@ from py_replay_bg.model.t1d_model_multi_meal import T1DModelMultiMeal
 
 from py_replay_bg.dss import DSS
 from py_replay_bg.dss.default_dss_handlers import default_meal_generator_handler, standard_bolus_calculator_handler, \
-    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler, no_ip_handler
+    default_basal_handler, ada_hypotreatments_handler, corrects_above_250_handler, no_ip_handler, no_ra_handler
 
 from py_replay_bg.data import ReplayBGData
 from py_replay_bg.sensors import CGM
@@ -301,6 +301,9 @@ class ReplayBG:
                enable_forcing_ip: bool = False,
                forcing_ip_handler: Callable = no_ip_handler,
                forcing_ip_handler_params: Dict | None = None,
+               enable_forcing_ra: bool = False,
+               forcing_ra_handler: Callable = no_ra_handler,
+               forcing_ra_handler_params: Dict | None = None,
                save_suffix: str = '',
                save_workspace: bool = False,
                n_replay: int = 1000,
@@ -381,6 +384,13 @@ class ReplayBG:
         forcing_ip_handler_params: dict, optional, default : None
             A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
             as memory area for the forcing_ip_handler function.
+        enable_forcing_ra: boolean, optional, default : False
+            A flag that specifies whether to enable forcing ra during the replay of a given scenario.
+        forcing_ra_handler: Callable, optional, default : corrects_above_250_handler
+            A callback function that implements a forcing ra delivery strategy during the replay of a given scenario.
+        forcing_ra_handler_params: dict, optional, default : None
+            A dictionary that contains the parameters to pass to the forcing_ra_handler function. It also serves
+            as memory area for the forcing_ra_handler function.
 
         save_suffix : string
             A string to be attached as suffix to the resulting output files' name.
@@ -472,6 +482,9 @@ class ReplayBG:
             enable_forcing_ip=enable_forcing_ip,
             forcing_ip_handler=forcing_ip_handler,
             forcing_ip_handler_params=forcing_ip_handler_params,
+            enable_forcing_ra=enable_forcing_ra,
+            forcing_ra_handler=forcing_ra_handler,
+            forcing_ra_handler_params=forcing_ra_handler_params,
             save_suffix=save_suffix,
             save_workspace=save_workspace,
             n_replay=n_replay,
@@ -516,6 +529,7 @@ class ReplayBG:
                                       twinning_method=twinning_method,
                                       environment=self.environment,
                                       is_twin=False)
+
         # Initialize DSS
         dss = DSS(bw=bw,
                   meal_generator_handler=meal_generator_handler,
@@ -531,6 +545,9 @@ class ReplayBG:
                   enable_forcing_ip=enable_forcing_ip,
                   forcing_ip_handler=forcing_ip_handler,
                   forcing_ip_handler_params=forcing_ip_handler_params,
+                  enable_forcing_ra=enable_forcing_ra,
+                  forcing_ra_handler=forcing_ra_handler,
+                  forcing_ra_handler_params=forcing_ra_handler_params,
                   )
 
         # Unpack data to optimize performance
