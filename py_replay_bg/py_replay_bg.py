@@ -291,6 +291,7 @@ class ReplayBG:
                bolus_calculator_handler_params: Dict | None = None,
                basal_handler: Callable = default_basal_handler,
                basal_handler_params: Dict | None = None,
+               basal_handler_start: float | None = None,
                enable_hypotreatments: bool = False,
                hypotreatments_handler: Callable = ada_hypotreatments_handler,
                hypotreatments_handler_params: Dict | None = None,
@@ -357,6 +358,8 @@ class ReplayBG:
         basal_handler_params: dict, optional, default : None
             A dictionary that contains the parameters to pass to the basal_handler function. It also serves as memory
             area for the basal_handler function.
+        basal_handler_start: float, optional, default : None
+            The starting value of the basal handler at t=0 (U/min). Used only if basal_source is 'dss', otherwise ignored.
         enable_hypotreatments: boolean, optional, default : False
             A flag that specifies whether to enable hypotreatments during the replay of a given scenario.
         hypotreatments_handler: Callable, optional, default : ada_hypotreatments_handler
@@ -459,6 +462,7 @@ class ReplayBG:
             bolus_calculator_handler_params=bolus_calculator_handler_params,
             basal_handler=basal_handler,
             basal_handler_params=basal_handler_params,
+            basal_handler_start=basal_handler_start,
             enable_hypotreatments=enable_hypotreatments,
             hypotreatments_handler=hypotreatments_handler,
             hypotreatments_handler_params=hypotreatments_handler_params,
@@ -532,7 +536,8 @@ class ReplayBG:
         # Unpack data to optimize performance
         rbg_data = ReplayBGData(data=data, model=model,
                                 environment=self.environment,
-                                bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source)
+                                bolus_source=bolus_source, basal_source=basal_source, cho_source=cho_source,
+                                basal_handler_start=basal_handler_start)
 
         # Run replay
         if self.environment.verbose:

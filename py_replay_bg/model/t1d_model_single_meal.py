@@ -321,7 +321,7 @@ class T1DModelSingleMeal:
 
         # Shift the insulin vectors according to the delays
         bolus_delayed = np.append(np.zeros(shape=(mp.tau.__trunc__(),)), bolus)
-        basal_delayed = np.append(np.ones(shape=(mp.tau.__trunc__(),)) * basal[0], basal)
+        basal_delayed = np.append(np.ones(shape=(mp.tau.__trunc__(),)) * mp.u2ss, basal)
 
         # Shift the meal vector according to the delays
         meal_delayed = np.append(np.zeros(shape=(mp.beta.__trunc__(),)), meal)

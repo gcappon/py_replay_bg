@@ -55,6 +55,8 @@ class InputValidatorReplay:
     basal_handler_params: dict
         A dictionary that contains the parameters to pass to the basalHandler function. It also serves as memory
         area for the basalHandler function.
+    basal_handler_start: float
+            The starting value of the basal handler at t=0 (U/min). Used only if basal_source is 'dss', otherwise ignored.
     enable_hypotreatments: boolean
         A flag that specifies whether to enable hypotreatments during the replay of a given scenario.
     hypotreatments_handler: Callable
@@ -114,6 +116,7 @@ class InputValidatorReplay:
                  bolus_calculator_handler_params: Dict,
                  basal_handler: Callable,
                  basal_handler_params: Dict,
+                 basal_handler_start: float,
                  enable_hypotreatments: bool,
                  hypotreatments_handler: Callable,
                  hypotreatments_handler_params: Dict,
@@ -149,6 +152,7 @@ class InputValidatorReplay:
         self.bolus_calculator_handler_params = bolus_calculator_handler_params
         self.basal_handler = basal_handler
         self.basal_handler_params = basal_handler_params
+        self.basal_handler_start = basal_handler_start
         self.enable_hypotreatments = enable_hypotreatments
         self.hypotreatments_handler = hypotreatments_handler
         self.hypotreatments_handler_params = hypotreatments_handler_params
@@ -221,6 +225,9 @@ class InputValidatorReplay:
 
         # Validate the 'basal_handler_params' input
         BasalHandlerParamsValidator(basal_handler_params=self.basal_handler_params).validate()
+
+        # Validate the 'basal_handler_start' input
+        BasalHandlerStartValidator(basal_handler_start=self.basal_handler_start).validate()
 
         # Validate the 'enable_hypotreatments' input
         EnableHypotreatmentsValidator(enable_hypotreatments=self.enable_hypotreatments).validate()

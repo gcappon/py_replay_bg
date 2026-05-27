@@ -30,6 +30,17 @@ class BasalHandlerParamsValidator:
             if not isinstance(self.basal_handler_params, dict):
                 raise Exception("'basal_handler_params' input must be a dict.'")
 
+class BasalHandlerStartValidator:
+    """
+    Class for validating the 'basal_handler_start' input parameter of ReplayBG.
+    """
+
+    def __init__(self, basal_handler_start):
+        self.basal_handler_start = basal_handler_start
+
+    def validate(self):
+        if not (isinstance(self.basal_handler_start, float) or isinstance(self.basal_handler_start, int)):
+            raise Exception("'basal_handler_start' input must be a number.'")
 
 class BasalSourceValidator:
     """
