@@ -51,7 +51,7 @@ def test_replay_bg():
                                 save_suffix='_replay_map_dss',
                                 enable_correction_boluses=True,
                                 bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
-                                basal_source='dss', basal_handler_start=0,
+                                basal_source='dss',
                                 bolus_calculator_handler_params=bolus_calculator_handler_params)
 
     # Visualize and analyze results

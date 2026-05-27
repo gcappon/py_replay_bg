@@ -39,8 +39,8 @@ class BasalHandlerStartValidator:
         self.basal_handler_start = basal_handler_start
 
     def validate(self):
-        if not (isinstance(self.basal_handler_start, float) or isinstance(self.basal_handler_start, int)):
-            raise Exception("'basal_handler_start' input must be a number.'")
+        if not (isinstance(self.basal_handler_start, float) or isinstance(self.basal_handler_start, int) or self.basal_handler_start is None):
+            raise Exception("'basal_handler_start' input must be a number or None.'")
 
 class BasalSourceValidator:
     """
