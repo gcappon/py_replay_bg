@@ -75,7 +75,7 @@ data.t = pd.to_datetime(data['t'])
 ```
 
 ::: warning 
-Be careful, data in PyReplayBG must be provided in a `.csv.` file that must follow some strict requirements. For more 
+Be careful, data in PyReplayBG must be provided in a format that must follow some strict requirements. For more 
 information see the [Data Requirements](./data_requirements) page.
 :::
 
