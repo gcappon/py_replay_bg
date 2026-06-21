@@ -19,7 +19,7 @@ basal-bolus administration. Usually, this period of time spans maximum 6/8 hours
 starts near such main meal, and ends just before the subsequent main meal and/or after
 a reasonable amount of time.
 
-`data` must be saved in a `.csv` file and contain the following columns:
+`data` must be saved in a proper formatted file that contains the following columns:
 * `t`: the timestamps when data of the corresponding row were recorded (format 
 `DD-MMM-YYYY HH:mm:SS` for example `20-Dec-2013 10:35:00`). The sampling grid defined by the `t` column must be
 homogeneous, e.g., have a datapoint every 5 minutes. 
