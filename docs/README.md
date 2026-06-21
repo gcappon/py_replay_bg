@@ -36,7 +36,6 @@ to identify a personalized model from type 1 diabetes data and simulate glucose 
 therapies”, IEEE Transactions on Biomedical Engineering, vol. 70, no. 11, pp. 3105-3115, Nov 2023, 
 DOI: 10.1109/TBME.2023.3286856
 
-
 #### Conference papers and abstracts
 - G. Cappon, S. Del Favero, and A. Facchinetti “Extending the applicability of ReplayBG tool for digital
 twinning in type 1 diabetes from single-meal to multi-day scenarios” in the 24th Annual Diabetes Technology 
@@ -68,9 +67,9 @@ Engineering in Medicine and Biology Society – EMBC, Berlin, Germany, July 23-2
 ### Research using ReplayBG as component or validation tool
 
 #### Journal Papers
-- E. Pellizzari, G. Cappon, G. Nicolis, G. Sparacino, and A. Facchinetti “Developing effective machine learning models 
-for insulin bolus calculation in type 1 diabetes exploiting real-world data and digital twins” IEEE Transactions on 
-Biomedical Engineering, (under revision, submitted October 2024)
+- E. Pellizzari, G. Cappon, G. Nicolis, G. Sparacino, and A. Facchinetti “Developing effective machine learning 
+models for insulin bolus calculation in type 1 diabetes exploiting real-world data and digital twins” IEEE 
+Transactions on Biomedical Engineering, online ahead of print, Nov 2025, DOI: 10.1109/TBME.2025.3648515
 - E. Pellizzari, F. Prendin, G. Cappon, G. Sparacino, and A. Facchinetti, “drCORRECT: An algorithm for the 
 preventive administration of postprandial corrective insulin boluses in type 1 diabetes management” Journal of 
 Diabetes Science and Technology, online ahead of print, 2023, DOI: 10.1177/19322968231221768
@@ -82,6 +81,31 @@ to improve insulin bolus calculation in type 1 diabetes therapy” IEEE Transact
 vol. 68, no. 1, pp. 247-255, Jan 2021. DOI: 10.1109/TBME.2020.3004031
 
 #### Conference papers and abstracts
+- E. Pellizzari, M. Zanon, L. Cossu, P. Herrero, A. Facchinetti, and G. Cappon “Comparing Bayesian Methods for Robust 
+Parameter Estimation in Type 1 Diabetes Digital Twins” in the 19th International Conference on Advanced Technology 
+& Treatment for Diabetes – ATTD, Barcelona, Spain, March 11-14, 2026 (accepted for oral presentation).
+- L. Cossu, A. Ghiotto, E. Pellizzari, M. Martino, A. Deodati, R. Schiaffini, S. Cianfarani, A. Facchinetti, 
+G. Sparacino, and G. Cappon "Development of a Web Interface for Type 1 Diabetes Therapy Simulation Based on 
+Digital Twin" in the 19th International Conference on Advanced Technology & Treatment for Diabetes – ATTD, 
+Barcelona, Spain, March 11-14, 2026 (accepted for oral presentation).
+- E. Pellizzari, O. Mujahid, F. Prendin, O. Bustos, G. Cappon, A. Facchinetti, and J. Vehi “Enhancing the 
+physiological plausibility of GAN-generated blood glucose in type 1 diabetes with monotonicity constraints” 
+in the 2025 IEEE International Conference on Metrology for eXtended Reality, Artificial Intelligence and Neural 
+Engineering – MetroXRAINE, Ancona, Italy, October 22-24, 2025. 
+- E. Pellizzari, G. Cappon, G. Sparacino, A. Deodati, R. Schiaffini, S. Cianfarani, and A. Facchinetti 
+“Digital-twin based optimization of bolus insulin dosing in pediatric type 1 diabetes: an in silico feasibility 
+study” in the 47th Annual International Conference of the IEEE Engineering in Medicine and Biology Society – EMBC, 
+Copenhagen, Denmark, July 14-17, 2025.
+- L. Cossu, L. Semenzato, A. Facchinetti, and G. Cappon “Digital twin-based reinforcement learning for personalized 
+mealtime insulin dosing in pediatric diabetes: A proof of concept” in the 47th Annual International Conference of 
+the IEEE Engineering in Medicine and Biology Society – EMBC, Copenhagen, Denmark, July 14-17, 2025.
+- L. Cossu, E. Pellizzari, G. Cappon, A. Deodati, R. Schiaffini, G. Sparacino, S. Cianfarani, 
+and A. Facchinetti “Enhancing pediatric type 1 diabetes therapy using TWIN, a clinical decision 
+support system based on digital twins” in the 9th Congress of the National Group of Bioengineering – GNB, 
+Palermo, Italy, Jun 16-18, 2025.
+- E. Pellizzari, G. Cappon, G. Sparacino, and A. Facchinetti “Digital twin-based adaptive optimization of basal insulin
+in pediatric patients: A feasibility study” in the 18th International Conference on Advanced Technology & Treatment 
+for Diabetes – ATTD, Amsterdam, The Netherlands, March 19-22, 2025.
 - E. Pellizzari, G. Cappon, G. Nicolis, G. Sparacino, and A. Facchinetti “Exploiting real-world data and digital 
 twins to develop effective formulas for dosing insulin boluses in type 1 diabetes therapy” in the 24th Annual 
 Diabetes Technology Meeting – DTM, Burlingame, CA, USA, October 15-17, 2024.
