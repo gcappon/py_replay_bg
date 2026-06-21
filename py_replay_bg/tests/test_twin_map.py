@@ -36,15 +36,12 @@ def test_replay_bg():
     save_name = 'data_day_' + str(1)
 
     print("Twinning " + save_name)
-    data.cho[212] = 10
-    #data.cho_label[212] = 'H'
+
     # Run twinning procedure
-    #rbg.twin(data=data, bw=bw, save_name=save_name,
-    #         twinning_method='map',
-    #         parallelize=parallelize,
-    #         u2ss=u2ss)
-
-
+    rbg.twin(data=data, bw=bw, save_name=save_name,
+             twinning_method='map',
+             parallelize=parallelize,
+             u2ss=u2ss)
 
     # Replay the twin with the same input data
     replay_results = rbg.replay(data=data, bw=bw, save_name=save_name,

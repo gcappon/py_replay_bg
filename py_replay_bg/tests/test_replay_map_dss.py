@@ -9,6 +9,24 @@ from py_replay_bg.analyzer import Analyzer
 
 from py_replay_bg.dss.default_dss_handlers import standard_bolus_calculator_handler
 
+def prova_ht(
+        glucose: np.ndarray,
+        meal_announcement: np.ndarray,
+        meal_type: np.ndarray,
+        hypotreatments: np.ndarray,
+        bolus: np.ndarray,
+        basal: np.ndarray,
+        time: np.ndarray,
+        time_index: int,
+        dss: object
+        ) -> tuple[float, object]:
+    ht = 0
+    if glucose[time_index] < 40:
+        ht = dss.hypotreatments_handler_params['ht']
+    return ht, dss
+
+
+
 def test_replay_bg():
 
     # Set verbosity
@@ -41,7 +59,12 @@ def test_replay_bg():
     bolus_calculator_handler_params['cf'] = 25
     bolus_calculator_handler_params['gt'] = 110
 
+    data.bolus = data.bolus * 1.2
+
     print("Replaying " + save_name)
+
+    ht_params = dict()
+    ht_params['ht'] = 10
 
     # Replay the twin using a correction insulin bolus injection strategy and the standard formula for
     # meal insulin boluses
@@ -50,7 +73,10 @@ def test_replay_bg():
                                 save_workspace=True,
                                 save_suffix='_replay_map_dss',
                                 enable_correction_boluses=True,
-                                bolus_source='dss', bolus_calculator_handler=standard_bolus_calculator_handler,
+                                bolus_source='data', bolus_calculator_handler=standard_bolus_calculator_handler,
+                                enable_hypotreatments=True,
+                                hypotreatments_handler=prova_ht,
+                                hypotreatments_handler_params=ht_params,
                                 enable_forcing_ra=True,
                                 bolus_calculator_handler_params=bolus_calculator_handler_params)
 

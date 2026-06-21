@@ -129,8 +129,7 @@ class T1DModelMultiMeal:
         # Time constants during simulation
         self.ts = 1  # Integration step
         self.yts = environment.yts  # Measurement sampling time
-        self.t = int((np.array(data.t)[-1].astype(datetime) - np.array(data.t)[0].astype(datetime)) / (
-                60 * 1000000000) + self.yts)
+        self.t = int((data.t.iloc[-1] - data.t.iloc[0]).total_seconds() / 60 + self.yts)
         self.tsteps = self.t  # / self.ts
         self.tysteps = int(self.t / self.yts)
 

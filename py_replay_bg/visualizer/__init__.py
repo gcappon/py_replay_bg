@@ -276,7 +276,7 @@ class Visualizer:
                 replay_results[c][f] = np.concatenate(replay_results[c][f], axis=0)
 
         # Re-map cho, insulin, and vo2 data
-        category = ['cho', 'hypotreatments', 'insulin_bolus', 'correction_bolus', 'insulin_basal', 'vo2']
+        category = ['cho', 'hypotreatments', 'insulin_bolus', 'correction_bolus', 'insulin_basal', 'forcing_ip', 'forcing_ra', 'vo2']
 
         for c in category:
             replay_results[c] = dict()

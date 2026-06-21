@@ -1,0 +1,13 @@
+# Development / testing / publishing tooling.
+# Mirrors the [project.optional-dependencies] "dev" extra in pyproject.toml.
+# Install runtime + dev together with: pip install -e ".[dev]"
+-r requirements.txt
+pytest>=8.1
+pytest-cov>=5.0
+coverage>=7.4
+build>=1.2
+twine>=5.0
+
+# Security pins for transitive dependencies flagged by osv-scanner.
+# See requirements.txt for the full rationale.
+idna>=3.15 # CVE: PYSEC-2026-215 / GHSA-65pc-fj4g-8rjx (Medium, 6.9).
