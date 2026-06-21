@@ -96,6 +96,8 @@ class Visualizer:
         data: pd.DataFrame, optional, default: None
             Pandas dataframe which contains the data to be used by the tool. If present, adds glucose data to the
             glucose subplot.
+        title: str, optional, default: ''
+            A string with an optional title to be added to the figure.
 
         Returns
         -------
@@ -236,6 +238,8 @@ class Visualizer:
         data_interval: list, optional, default: None
             A list of pandas dataframe which contains the data to be used by the tool. If present, adds glucose data
             to the glucose subplot.
+        title: str, optional, default: ''
+            A string with an optional title to be added to the figure.
 
         Returns
         -------

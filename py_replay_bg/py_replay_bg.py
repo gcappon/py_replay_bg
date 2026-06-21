@@ -41,15 +41,18 @@ class ReplayBG:
 
     Methods
     -------
-    twin(data, bw, save_name, twinning_method, n_steps, save_chains, u2ss, x0, previous_data_name, parallelize,
-        n_processes)
+    twin(data, bw, save_name, twinning_method, extended, find_start_guess_first, n_steps, n_walkers, save_chains,
+        u2ss, x0, previous_data_name, parallelize, n_processes)
         Runs ReplayBG twinning procedure.
-    replay(data, bw, save_name, u2ss, x0, previous_data_name, twinning_method, bolus_source, basal_source,
+    replay(data, bw, save_name, x0, previous_data_name, twinning_method, bolus_source, basal_source,
         cho_source, meal_generator_handler, meal_generator_handler_params,
         bolus_calculator_handler, bolus_calculator_handler_params, basal_handler, basal_handler_params,
-        enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
-        enable_correction_boluses,  correction_boluses_handler, correction_boluses_handler_params,
-        save_suffix, save_workspace, n_replay, sensors)
+        basal_handler_start, enable_hypotreatments, hypotreatments_handler, hypotreatments_handler_params,
+        enable_correction_boluses, correction_boluses_handler, correction_boluses_handler_params,
+        enable_forcing_ip, forcing_ip_handler, forcing_ip_handler_params,
+        enable_forcing_ra, forcing_ra_handler, forcing_ra_handler_params,
+        save_suffix, save_workspace, n_replay, sensors, sensor_cgm, snack_absorption, snack_absorption_delay,
+        hypotreatment_absorption, custom_ra)
         Runs ReplayBG according to the chosen modality.
     """
 
@@ -142,7 +145,7 @@ class ReplayBG:
 
         u2ss : float, optional, default : None
             The steady state of the basal insulin infusion.
-        x0 : list, optional, default : None
+        x0 : np.ndarray, optional, default : None
             The initial model conditions.
         previous_data_name : str, optional, default : None
             The name of the previous data portion. This is used to correcly "transfer" the initial model conditions to
@@ -158,6 +161,8 @@ class ReplayBG:
 
         n_steps: int, optional, default : 50000
             Number of steps to use for the main chain. This is ignored if twinning_method is 'map'.
+        n_walkers: int, optional, default : 50
+            Number of walkers (i.e., parallel chains) to use. This is ignored if twinning_method is 'map'.
         save_chains: bool, optional, default : False
             A flag that specifies whether to save additional results of the mcmc twinning method. This is ignored if
             `twinning_method` is `'map'`.
@@ -326,9 +331,9 @@ class ReplayBG:
         save_name : str
         A string used to label, thus identify, each output file and result.
 
-        x0: list
-            The initial model state.
-        previous_data_name: str
+        x0: np.ndarray, optional, default : None
+            The initial model state. If None, the model starts at the default steady state.
+        previous_data_name: str, optional, default : None
             The name of the previous portion of data. To be used to initialize the initial conditions.
 
         twinning_method : str
@@ -379,14 +384,14 @@ class ReplayBG:
             as memory area for the correction_boluses_handler function.
         enable_forcing_ip: boolean, optional, default : False
             A flag that specifies whether to enable forcing ip during the replay of a given scenario.
-        forcing_ip_handler: Callable, optional, default : corrects_above_250_handler
+        forcing_ip_handler: Callable, optional, default : no_ip_handler
             A callback function that implements a forcing ip delivery strategy during the replay of a given scenario.
         forcing_ip_handler_params: dict, optional, default : None
             A dictionary that contains the parameters to pass to the forcing_ip_handler function. It also serves
             as memory area for the forcing_ip_handler function.
         enable_forcing_ra: boolean, optional, default : False
             A flag that specifies whether to enable forcing ra during the replay of a given scenario.
-        forcing_ra_handler: Callable, optional, default : corrects_above_250_handler
+        forcing_ra_handler: Callable, optional, default : no_ra_handler
             A callback function that implements a forcing ra delivery strategy during the replay of a given scenario.
         forcing_ra_handler_params: dict, optional, default : None
             A dictionary that contains the parameters to pass to the forcing_ra_handler function. It also serves

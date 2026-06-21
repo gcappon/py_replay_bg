@@ -29,7 +29,7 @@ defined as:
 rbg.twin(data: pd.DataFrame, bw: float, save_name: str,
      twinning_method: str = 'mcmc',
      extended: bool = False, find_start_guess_first: bool = False,
-     n_steps: int = 50000, save_chains: bool = False,
+     n_steps: int = 50000, n_walkers: int = 50, save_chains: bool = False,
      u2ss: float | None = None, x0: np.ndarray | None = None, previous_data_name: str | None = None,
      parallelize: bool = False, n_processes: int | None = None,
 ) -> None
@@ -57,6 +57,8 @@ For more information see below.
 running a round of MAP before twinning.
 - `n_steps`, optional, default: `50000`: An integer representing the number of steps to use by the `'mcmc'` procedure. 
 This is ignored if `twinning_method` is `'map'`.
+- `n_walkers`, optional, default: `50`: An integer representing the number of walkers (i.e., parallel chains) to use 
+by the `'mcmc'` procedure. This is ignored if `twinning_method` is `'map'`.
 - `save_chains`, optional, default : `False`: A boolean that specifies whether to save additional results of the mcmc 
 twinning method. . This is ignored if `twinning_method` is `'map'`.
 - `parallelize`, optional, default: `False`: A boolean that specifies whether to parallelize the twinning process. 

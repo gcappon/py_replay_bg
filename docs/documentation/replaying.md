@@ -39,21 +39,28 @@ rbg.replay(data: pd.DataFrame,
    bolus_calculator_handler_params: Dict | None = None,
    basal_handler: Callable = default_basal_handler,
    basal_handler_params: Dict | None = None,
+   basal_handler_start: float | None = None,
    enable_hypotreatments: bool = False,
    hypotreatments_handler: Callable = ada_hypotreatments_handler,
    hypotreatments_handler_params: Dict | None = None,
    enable_correction_boluses: bool = False,
    correction_boluses_handler: Callable = corrects_above_250_handler,
    correction_boluses_handler_params: Dict | None = None,
+   enable_forcing_ip: bool = False,
+   forcing_ip_handler: Callable = no_ip_handler,
+   forcing_ip_handler_params: Dict | None = None,
+   enable_forcing_ra: bool = False,
+   forcing_ra_handler: Callable = no_ra_handler,
+   forcing_ra_handler_params: Dict | None = None,
    save_suffix: str = '',
    save_workspace: bool = False,
    n_replay: int = 1000,
    sensors: list | None = None,
    sensor_cgm: CGM = Vettoretti19CGM,
-   snack_absorption=snack_absorption,
-   snack_absorption_delay=snack_absorption_delay,
-   hypotreatment_absorption=hypotreatment_absorption,
-   custom_Ra: CustomRaBase = None
+   snack_absorption: float = None,
+   snack_absorption_delay: int = None,
+   hypotreatment_absorption: float = None,
+   custom_ra: CustomRaBase = None
 ) -> Dict:
 ```
 ### Input parameters
@@ -99,6 +106,8 @@ below [Event handlers](#event-handlers) section.
 - `basal_handler_params`, optional, default: `None`: A Python dictionary that contains the parameters to pass to the 
 `basalHandler` function. It also serves as memory area for the `basalHandler` function. For more information see the below 
 [Event handlers](#event-handlers) section.
+- `basal_handler_start`, optional, default: `None`: A float representing the starting value of the basal handler at 
+`t=0` (U/min). Used only if `basal_source` is `'dss'`, otherwise ignored.
 - `enable_hypotreatments`, optional, default: `False`: A boolean that specifies whether to enable hypotreatments 
 during the replay simulation. For more information see the below [Event handlers](#event-handlers) section.
 - `hypotreatments_handler`, optional, default: `ada_hypotreatments_handler`: A callback function that implements a 
@@ -115,6 +124,20 @@ implements a corrective bolus strategy during the replay simulation. For more in
 - `correction_boluses_handler_params`, optional, default: `None`: A Python dictionary that contains the parameters 
 to pass to the `correctionBolusesHandler` function. It also serves as memory area for the `correctionBolusesHandler` 
 function. For more information see the below [Event handlers](#event-handlers) section.
+- `enable_forcing_ip`, optional, default: `False`: A boolean that specifies whether to enable forcing of the plasma 
+insulin (ip) during the replay simulation. For more information see the below [Event handlers](#event-handlers) section.
+- `forcing_ip_handler`, optional, default: `no_ip_handler`: A callback function that implements a forcing ip delivery 
+strategy during the replay simulation. For more information see the below [Event handlers](#event-handlers) section.
+- `forcing_ip_handler_params`, optional, default: `None`: A Python dictionary that contains the parameters to pass to 
+the `forcing_ip_handler` function. It also serves as memory area for the `forcing_ip_handler` function. For more 
+information see the below [Event handlers](#event-handlers) section.
+- `enable_forcing_ra`, optional, default: `False`: A boolean that specifies whether to enable forcing of the glucose 
+rate of appearance (ra) during the replay simulation. For more information see the below [Event handlers](#event-handlers) section.
+- `forcing_ra_handler`, optional, default: `no_ra_handler`: A callback function that implements a forcing ra delivery 
+strategy during the replay simulation. For more information see the below [Event handlers](#event-handlers) section.
+- `forcing_ra_handler_params`, optional, default: `None`: A Python dictionary that contains the parameters to pass to 
+the `forcing_ra_handler` function. It also serves as memory area for the `forcing_ra_handler` function. For more 
+information see the below [Event handlers](#event-handlers) section.
 - `save_suffix`, optional, default: `''`: A string to be attached as suffix to the resulting output files' name.
 - `save_workspace`, optional, default: `False`: A boolean that specifies whether to save the results of the simulation 
 in the `results/workspaces` folder or not. 
@@ -126,7 +149,7 @@ must coincide with the selected `n_replay`. Used when working with intervals. If
 - `snack_absorption`, optional, default: `None`: A value to override the identified snack absorption rate.
 - `snack_absorption_delay`, optional, default: `None`: A value to override the identified snack absorption delay (between 0 and 60 minutes)
 - `hypotreatment_absorption`, optional, default: `None`: A value to override the identified hypotreatment absorption rate.
-- `custom_Ra`, optional, default: `None`: An object that inherits from `CustomRaBase` and implements a custom glucose rate of appearance model to be used during the replay simulation. For more information see the [Custom Ra Models](./custom_ra.md) page.
+- `custom_ra`, optional, default: `None`: An object that inherits from `CustomRaBase` and implements a custom glucose rate of appearance model to be used during the replay simulation. For more information see the [Custom Ra Models](./custom_ra.md) page.
 - 
 ::: tip REMEMBER
 The total length of the simulation, `simulation_length`, is defined in minutes and determined by ReplayBG automatically 

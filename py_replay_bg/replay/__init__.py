@@ -72,6 +72,8 @@ class Replayer:
             The number of Monte Carlo replays to be performed. Ignored if twinning_method is 'map'.
         sensors: list[Sensors] | None
             The sensors to be used in each of the replay simulations.
+        sensor_cgm: CGM
+            The class of the CGM error model to be used during the replay simulations.
         environment: Environment
             An object that represents the hyperparameters to be used by ReplayBG.
         model: T1DModelSingleMeal | T1DModelMultiMeal
@@ -306,6 +308,8 @@ class Replayer:
         ----------
         model: T1DModelSingleMeal | T1DModelMultiMeal
             An object that represents the physiological model to be used by ReplayBG.
+        sensor_cgm: CGM
+            The class of the CGM error model to be used during the replay simulation.
 
         Returns
         -------

@@ -40,10 +40,8 @@ class Vettoretti19CGM(CGM):
         """
         Constructs all the necessary attributes for the CGM object.
 
-        Parameters
-        ----------
-        ts: int, optional, default = 5
-            The sample time of the cgm sensor (min).
+        The constructor takes no parameters. The CGM sample time `ts` (min) is inherited from the base `CGM` class
+        and defaults to 5.
         """
         super().__init__()
 
